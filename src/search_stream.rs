@@ -560,31 +560,22 @@ pub fn count_lines(buf: &[u8], eol: u8) -> u64 {
     const LO_USIZE: usize = LO_U64 as usize;
     const HI_USIZE: usize = HI_U64 as usize;
 
+    #[cfg(target_pointer_width = "16")]
+    const USIZE_BYTES: usize = 2;
     #[cfg(target_pointer_width = "32")]
     const USIZE_BYTES: usize = 4;
     #[cfg(target_pointer_width = "64")]
     const USIZE_BYTES: usize = 8;
 
-    fn count_eol(eol: usize) -> u64 {
+    fn mask_eol(eol: usize) -> usize {
         // Ideally, this would compile down to a POPCNT instruction, but
         // it looks like you need to set RUSTFLAGS="-C target-cpu=native"
         // (or target-feature=+popcnt) to get that to work. Bummer.
-        (eol.wrapping_sub(LO_USIZE) & !eol & HI_USIZE).count_ones() as u64
+        (eol.wrapping_sub(LO_USIZE) & !eol & HI_USIZE)
     }
 
-    #[cfg(target_pointer_width = "32")]
     fn repeat_byte(b: u8) -> usize {
-        let mut rep = (b as usize) << 8 | b as usize;
-        rep = rep << 16 | rep;
-        rep
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    fn repeat_byte(b: u8) -> usize {
-        let mut rep = (b as usize) << 8 | b as usize;
-        rep = rep << 16 | rep;
-        rep = rep << 32 | rep;
-        rep
+        (b as usize) * LO_USIZE
     }
 
     fn count_lines_slow(mut buf: &[u8], eol: u8) -> u64 {
@@ -611,18 +602,58 @@ pub fn count_lines(buf: &[u8], eol: u8) -> u64 {
     // ... and search the rest.
     let repeated_eol = repeat_byte(eol);
 
-    if len >= 2 * USIZE_BYTES {
-        while i <= len - (2 * USIZE_BYTES) {
-            unsafe {
-                let u = *(ptr.offset(i as isize) as *const usize);
-                let v = *(ptr.offset((i + USIZE_BYTES) as isize)
-                          as *const usize);
+    while i + 8 * USIZE_BYTES <= len {
+        unsafe {
+            let x0 = *(ptr.offset(i as isize) as *const usize);
+            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
+            let x2 = *(ptr.offset((i + USIZE_BYTES * 2) as isize) as *const usize);
+            let x3 = *(ptr.offset((i + USIZE_BYTES * 3) as isize) as *const usize);
+            let x4 = *(ptr.offset((i + USIZE_BYTES * 4) as isize) as *const usize);
+            let x5 = *(ptr.offset((i + USIZE_BYTES * 5) as isize) as *const usize);
+            let x6 = *(ptr.offset((i + USIZE_BYTES * 6) as isize) as *const usize);
+            let x7 = *(ptr.offset((i + USIZE_BYTES * 7) as isize) as *const usize);
 
-                count += count_eol(u ^ repeated_eol);
-                count += count_eol(v ^ repeated_eol);
-            }
-            i += USIZE_BYTES * 2;
+            count += (mask_eol(x0 ^ repeated_eol)
+                | mask_eol(x1 ^ repeated_eol) >> 1
+                | mask_eol(x2 ^ repeated_eol) >> 2
+                | mask_eol(x3 ^ repeated_eol) >> 3
+                | mask_eol(x4 ^ repeated_eol) >> 4
+                | mask_eol(x5 ^ repeated_eol) >> 5
+                | mask_eol(x6 ^ repeated_eol) >> 6
+                | mask_eol(x7 ^ repeated_eol) >> 7
+                ).count_ones() as u64;
         }
+        i += USIZE_BYTES * 8;
+    }
+    while i + 4 * USIZE_BYTES <= len {
+        unsafe {
+            let x0 = *(ptr.offset(i as isize) as *const usize);
+            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
+            let x2 = *(ptr.offset((i + USIZE_BYTES * 2) as isize) as *const usize);
+            let x3 = *(ptr.offset((i + USIZE_BYTES * 3) as isize) as *const usize);
+
+            count += (mask_eol(x0 ^ repeated_eol)
+                | mask_eol(x1 ^ repeated_eol) >> 1
+                | mask_eol(x2 ^ repeated_eol) >> 2
+                | mask_eol(x3 ^ repeated_eol) >> 3
+                ).count_ones() as u64;
+        }
+        i += USIZE_BYTES * 4;
+    }
+    while i + 2 * USIZE_BYTES <= len {
+        unsafe {
+            let x0 = *(ptr.offset(i as isize) as *const usize);
+            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
+
+            count += (mask_eol(x0 ^ repeated_eol) |
+                mask_eol(x1 ^ repeated_eol) >> 1).count_ones() as u64;
+        }
+        i += USIZE_BYTES * 2;
+    }
+    while i + USIZE_BYTES <= len {
+        let x0 = unsafe { *(ptr.offset(i as isize) as *const usize) };
+        count += mask_eol(x0 ^ repeated_eol).count_ones() as u64;
+        i += USIZE_BYTES;
     }
     count += count_lines_slow(&buf[i..], eol);
     count
