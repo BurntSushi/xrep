@@ -1,6 +1,6 @@
 require  'formula'
 class Ripgrep < Formula
-  version '0.1.15'
+  version '0.1.17'
   desc "Search tool like grep and The Silver Searcher."
   homepage "https://github.com/BurntSushi/ripgrep"
 
