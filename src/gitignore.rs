@@ -283,11 +283,14 @@ impl GitignoreBuilder {
         from: P,
         mut line: &str,
     ) -> Result<(), Error> {
-        if line.is_empty() || line.starts_with("#") {
+        if line.starts_with("#") {
             return Ok(());
         }
         if !line.ends_with("\\ ") {
             line = line.trim_right();
+        }
+        if line.is_empty() {
+            return Ok(());
         }
         let mut pat = Pattern {
             from: from.as_ref().to_path_buf(),
