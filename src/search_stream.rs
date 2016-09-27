@@ -4,6 +4,8 @@ printing matches. In particular, it searches the file in a streaming fashion
 using `read` calls and a (roughly) fixed size buffer.
 */
 
+extern crate bytecount;
+
 use std::cmp;
 use std::error::Error as StdError;
 use std::fmt;
@@ -544,114 +546,8 @@ pub fn is_binary(buf: &[u8]) -> bool {
 
 /// Count the number of lines in the given buffer.
 #[inline(never)]
-
-#[inline(never)]
 pub fn count_lines(buf: &[u8], eol: u8) -> u64 {
-    // This was adapted from code in the memchr crate. The specific benefit
-    // here is that we can avoid a branch in the inner loop because all we're
-    // doing is counting.
-
-    // The technique to count EOL bytes was adapted from:
-    // http://bits.stephan-brumme.com/null.html
-    const LO_U64: u64 = 0x0101010101010101;
-    const HI_U64: u64 = 0x8080808080808080;
-
-    // use truncation
-    const LO_USIZE: usize = LO_U64 as usize;
-    const HI_USIZE: usize = HI_U64 as usize;
-
-    #[cfg(target_pointer_width = "16")]
-    const USIZE_BYTES: usize = 2;
-    #[cfg(target_pointer_width = "32")]
-    const USIZE_BYTES: usize = 4;
-    #[cfg(target_pointer_width = "64")]
-    const USIZE_BYTES: usize = 8;
-
-    fn mask_eol(eol: usize) -> usize {
-        // Ideally, this would compile down to a POPCNT instruction, but
-        // it looks like you need to set RUSTFLAGS="-C target-cpu=native"
-        // (or target-feature=+popcnt) to get that to work. Bummer.
-        (eol.wrapping_sub(LO_USIZE) & !eol & HI_USIZE) >> 7
-    }
-
-    fn repeat_byte(b: u8) -> usize {
-        (b as usize) * LO_USIZE
-    }
-
-    fn count_lines_slow(mut buf: &[u8], eol: u8) -> u64 {
-        let mut count = 0;
-        while let Some(pos) = memchr(eol, buf) {
-            count += 1;
-            buf = &buf[pos + 1..];
-        }
-        count
-    }
-
-    let len = buf.len();
-    let ptr = buf.as_ptr();
-    let mut count = 0;
-
-    // Search up to an aligned boundary...
-    let align = (ptr as usize) & (USIZE_BYTES - 1);
-    let mut i = 0;
-    if align > 0 {
-        i = cmp::min(USIZE_BYTES - align, len);
-        count += count_lines_slow(&buf[..i], eol);
-    }
-
-    // ... and search the rest.
-    let repeated_eol = repeat_byte(eol);
-
-    while i + 8 * USIZE_BYTES <= len {
-        unsafe {
-            let x0 = *(ptr.offset(i as isize) as *const usize);
-            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
-            let x2 = *(ptr.offset((i + USIZE_BYTES * 2) as isize) as *const usize);
-            let x3 = *(ptr.offset((i + USIZE_BYTES * 3) as isize) as *const usize);
-            let x4 = *(ptr.offset((i + USIZE_BYTES * 4) as isize) as *const usize);
-            let x5 = *(ptr.offset((i + USIZE_BYTES * 5) as isize) as *const usize);
-            let x6 = *(ptr.offset((i + USIZE_BYTES * 6) as isize) as *const usize);
-            let x7 = *(ptr.offset((i + USIZE_BYTES * 7) as isize) as *const usize);
-
-            count += ((mask_eol(x0 ^ REP_NEWLINE) + mask_eol(x1 ^ REP_NEWLINE)
-                     + mask_eol(x2 ^ REP_NEWLINE) + mask_eol(x3 ^ REP_NEWLINE))
-                    + (mask_eol(x4 ^ REP_NEWLINE) + mask_eol(x5 ^ REP_NEWLINE)
-                     + mask_eol(x6 ^ REP_NEWLINE) + mask_eol(x7 ^ REP_NEWLINE))
-                ).wrapping_mul(LO_USIZE) >> ((USIZE_BYTES - 1) * 8);
-        }
-        i += USIZE_BYTES * 8;
-    }
-    while i + 4 * USIZE_BYTES <= len {
-        unsafe {
-            let x0 = *(ptr.offset(i as isize) as *const usize);
-            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
-            let x2 = *(ptr.offset((i + USIZE_BYTES * 2) as isize) as *const usize);
-            let x3 = *(ptr.offset((i + USIZE_BYTES * 3) as isize) as *const usize);
-
-            count += (mask_eol(x0 ^ REP_NEWLINE) + mask_eol(x1 ^ REP_NEWLINE)
-                    + mask_eol(x2 ^ REP_NEWLINE) + mask_eol(x3 ^ REP_NEWLINE)
-                ).wrapping_mul(LO_USIZE) >> ((USIZE_BYTES - 1) * 8)
-        }
-        i += USIZE_BYTES * 4;
-    }
-    while i + 2 * USIZE_BYTES <= len {
-        unsafe {
-            let x0 = *(ptr.offset(i as isize) as *const usize);
-            let x1 = *(ptr.offset((i + USIZE_BYTES) as isize) as *const usize);
-
-           count += (mask_eol(x0 ^ REP_NEWLINE) + mask_eol(x1 ^ REP_NEWLINE))
-                    .wrapping_mul(LO_USIZE) >> ((USIZE_BYTES - 1) * 8)
-         }
-        i += USIZE_BYTES * 2;
-    }
-    while i + USIZE_BYTES <= len {
-        let x0 = unsafe { *(ptr.offset(i as isize) as *const usize) };
-        count += mask_zero_bytes(x0 ^ REP_NEWLINE).wrapping_mul(LO_USIZE)
-                >> ((USIZE_BYTES - 1) * 8);
-        i += USIZE_BYTES;
-    }
-    count += count_lines_slow(&buf[i..], eol);
-    count
+    bytecount::count(buf, eol) as u64
 }
 
 /// Replaces a with b in buf.
