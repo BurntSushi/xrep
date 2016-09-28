@@ -165,6 +165,10 @@ Less common options:
         a list of matching files such as with --count, --files-with-matches
         and --files.
 
+    -o, --only-matching
+        Only print the text that matches the regex, with each match on a
+        separate line.
+
     -p, --pretty
         Alias for --color=always --heading -n.
 
@@ -236,6 +240,7 @@ pub struct RawArgs {
     flag_no_mmap: bool,
     flag_no_filename: bool,
     flag_null: bool,
+    flag_only_matching: bool,
     flag_pretty: bool,
     flag_quiet: bool,
     flag_regexp: Vec<String>,
@@ -283,6 +288,7 @@ pub struct Args {
     no_ignore_parent: bool,
     no_ignore_vcs: bool,
     null: bool,
+    only_matching: bool,
     quiet: bool,
     replace: Option<Vec<u8>>,
     text: bool,
@@ -415,6 +421,7 @@ impl RawArgs {
                 // --no-ignore implies --no-ignore-vcs
                 self.flag_no_ignore_vcs || no_ignore,
             null: self.flag_null,
+            only_matching: self.flag_only_matching,
             quiet: self.flag_quiet,
             replace: self.flag_replace.clone().map(|s| s.into_bytes()),
             text: text,
@@ -570,7 +577,8 @@ impl Args {
             .line_per_match(self.line_per_match)
             .quiet(self.quiet)
             .null(self.null)
-            .with_filename(self.with_filename);
+            .with_filename(self.with_filename)
+            .only_matching(self.only_matching);
         if let Some(ref rep) = self.replace {
             p = p.replace(rep.clone());
         }

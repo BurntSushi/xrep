@@ -42,6 +42,8 @@ pub struct Printer<W> {
     replace: Option<Vec<u8>>,
     /// Whether to prefix each match with the corresponding file name.
     with_filename: bool,
+    /// Whether to only print matching text.
+    only_matching: bool,
 
     /// The choice of Colours
     color_choice: ColorChoice
@@ -90,6 +92,7 @@ impl<W: Terminal + Send> Printer<W> {
             null: false,
             replace: None,
             with_filename: false,
+            only_matching: false,
             color_choice: ColorChoice::new()
         }
     }
@@ -160,6 +163,13 @@ impl<W: Terminal + Send> Printer<W> {
     /// When set, each match is prefixed with the file name that it came from.
     pub fn with_filename(mut self, yes: bool) -> Printer<W> {
         self.with_filename = yes;
+        self
+    }
+
+    /// When set, only the text that matches the regex is printed, with each match on a
+    /// separate line.
+    pub fn only_matching(mut self, yes: bool) -> Printer<W> {
+        self.only_matching = yes;
         self
     }
 
@@ -242,6 +252,13 @@ impl<W: Terminal + Send> Printer<W> {
         end: usize,
         line_number: Option<u64>,
     ) {
+        if self.only_matching {
+            for (match_start, match_end) in re.find_iter(&buf[start..end]) {
+                self.write(&buf[start + match_start..start + match_end]);
+                self.write_eol();
+            }
+            return;
+        }
         if !self.line_per_match {
             let column =
                 if self.column {

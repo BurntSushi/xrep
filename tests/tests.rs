@@ -925,3 +925,17 @@ fn type_list() {
     // This can change over time, so just make sure we print something.
     assert!(!lines.is_empty());
 }
+
+// See: https://github.com/BurntSushi/ripgrep/issues/34
+sherlock!(only_matching, r"of \w+", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--only-matching");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+of this
+of detective
+of luck
+of straw
+of cigar
+";
+    assert_eq!(lines, expected);
+});
