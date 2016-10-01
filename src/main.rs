@@ -102,10 +102,11 @@ fn run(args: Args) -> Result<u64> {
     }
 
     let out = Arc::new(Mutex::new(args.out()));
-    let quiet_matched = QuietMatched::new(args.quiet());
+    let quiet_matched = QuietMatched::new();
     let mut workers = vec![];
 
     let workq = {
+        let quiet = args.quiet();
         let (workq, stealer) = deque::new();
         for _ in 0..threads {
             let worker = MultiWorker {
@@ -120,7 +121,7 @@ fn run(args: Args) -> Result<u64> {
                     match_count: 0,
                 },
             };
-            workers.push(thread::spawn(move || worker.run()));
+            workers.push(thread::spawn(move || worker.run(quiet)));
         }
         workq
     };
@@ -271,9 +272,9 @@ struct Worker {
 }
 
 impl MultiWorker {
-    fn run(mut self) -> u64 {
+    fn run(mut self, quiet: bool) -> u64 {
         loop {
-            if self.quiet_matched.has_match() {
+            if quiet && self.quiet_matched.has_match() {
                 break;
             }
             let work = match self.chan_work.steal() {
@@ -294,7 +295,7 @@ impl MultiWorker {
             outbuf.clear();
             let mut printer = self.worker.args.printer(outbuf);
             self.worker.do_work(&mut printer, work);
-            if self.quiet_matched.set_match(self.worker.match_count > 0) {
+            if quiet && self.quiet_matched.set_match(self.worker.match_count > 0) {
                 break;
             }
             let outbuf = printer.into_inner();
@@ -382,26 +383,24 @@ impl Worker {
 }
 
 #[derive(Clone, Debug)]
-struct QuietMatched(Arc<Option<AtomicBool>>);
+struct QuietMatched(Arc<AtomicBool>);
 
 impl QuietMatched {
-    fn new(quiet: bool) -> QuietMatched {
-        let atomic = if quiet { Some(AtomicBool::new(false)) } else { None };
+    fn new() -> QuietMatched {
+        let atomic = AtomicBool::new(false);
         QuietMatched(Arc::new(atomic))
     }
 
     fn has_match(&self) -> bool {
-        match *self.0 {
-            None => false,
-            Some(ref matched) => matched.load(Ordering::SeqCst),
-        }
+        self.0.load(Ordering::SeqCst)
     }
 
     fn set_match(&self, yes: bool) -> bool {
-        match *self.0 {
-            None => false,
-            Some(_) if !yes => false,
-            Some(ref m) => { m.store(true, Ordering::SeqCst); true }
+        if !yes {
+            false
+        } else {
+            self.0.store(true, Ordering::SeqCst);
+            true
         }
     }
 }
