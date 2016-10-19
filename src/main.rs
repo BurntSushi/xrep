@@ -1,3 +1,4 @@
+extern crate ctrlc;
 extern crate deque;
 extern crate docopt;
 extern crate env_logger;
@@ -24,6 +25,7 @@ extern crate winapi;
 use std::error::Error;
 use std::fs::File;
 use std::io;
+use std::io::Write;
 use std::path::Path;
 use std::process;
 use std::result;
@@ -88,6 +90,18 @@ fn main() {
 
 fn run(args: Args) -> Result<u64> {
     let args = Arc::new(args);
+
+    let handler_args = args.clone();
+    ctrlc::set_handler(move || {
+        let stdout = io::stdout();
+        let mut stdout = stdout.lock();
+
+        let _ = handler_args.stdout().reset();
+        let _ = stdout.flush();
+
+        process::exit(1);
+    });
+
     let paths = args.paths();
     let threads = cmp::max(1, args.threads() - 1);
     let isone =

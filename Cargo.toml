@@ -24,6 +24,7 @@ name = "integration"
 path = "tests/tests.rs"
 
 [dependencies]
+ctrlc = "2.0"
 deque = "0.3"
 docopt = "0.6"
 env_logger = "0.3"
