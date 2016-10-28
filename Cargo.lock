@@ -2,6 +2,7 @@
 name = "ripgrep"
 version = "0.2.3"
 dependencies = [
+ "bytecount 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "docopt 0.6.86 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -29,6 +30,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "memchr 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "bytecount"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "deque"
@@ -240,6 +246,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
+"checksum bytecount 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30fdb3a5d6dc9e79dd193cddf8db5bcf8af45773d0ea8ef74dd5ab95079cc8fa"
 "checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
 "checksum docopt 0.6.86 (registry+https://github.com/rust-lang/crates.io-index)" = "4a7ef30445607f6fc8720f0a0a2c7442284b629cf0d049286860fae23e71c4d9"
 "checksum env_logger 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "15abd780e45b3ea4f76b4e9a26ff4843258dd8a3eed2775a0e7368c2e7936c2f"
