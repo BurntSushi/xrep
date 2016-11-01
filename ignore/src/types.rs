@@ -80,6 +80,7 @@ use pathutil::file_name;
 use {Error, Match};
 
 const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
+    ("agda", &["*.agda" "*.lagda"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
     ("awk", &["*.awk"]),
     ("c", &["*.c", "*.h", "*.H"]),
@@ -145,7 +146,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("sv", &["*.v", "*.vg", "*.sv", "*.svh", "*.h"]),
     ("swift", &["*.swift"]),
     ("tcl", &["*.tcl"]),
-    ("tex", &["*.tex", "*.cls", "*.sty"]),
+    ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib"]),
     ("ts", &["*.ts", "*.tsx"]),
     ("txt", &["*.txt"]),
     ("toml", &["*.toml", "Cargo.lock"]),
