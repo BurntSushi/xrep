@@ -80,7 +80,7 @@ use pathutil::file_name;
 use {Error, Match};
 
 const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
-    ("agda", &["*.agda" "*.lagda"]),
+    ("agda", &["*.agda", "*.lagda"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
     ("awk", &["*.awk"]),
     ("c", &["*.c", "*.h", "*.H"]),
