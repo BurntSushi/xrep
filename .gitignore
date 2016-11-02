@@ -4,3 +4,6 @@ target
 /grep/Cargo.lock
 /globset/Cargo.lock
 /ignore/Cargo.lock
+parts/
+prime/
+stage/

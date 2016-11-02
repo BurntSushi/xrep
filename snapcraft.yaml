@@ -1,0 +1,16 @@
+name: rg
+version: 0.2.6
+summary: a command line search tool
+description: |
+  ripgrep is a command line search tool that
+  combines the usability of The Silver Searcher
+  (an ack clone) with the raw speed of GNU grep.
+confinement: strict
+apps:
+  rg:
+    command: rg
+    plugs: [home]
+parts:
+  rg:
+    plugin: rust
+    source: .
