@@ -45,6 +45,7 @@ kernel32-sys = "0.2"
 winapi = "0.2"
 
 [features]
+nightly = ["lazy_static/nightly"]
 avx-accel = ["bytecount/avx-accel"]
 simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
 
