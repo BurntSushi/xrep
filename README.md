@@ -268,6 +268,12 @@ Or exclude files matching a particular glob:
 $ rg foo -g '!*.min.js'
 ```
 
+Search and return paths matching a particular glob (i.e., `-g` flag in ag/ack):
+
+```
+$ rg -g 'doc*' --files
+```
+
 Search only HTML and CSS files:
 
 ```

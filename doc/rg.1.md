@@ -52,6 +52,14 @@ Project home page: https://github.com/BurntSushi/ripgrep
   overrides any other ignore logic. Multiple glob flags may be used. Globbing
   rules match .gitignore globs. Precede a glob with a '!' to exclude it.
 
+    Values given to -g must be quoted or your shell will expand them and result
+    in unexpected behavior.
+
+    Combine with the --files flag to return matched filenames
+    (i.e., to replicate ack/ag's -g flag).
+
+    For example: rg -g '<pattern>' --files
+
 -h, --help
 : Show this usage message.
 
@@ -135,6 +143,10 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
 --files
 : Print each file that would be searched (but don't search).
+
+    Combine with the -g flag to return matched paths, for example:
+
+    rg -g '<pattern>' --files
 
 -l, --files-with-matches
 : Only show path of each file with matches.
