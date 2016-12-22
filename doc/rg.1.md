@@ -58,7 +58,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
     Combine with the --files flag to return matched filenames
     (i.e., to replicate ack/ag's -g flag).
 
-    For example: rg -g '<pattern>' --files
+    For example: rg -g '\<glob\>' --files
 
 -h, --help
 : Show this usage message.
@@ -146,7 +146,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
     Combine with the -g flag to return matched paths, for example:
 
-    rg -g '<pattern>' --files
+    rg -g '\<glob\>' --files
 
 -l, --files-with-matches
 : Only show path of each file with matches.
