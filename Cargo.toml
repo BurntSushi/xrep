@@ -49,6 +49,7 @@ clap = "2.18"
 lazy_static = "0.2"
 
 [features]
+nightly = ["lazy_static/nightly"]
 avx-accel = ["bytecount/avx-accel"]
 simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
 
