@@ -1,5 +1,5 @@
 /*!
-The search_stream module is responsible for searching a single file and
+The `search_stream` module is responsible for searching a single file and
 printing matches. In particular, it searches the file in a streaming fashion
 using `read` calls and a (roughly) fixed size buffer.
 */
@@ -272,7 +272,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             while !self.terminate() && self.inp.pos < self.inp.lastnl {
                 let matched = self.grep.read_match(
                     &mut self.last_match,
-                    &mut self.inp.buf[..self.inp.lastnl],
+                    &self.inp.buf[..self.inp.lastnl],
                     self.inp.pos);
                 if self.opts.invert_match {
                     let upto =
@@ -331,12 +331,12 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
                 lines);
         }
         if keep < self.last_printed {
-            self.last_printed = self.last_printed - keep;
+            self.last_printed -= keep;
         } else {
             self.last_printed = 0;
         }
         if keep <= self.last_line {
-            self.last_line = self.last_line - keep;
+            self.last_line -= keep;
         } else {
             self.count_lines(keep);
             self.last_line = 0;
@@ -457,7 +457,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
     }
 }
 
-/// InputBuffer encapsulates the logic of maintaining a ~fixed sized buffer
+/// `InputBuffer` encapsulates the logic of maintaining a ~fixed sized buffer
 /// on which to search. There are three key pieces of complexity:
 ///
 /// 1. We must be able to handle lines that are longer than the size of the
@@ -473,7 +473,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
 ///    may occur at the beginning of a buffer, in which case, lines at the end
 ///    of the previous contents of the buffer need to be printed.
 ///
-/// An InputBuffer is designed to be reused and isn't tied to any particular
+/// An `InputBuffer` is designed to be reused and isn't tied to any particular
 /// reader.
 pub struct InputBuffer {
     /// The number of bytes to attempt to read at a time. Once set, this is

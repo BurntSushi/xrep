@@ -1,6 +1,6 @@
 /*!
 The pathutil module provides platform specific operations on paths that are
-typically faster than the same operations as provided in std::path. In
+typically faster than the same operations as provided in `std::path`. In
 particular, we really want to avoid the costly operation of parsing the path
 into its constituent components. We give up on Windows, but on Unix, we deal
 with the raw bytes directly.
@@ -26,7 +26,7 @@ pub fn strip_prefix<'a, P: AsRef<Path> + ?Sized>(
     if prefix.len() > path.len() || prefix != &path[0..prefix.len()] {
         None
     } else {
-        Some(&Path::new(OsStr::from_bytes(&path[prefix.len()..])))
+        Some(Path::new(OsStr::from_bytes(&path[prefix.len()..])))
     }
 }
 

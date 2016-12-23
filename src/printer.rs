@@ -579,7 +579,7 @@ impl FromStr for Spec {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Spec, Error> {
-        let pieces: Vec<&str> = s.split(":").collect();
+        let pieces: Vec<&str> = s.split(':').collect();
         if pieces.len() <= 1 || pieces.len() > 3 {
             return Err(Error::InvalidFormat(s.to_string()));
         }

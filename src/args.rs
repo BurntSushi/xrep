@@ -26,7 +26,7 @@ use worker::{Worker, WorkerBuilder};
 
 use {Result, version};
 
-/// Args are transformed/normalized from ArgMatches.
+/// `Args` are transformed/normalized from `ArgMatches`.
 #[derive(Debug)]
 pub struct Args {
     paths: Vec<PathBuf>,
@@ -80,12 +80,12 @@ impl Args {
         let matches = app::app_short().get_matches();
         if matches.is_present("help-short") {
             let _ = ::app::app_short().print_help();
-            let _ = println!("");
+            println!("");
             process::exit(0);
         }
         if matches.is_present("help") {
             let _ = ::app::app_long().print_help();
-            let _ = println!("");
+            println!("");
             process::exit(0);
         }
         if matches.is_present("version") {
@@ -264,7 +264,7 @@ impl Args {
     }
 }
 
-/// ArgMatches wraps clap::ArgMatches and provides semantic meaning to several
+/// `ArgMatches` wraps `clap::ArgMatches` and provides semantic meaning to several
 /// options/flags.
 struct ArgMatches<'a>(clap::ArgMatches<'a>);
 
@@ -723,7 +723,7 @@ impl<'a> ArgMatches<'a> {
     /// Like values_of_lossy, but returns an empty vec if the flag is not
     /// present.
     fn values_of_lossy_vec(&self, name: &str) -> Vec<String> {
-        self.values_of_lossy(name).unwrap_or(vec![])
+        self.values_of_lossy(name).unwrap_or_else(Vec::new)
     }
 
     /// Safely reads an arg value with the given name, and if it's present,

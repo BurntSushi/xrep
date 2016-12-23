@@ -30,7 +30,7 @@ pub fn unescape(s: &str) -> Vec<u8> {
                     't' => { bytes.push(b'\t'); state = Literal; }
                     'x' => { state = HexFirst; }
                     c => {
-                        bytes.extend(&format!(r"\{}", c).into_bytes());
+                        bytes.extend(format!(r"\{}", c).into_bytes());
                         state = Literal;
                     }
                 }
@@ -41,7 +41,7 @@ pub fn unescape(s: &str) -> Vec<u8> {
                         state = HexSecond(c);
                     }
                     c => {
-                        bytes.extend(&format!(r"\x{}", c).into_bytes());
+                        bytes.extend(format!(r"\x{}", c).into_bytes());
                         state = Literal;
                     }
                 }
@@ -56,7 +56,7 @@ pub fn unescape(s: &str) -> Vec<u8> {
                     }
                     c => {
                         let original = format!(r"\x{}{}", first, c);
-                        bytes.extend(&original.into_bytes());
+                        bytes.extend(original.into_bytes());
                         state = Literal;
                     }
                 }
@@ -72,7 +72,7 @@ pub fn unescape(s: &str) -> Vec<u8> {
     match state {
         Escape => bytes.push(b'\\'),
         HexFirst => bytes.extend(b"\\x"),
-        HexSecond(c) => bytes.extend(&format!("\\x{}", c).into_bytes()),
+        HexSecond(c) => bytes.extend(format!("\\x{}", c).into_bytes()),
         Literal => {}
     }
     bytes

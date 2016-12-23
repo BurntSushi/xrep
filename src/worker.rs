@@ -199,7 +199,7 @@ impl Worker {
             Work::Stdin => {
                 let stdin = io::stdin();
                 let stdin = stdin.lock();
-                self.search(printer, &Path::new("<stdin>"), stdin)
+                self.search(printer, Path::new("<stdin>"), stdin)
             }
             Work::DirEntry(dent) => {
                 let mut path = dent.path();
