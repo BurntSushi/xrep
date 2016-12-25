@@ -56,7 +56,7 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
     };
     let flag = |name| arg(name).long(name);
 
-    App::new("ripgrep")
+    let mut app = App::new("ripgrep")
         .author(crate_authors!())
         .version(crate_version!())
         .about(ABOUT)
@@ -168,7 +168,16 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
              .multiple(true).number_of_values(1))
         .arg(flag("type-clear")
              .value_name("TYPE").takes_value(true)
-             .multiple(true).number_of_values(1))
+             .multiple(true).number_of_values(1));
+
+        if cfg!(feature = "uncompress") {
+            app = app
+                .arg(flag("uncompress"))
+                .arg(flag("uncompress-depth").value_name("NUM")
+                     .takes_value(true).validator(validate_number));
+        }
+
+        app
 }
 
 struct Usage {
@@ -457,6 +466,13 @@ lazy_static! {
               only clears the default tpye definitions that are found inside \
               of ripgrep.\n\nNote that this MUST be passed to every \
               invocation of ripgrep. Type settings are NOT persisted.");
+
+        if cfg!(feature = "uncompress") {
+            doc!(h, "uncompress",
+                 "Attempt to search within compressed files.");
+            doc!(h, "uncompress-depth",
+                 "Limit the depth of nested compressed files.");
+        }
 
         h
     };

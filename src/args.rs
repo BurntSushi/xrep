@@ -69,6 +69,7 @@ pub struct Args {
     threads: usize,
     type_list: bool,
     types: Types,
+    uncompress_depth: usize,
     with_filename: bool,
 }
 
@@ -218,6 +219,7 @@ impl Args {
             .no_messages(self.no_messages)
             .quiet(self.quiet)
             .text(self.text)
+            .uncompress_depth(self.uncompress_depth)
             .build()
     }
 
@@ -342,6 +344,9 @@ impl<'a> ArgMatches<'a> {
             threads: try!(self.threads()),
             type_list: self.is_present("type-list"),
             types: try!(self.types()),
+            uncompress_depth: try!(self.usize_of("uncompress-depth"))
+                .unwrap_or_else(
+                    || if self.is_present("uncompress") { 1 } else { 0 }),
             with_filename: with_filename,
         };
         if args.mmap {
