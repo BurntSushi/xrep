@@ -1,0 +1,113 @@
+#compdef rg
+
+_rg() {
+	typeset -A opt_args
+	local ret=1
+
+	local context curcontext="$curcontext" state line
+    _arguments -s -S -C \
+"*-e+[A regular expression used for searching.]" \
+"*--regexp+[A regular expression used for searching.]" \
+"--color+[When to use color. [default: auto]]: :(never auto always ansi)" \
+"*--colors+[Configure color settings and styles.]" \
+"*-g+[Include or exclude files/directories.]" \
+"*--glob+[Include or exclude files/directories.]" \
+"*-t+[Only search files matching TYPE.]" \
+"*--type+[Only search files matching TYPE.]" \
+"*-T+[Do not search files matching TYPE.]" \
+"*--type-not+[Do not search files matching TYPE.]" \
+"-A+[Show NUM lines after each match.]" \
+"--after-context+[Show NUM lines after each match.]" \
+"-B+[Show NUM lines before each match.]" \
+"--before-context+[Show NUM lines before each match.]" \
+"-C+[Show NUM lines before and after each match.]" \
+"--context+[Show NUM lines before and after each match.]" \
+"--context-separator+[Set the context separator string. [default: --]]" \
+"*-f+[Search for patterns from the given file.]" \
+"*--file+[Search for patterns from the given file.]" \
+"*--ignore-file+[Specify additional ignore files.]" \
+"-m+[Limit the number of matches.]" \
+"--max-count+[Limit the number of matches.]" \
+"--maxdepth+[Descend at most NUM directories.]" \
+"-r+[Replace matches with string given.]" \
+"--replace+[Replace matches with string given.]" \
+"-j+[The approximate number of threads to use.]" \
+"--threads+[The approximate number of threads to use.]" \
+"*--type-add+[Add a new glob for a file type.]" \
+"*--type-clear+[Clear globs for given file type.]" \
+"-h[Show short help output.]" \
+"--help[Show verbose help output.]" \
+"-V[Prints version information.]" \
+"--version[Prints version information.]" \
+"(-f --file -e --regexp --type-list)--files[Print each file that would be searched.]" \
+"(-f --file --files -e --regexp)--type-list[Show all supported file types.]" \
+"-a[Search binary files as if they were text.]" \
+"--text[Search binary files as if they were text.]" \
+"-c[Only show count of matches for each file.]" \
+"--count[Only show count of matches for each file.]" \
+"-F[Treat the pattern as a literal string.]" \
+"--fixed-strings[Treat the pattern as a literal string.]" \
+"-i[Case insensitive search.]" \
+"--ignore-case[Case insensitive search.]" \
+"-n[Show line numbers.]" \
+"--line-number[Show line numbers.]" \
+"-N[Suppress line numbers.]" \
+"--no-line-number[Suppress line numbers.]" \
+"-q[Do not print anything to stdout.]" \
+"--quiet[Do not print anything to stdout.]" \
+"*-u[Reduce the level of "smart" searching.]" \
+"*--unrestricted[Reduce the level of "smart" searching.]" \
+"-v[Invert matching.]" \
+"--invert-match[Invert matching.]" \
+"-w[Only show matches surrounded by word boundaries.]" \
+"--word-regexp[Only show matches surrounded by word boundaries.]" \
+"--column[Show column numbers]" \
+"--debug[Show debug messages.]" \
+"-l[Only show the path of each file with at least one match.]" \
+"--files-with-matches[Only show the path of each file with at least one match.]" \
+"--files-without-match[Only show the path of each file that contains zero matches.]" \
+"-H[Show file name for each match.]" \
+"--with-filename[Show file name for each match.]" \
+"--no-filename[Never show the file name for a match.]" \
+"--heading[Show matches grouped by each file.]" \
+"--no-heading[Don't group matches by each file.]" \
+"--hidden[Search hidden files and directories.]" \
+"-L[Follow symbolic links.]" \
+"--follow[Follow symbolic links.]" \
+"--mmap[Searching using memory maps when possible.]" \
+"--no-messages[Suppress all error messages.]" \
+"--no-mmap[Never use memory maps.]" \
+"--no-ignore[Don't respect ignore files.]" \
+"--no-ignore-parent[Don't respect ignore files in parent directories.]" \
+"--no-ignore-vcs[Don't respect VCS ignore files]" \
+"--null[Print NUL byte after file names]" \
+"-p[Alias for --color always --heading -n.]" \
+"--pretty[Alias for --color always --heading -n.]" \
+"-s[Search case sensitively.]" \
+"--case-sensitive[Search case sensitively.]" \
+"-S[Smart case search.]" \
+"--smart-case[Smart case search.]" \
+"--vimgrep[Show results in vim compatible format.]" \
+"1:: :_rg_commands" \
+&& ret=0
+    
+}
+
+(( $+functions[_rg_commands] )) ||
+_rg_commands() {
+    local commands; commands=(
+        "PATTERN:A regular expression used for searching." \
+"PATH:A file or directory to search." \
+    )
+    _describe -t commands 'rg commands' commands "$@"
+}
+(( $+functions[_rg_commands] )) ||
+_rg_commands() {
+    local commands; commands=(
+        "PATTERN:A regular expression used for searching." \
+"PATH:A file or directory to search." \
+    )
+    _describe -t commands 'rg commands' commands "$@"
+}
+
+_rg "$@"

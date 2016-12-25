@@ -1,0 +1,160 @@
+_rg() {
+    local i cur prev opts cmds
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    cmd=""
+    opts=""
+
+    for i in ${COMP_WORDS[@]}
+    do
+        case "${i}" in
+            rg)
+                cmd="rg"
+                ;;
+            
+            ripgrep)
+                cmd+="_ripgrep"
+                ;;
+            *)
+                ;;
+        esac
+    done
+
+    case "${cmd}" in
+        rg)
+            opts=" -h -V -e -a -c -F -g -i -n -N -q -t -T -u -v -w -A -B -C -f -l -H -L -m -p -r -s -S -j  --help --version --regexp --files --type-list --text --count --color --colors --fixed-strings --glob --ignore-case --line-number --no-line-number --quiet --type --type-not --unrestricted --invert-match --word-regexp --after-context --before-context --context --column --context-separator --debug --file --files-with-matches --files-without-match --with-filename --no-filename --heading --no-heading --hidden --ignore-file --follow --max-count --maxdepth --mmap --no-messages --no-mmap --no-ignore --no-ignore-parent --no-ignore-vcs --null --pretty --replace --case-sensitive --smart-case --threads --vimgrep --type-add --type-clear  <pattern> <path>... "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --regexp)
+                    COMPREPLY=("<pattern>...")
+                    return 0
+                    ;;
+                    -e)
+                    COMPREPLY=("<pattern>...")
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "never auto always ansi" -- ${cur}))
+                    return 0
+                    ;;
+                --colors)
+                    COMPREPLY=("<SPEC>...")
+                    return 0
+                    ;;
+                --glob)
+                    COMPREPLY=("<GLOB>...")
+                    return 0
+                    ;;
+                    -g)
+                    COMPREPLY=("<GLOB>...")
+                    return 0
+                    ;;
+                --type)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                    -t)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                --type-not)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                    -T)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                --after-context)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                    -A)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                --before-context)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                    -B)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                --context)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                    -C)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                --context-separator)
+                    COMPREPLY=("<ARG>")
+                    return 0
+                    ;;
+                --file)
+                    COMPREPLY=("<FILE>...")
+                    return 0
+                    ;;
+                    -f)
+                    COMPREPLY=("<FILE>...")
+                    return 0
+                    ;;
+                --ignore-file)
+                    COMPREPLY=("<FILE>...")
+                    return 0
+                    ;;
+                --max-count)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                    -m)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                --maxdepth)
+                    COMPREPLY=("<NUM>")
+                    return 0
+                    ;;
+                --replace)
+                    COMPREPLY=("<ARG>")
+                    return 0
+                    ;;
+                    -r)
+                    COMPREPLY=("<ARG>")
+                    return 0
+                    ;;
+                --threads)
+                    COMPREPLY=("<ARG>")
+                    return 0
+                    ;;
+                    -j)
+                    COMPREPLY=("<ARG>")
+                    return 0
+                    ;;
+                --type-add)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                --type-clear)
+                    COMPREPLY=("<TYPE>...")
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        
+    esac
+}
+
+complete -F _rg -o bashdefault -o default rg
