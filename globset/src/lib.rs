@@ -202,7 +202,7 @@ fn new_regex(pat: &str) -> Result<Regex, Error> {
         .dot_matches_new_line(true)
         .size_limit(10 * (1 << 20))
         .dfa_size_limit(10 * (1 << 20))
-        .compile()
+        .build()
         .map_err(|err| Error::Regex(err.to_string()))
 }
 

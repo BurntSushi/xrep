@@ -473,7 +473,7 @@ impl<'a> ArgMatches<'a> {
     /// unchanged.
     fn literal_pattern(&self, pat: String) -> String {
         if self.is_present("fixed-strings") {
-            regex::quote(&pat)
+            regex::escape(&pat)
         } else {
             pat
         }

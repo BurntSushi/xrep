@@ -167,16 +167,18 @@ impl GrepBuilder {
     /// Creates a new regex from the given expression with the current
     /// configuration.
     fn regex(&self, expr: &Expr) -> Result<Regex> {
-        self.regex_build(RegexBuilder::new(&expr.to_string()).unicode(true))
+        let mut builder = RegexBuilder::new(&expr.to_string());
+        builder.unicode(true);
+        self.regex_build(builder)
     }
 
     /// Builds a new regex from the given builder using the caller's settings.
-    fn regex_build(&self, builder: RegexBuilder) -> Result<Regex> {
+    fn regex_build(&self, mut builder: RegexBuilder) -> Result<Regex> {
         builder
             .multi_line(true)
             .size_limit(self.opts.size_limit)
             .dfa_size_limit(self.opts.dfa_size_limit)
-            .compile()
+            .build()
             .map_err(From::from)
     }
 
@@ -368,11 +370,11 @@ mod tests {
     fn find_lines(pat: &str, haystack: &[u8]) -> Vec<Match> {
         let re = Regex::new(pat).unwrap();
         let mut lines = vec![];
-        for (s, e) in re.find_iter(haystack) {
-            let start = memrchr(b'\n', &haystack[..s])
+        for m in re.find_iter(haystack) {
+            let start = memrchr(b'\n', &haystack[..m.start()])
                         .map_or(0, |i| i + 1);
-            let end = memchr(b'\n', &haystack[e..])
-                      .map_or(haystack.len(), |i| e + i + 1);
+            let end = memchr(b'\n', &haystack[m.end()..])
+                      .map_or(haystack.len(), |i| m.end() + i + 1);
             lines.push(Match {
                 start: start,
                 end: end,

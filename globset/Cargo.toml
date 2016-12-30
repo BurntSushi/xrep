@@ -24,7 +24,7 @@ fnv = "1.0"
 lazy_static = "0.2"
 log = "0.3"
 memchr = "1"
-regex = "0.1.77"
+regex = "0.2.0"
 
 [dev-dependencies]
 glob = "0.2"

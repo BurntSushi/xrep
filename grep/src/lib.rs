@@ -78,6 +78,6 @@ impl From<regex::Error> for Error {
 
 impl From<syntax::Error> for Error {
     fn from(err: syntax::Error) -> Error {
-        Error::Regex(regex::Error::Syntax(err))
+        Error::Regex(regex::Error::Syntax(err.to_string()))
     }
 }

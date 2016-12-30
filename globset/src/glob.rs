@@ -666,7 +666,7 @@ fn bytes_to_escaped_literal(bs: &[u8]) -> String {
     let mut s = String::with_capacity(bs.len());
     for &b in bs {
         if b <= 0x7F {
-            s.push_str(&regex::quote(&(b as char).to_string()));
+            s.push_str(&regex::escape(&(b as char).to_string()));
         } else {
             s.push_str(&format!("\\x{:02x}", b));
         }

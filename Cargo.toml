@@ -27,7 +27,7 @@ path = "tests/tests.rs"
 [dependencies]
 bytecount = "0.1.4"
 clap = "2.19.0"
-env_logger = "0.3"
+env_logger = { version = "0.3", default-features = false }
 grep = { version = "0.1.4", path = "grep" }
 ignore = { version = "0.1.5", path = "ignore" }
 lazy_static = "0.2"
@@ -36,7 +36,7 @@ log = "0.3"
 memchr = "1"
 memmap = "0.5"
 num_cpus = "1"
-regex = "0.1.77"
+regex = "0.2.0"
 termcolor = { version = "0.1.0", path = "termcolor" }
 
 [target.'cfg(windows)'.dependencies]

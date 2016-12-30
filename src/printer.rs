@@ -210,15 +210,20 @@ impl<W: WriteColor> Printer<W> {
             let column =
                 if self.column {
                     Some(re.find(&buf[start..end])
-                           .map(|(s, _)| s).unwrap_or(0) as u64)
+                           .map(|m| m.start()).unwrap_or(0) as u64)
                 } else {
                     None
                 };
             return self.write_match(
                 re, path, buf, start, end, line_number, column);
         }
-        for (s, _) in re.find_iter(&buf[start..end]) {
-            let column = if self.column { Some(s as u64) } else { None };
+        for m in re.find_iter(&buf[start..end]) {
+            let column =
+                if self.column {
+                    Some(m.start() as u64)
+                } else {
+                    None
+                };
             self.write_match(
                 re, path.as_ref(), buf, start, end, line_number, column);
         }
@@ -265,12 +270,12 @@ impl<W: WriteColor> Printer<W> {
             return;
         }
         let mut last_written = 0;
-        for (s, e) in re.find_iter(buf) {
-            self.write(&buf[last_written..s]);
+        for m in re.find_iter(buf) {
+            self.write(&buf[last_written..m.start()]);
             let _ = self.wtr.set_color(self.colors.matched());
-            self.write(&buf[s..e]);
+            self.write(&buf[m.start()..m.end()]);
             let _ = self.wtr.reset();
-            last_written = e;
+            last_written = m.end();
         }
         self.write(&buf[last_written..]);
     }
