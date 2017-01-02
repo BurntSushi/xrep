@@ -66,6 +66,22 @@ assert!(matcher.matched("x.foo", false).is_whitelist());
 // This is ignored because we only selected the `foo` file type.
 assert!(matcher.matched("x.bar", false).is_ignore());
 ```
+
+We can also add file type definitions based on other definitions.
+
+```
+use ignore::types::TypesBuilder;
+
+let mut builder = TypesBuilder::new();
+builder.add_defaults();
+builder.add("foo", "*.foo");
+builder.add_def("bar:include:foo,cpp");
+builder.select("bar");
+let matcher = builder.build().unwrap();
+
+assert!(matcher.matched("x.foo", false).is_whitelist());
+assert!(matcher.matched("y.cpp", false).is_whitelist());
+```
 */
 
 use std::cell::RefCell;
@@ -74,6 +90,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
+use regex::Regex;
 use thread_local::ThreadLocal;
 
 use pathutil::file_name;
@@ -218,7 +235,7 @@ impl<'a> Glob<'a> {
 /// File type definitions can be retrieved in aggregate from a file type
 /// matcher. File type definitions are also reported when its responsible
 /// for a match.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FileTypeDef {
     name: String,
     globs: Vec<String>,
@@ -491,10 +508,13 @@ impl TypesBuilder {
     /// Add a new file type definition. `name` can be arbitrary and `pat`
     /// should be a glob recognizing file paths belonging to the `name` type.
     ///
-    /// If `name` is `all` or otherwise contains a `:`, then an error is
-    /// returned.
+    /// If `name` is `all` or otherwise contains any character that is not a
+    /// Unicode letter or number, then an error is returned.
     pub fn add(&mut self, name: &str, glob: &str) -> Result<(), Error> {
-        if name == "all" || name.contains(':') {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"^[\pL\pN]+$").unwrap();
+        };
+        if name == "all" || !RE.is_match(name) {
             return Err(Error::InvalidDefinition);
         }
         let (key, glob) = (name.to_string(), glob.to_string());
@@ -504,15 +524,48 @@ impl TypesBuilder {
         Ok(())
     }
 
-    /// Add a new file type definition specified in string form. The format
-    /// is `name:glob`. Names may not include a colon.
+    /// Add a new file type definition specified in string form. There are two
+    /// valid formats:
+    /// 1. `{name}:{glob}`.  This defines a 'root' definition that associates the
+    ///     given name with the given glob.
+    /// 2. `{name}:include:{comma-separated list of already defined names}.
+    ///     This defines an 'include' definition that associates the given name
+    ///     with the definitions of the given existing types.
+    /// Names may not include any characters that are not
+    /// Unicode letters or numbers.
     pub fn add_def(&mut self, def: &str) -> Result<(), Error> {
-        let name: String = def.chars().take_while(|&c| c != ':').collect();
-        let pat: String = def.chars().skip(name.chars().count() + 1).collect();
-        if name.is_empty() || pat.is_empty() {
-            return Err(Error::InvalidDefinition);
+        let parts: Vec<&str> = def.split(':').collect();
+        match parts.len() {
+            2 => {
+                let name = parts[0];
+                let glob = parts[1];
+                if name.is_empty() || glob.is_empty() {
+                    return Err(Error::InvalidDefinition);
+                }
+                self.add(name, glob)
+            }
+            3 => {
+                let name = parts[0];
+                let types_string = parts[2];
+                if name.is_empty() || parts[1] != "include" || types_string.is_empty() {
+                    return Err(Error::InvalidDefinition);
+                }
+                let types = types_string.split(',');
+                // Check ahead of time to ensure that all types specified are
+                // present and fail fast if not.
+                if types.clone().any(|t| !self.types.contains_key(t)) {
+                    return Err(Error::InvalidDefinition);
+                }
+                for type_name in types {
+                    let globs = self.types.get(type_name).unwrap().globs.clone();
+                    for glob in globs {
+                        self.add(name, &glob)?;
+                    }
+                }
+                Ok(())
+            }
+            _ => Err(Error::InvalidDefinition)
         }
-        self.add(&name, &pat)
     }
 
     /// Add a set of default file type definitions.
@@ -568,6 +621,7 @@ mod tests {
             "rust:*.rs",
             "js:*.js",
             "foo:*.{rs,foo}",
+            "combo:include:html,rust"
         ]
     }
 
@@ -578,10 +632,35 @@ mod tests {
     matched!(match5, types(), vec![], vec![], "index.html");
     matched!(match6, types(), vec![], vec!["rust"], "index.html");
     matched!(match7, types(), vec!["foo"], vec!["rust"], "main.foo");
+    matched!(match8, types(), vec!["combo"], vec![], "index.html");
+    matched!(match9, types(), vec!["combo"], vec![], "lib.rs");
 
     matched!(not, matchnot1, types(), vec!["rust"], vec![], "index.html");
     matched!(not, matchnot2, types(), vec![], vec!["rust"], "main.rs");
     matched!(not, matchnot3, types(), vec!["foo"], vec!["rust"], "main.rs");
     matched!(not, matchnot4, types(), vec!["rust"], vec!["foo"], "main.rs");
     matched!(not, matchnot5, types(), vec!["rust"], vec!["foo"], "main.foo");
+    matched!(not, matchnot6, types(), vec!["combo"], vec![], "leftpad.js");
+
+    #[test]
+    fn test_invalid_defs() {
+        let mut btypes = TypesBuilder::new();
+        for tydef in types() {
+            btypes.add_def(tydef).unwrap();
+        }
+        // Preserve the original definitions for later comparison.
+        let original_defs = btypes.definitions();
+        let bad_defs = vec![
+            // Reference to type that does not exist
+            "combo:include:html,python",
+            // Bad format
+            "combo:foobar:html,rust",
+            ""
+        ];
+        for def in bad_defs {
+            assert!(btypes.add_def(def).is_err());
+            // Ensure that nothing changed, even if some of the includes were valid.
+            assert_eq!(btypes.definitions(), original_defs);
+        }
+    }
 }

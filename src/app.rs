@@ -445,11 +445,24 @@ lazy_static! {
               globs defined inside of ripgrep.\n\nNote that this MUST be \
               passed to every invocation of ripgrep. Type settings are NOT \
               persisted.\n\nExample: \
-              rg --type-add 'foo:*.foo' -tfoo PATTERN.");
+              rg --type-add 'foo:*.foo' -tfoo PATTERN.\n\n\
+              --type-add can also be used to include rules from other types \
+              with the special include directive. The include directive \
+              permits specifying one or more other type names (separated by a \
+              comma) that have been defined and its rules will automatically \
+              be imported into the type specified. For example, to create a \
+              type called src that matches C++, Python and Markdown files, one \
+              can use:\n\n\
+              --type-add 'src:include:cpp,py,md'\n\n\
+              Additional glob rules can still be added to the src type by \
+              using the --type-add flag again:\n\n\
+              --type-add 'src:include:cpp,py,md' --type-add 'src:*.foo'\n\n\
+              Note that type names must consist only of Unicode letters or \
+              numbers. Punctuation characters are not allowed.");
         doc!(h, "type-clear",
              "Clear globs for given file type.",
              "Clear the file type globs previously defined for TYPE. This \
-              only clears the default tpye definitions that are found inside \
+              only clears the default type definitions that are found inside \
               of ripgrep.\n\nNote that this MUST be passed to every \
               invocation of ripgrep. Type settings are NOT persisted.");
 
