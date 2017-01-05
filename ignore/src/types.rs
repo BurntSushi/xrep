@@ -142,6 +142,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("pdf", &["*.pdf"]),
     ("php", &["*.php", "*.php3", "*.php4", "*.php5", "*.phtml"]),
     ("pod", &["*.pod"]),
+    ("ps", &["*.cdxml", "*.ps1", "*.ps1xml", "*.psd1", "*.psm1"]),
     ("py", &["*.py"]),
     ("readme", &["README*", "*README"]),
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
