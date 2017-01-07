@@ -308,6 +308,17 @@ sherlock!(file_type_add, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "file.wat:Sherlock\n");
 });
 
+sherlock!(file_type_add_compose, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("file.py", "Sherlock");
+    wd.create("file.rs", "Sherlock");
+    wd.create("file.wat", "Sherlock");
+    cmd.arg("--type-add").arg("wat:*.wat");
+    cmd.arg("--type-add").arg("combo:include:wat,py").arg("-t").arg("combo");
+    let lines: String = wd.stdout(&mut cmd);
+    println!("{}", lines);
+    assert_eq!(lines, "file.py:Sherlock\nfile.wat:Sherlock\n");
+});
+
 sherlock!(glob, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     wd.create("file.py", "Sherlock");
     wd.create("file.rs", "Sherlock");

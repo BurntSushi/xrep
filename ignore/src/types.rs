@@ -559,7 +559,7 @@ impl TypesBuilder {
                 for type_name in types {
                     let globs = self.types.get(type_name).unwrap().globs.clone();
                     for glob in globs {
-                        self.add(name, &glob)?;
+                        try!(self.add(name, &glob));
                     }
                 }
                 Ok(())

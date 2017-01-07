@@ -265,6 +265,24 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
       Example: `rg --type-add 'foo:*.foo' -tfoo PATTERN`
 
+  --type-add can also be used to include rules from other types
+  with the special include directive. The include directive
+  permits specifying one or more other type names (separated by a
+  comma) that have been defined and its rules will automatically
+  be imported into the type specified. For example, to create a
+  type called src that matches C++, Python and Markdown files, one
+  can use:
+
+      `--type-add 'src:include:cpp,py,md'`
+
+  Additional glob rules can still be added to the src type by
+  using the --type-add flag again:
+
+      `--type-add 'src:include:cpp,py,md' --type-add 'src:*.foo'`
+
+  Note that type names must consist only of Unicode letters or
+  numbers. Punctuation characters are not allowed.
+
 --type-clear *TYPE* ...
 : Clear the file type globs previously defined for TYPE. This only clears
   the default type definitions that are found inside of ripgrep. Note
