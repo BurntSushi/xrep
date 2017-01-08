@@ -307,7 +307,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             } else if self.opts.files_with_matches {
                 self.printer.path(self.path);
             }
-        } else if self.match_count == 0 && self.opts.files_without_matches {
+        } else if self.opts.files_without_matches {
             self.printer.path(self.path);
         }
         Ok(self.match_count)
