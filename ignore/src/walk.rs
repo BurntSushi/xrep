@@ -72,6 +72,14 @@ impl DirEntry {
         self.dent.depth()
     }
 
+    /// Returns the underlying inode number if one exists.
+    ///
+    /// If this entry doesn't have an inode number, then `None` is returned.
+    #[cfg(unix)]
+    pub fn ino(&self) -> Option<u64> {
+        self.dent.ino()
+    }
+
     /// Returns an error, if one exists, associated with processing this entry.
     ///
     /// An example of an error is one that occurred while parsing an ignore
@@ -188,6 +196,16 @@ impl DirEntryInner {
             Raw(ref x) => x.depth(),
         }
     }
+
+    #[cfg(unix)]
+    fn ino(&self) -> Option<u64> {
+        use self::DirEntryInner::*;
+        match *self {
+            Stdin => None,
+            Walkdir(ref x) => Some(x.ino()),
+            Raw(ref x) => Some(x.ino()),
+        }
+    }
 }
 
 /// DirEntryRaw is essentially copied from the walkdir crate so that we can
@@ -203,6 +221,9 @@ struct DirEntryRaw {
     follow_link: bool,
     /// The depth at which this entry was generated relative to the root.
     depth: usize,
+    /// The underlying inode number (Unix only).
+    #[cfg(unix)]
+    ino: u64,
 }
 
 impl fmt::Debug for DirEntryRaw {
@@ -247,6 +268,11 @@ impl DirEntryRaw {
         self.depth
     }
 
+    #[cfg(unix)]
+    fn ino(&self) -> u64 {
+        self.ino
+    }
+
     fn from_entry(
         depth: usize,
         ent: &fs::DirEntry,
@@ -258,14 +284,41 @@ impl DirEntryRaw {
                 err: Box::new(err),
             }
         }));
-        Ok(DirEntryRaw {
+        Ok(DirEntryRaw::from_entry_os(depth, ent, ty))
+    }
+
+    #[cfg(not(unix))]
+    fn from_entry_os(
+        depth: usize,
+        ent: &fs::DirEntry,
+        ty: fs::FileType,
+    ) -> DirEntryRaw {
+        DirEntryRaw {
             path: ent.path(),
             ty: ty,
             follow_link: false,
             depth: depth,
-        })
+        }
     }
 
+    #[cfg(unix)]
+    fn from_entry_os(
+        depth: usize,
+        ent: &fs::DirEntry,
+        ty: fs::FileType,
+    ) -> DirEntryRaw {
+        use std::os::unix::fs::DirEntryExt;
+
+        DirEntryRaw {
+            path: ent.path(),
+            ty: ty,
+            follow_link: false,
+            depth: depth,
+            ino: ent.ino(),
+        }
+    }
+
+    #[cfg(not(unix))]
     fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
         let md = try!(fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
@@ -275,6 +328,22 @@ impl DirEntryRaw {
             ty: md.file_type(),
             follow_link: true,
             depth: depth,
+        })
+    }
+
+    #[cfg(unix)]
+    fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
+        use std::os::unix::fs::MetadataExt;
+
+        let md = try!(fs::metadata(&pb).map_err(|err| {
+            Error::Io(err).with_path(&pb)
+        }));
+        Ok(DirEntryRaw {
+            path: pb,
+            ty: md.file_type(),
+            follow_link: true,
+            depth: depth,
+            ino: md.ino(),
         })
     }
 }

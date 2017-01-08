@@ -11,15 +11,10 @@ use winapi::winnt::HANDLE;
 
 #[cfg(unix)]
 pub fn stdin_is_readable() -> bool {
-    use std::fs::File;
     use std::os::unix::fs::FileTypeExt;
-    use std::os::unix::io::{FromRawFd, IntoRawFd};
-    use libc;
+    use same_file::Handle;
 
-    let file = unsafe { File::from_raw_fd(libc::STDIN_FILENO) };
-    let md = file.metadata();
-    let _ = file.into_raw_fd();
-    let ft = match md {
+    let ft = match Handle::stdin().and_then(|h| h.as_file().metadata()) {
         Err(_) => return false,
         Ok(md) => md.file_type(),
     };
@@ -101,7 +96,7 @@ pub fn on_stdout() -> bool {
 
 /// Returns true if there is an MSYS tty on the given handle.
 #[cfg(windows)]
-fn msys_tty_on_handle(handle: HANDLE) -> bool {
+unsafe fn msys_tty_on_handle(handle: HANDLE) -> bool {
     use std::ffi::OsString;
     use std::mem;
     use std::os::raw::c_void;
@@ -113,27 +108,25 @@ fn msys_tty_on_handle(handle: HANDLE) -> bool {
     use winapi::minwinbase::FileNameInfo;
     use winapi::minwindef::MAX_PATH;
 
-    unsafe {
-        let size = mem::size_of::<FILE_NAME_INFO>();
-        let mut name_info_bytes = vec![0u8; size + MAX_PATH];
-        let res = GetFileInformationByHandleEx(
-            handle,
-            FileNameInfo,
-            &mut *name_info_bytes as *mut _ as *mut c_void,
-            name_info_bytes.len() as u32);
-        if res == 0 {
-            return true;
-        }
-        let name_info: FILE_NAME_INFO =
-            *(name_info_bytes[0..size].as_ptr() as *const FILE_NAME_INFO);
-        let name_bytes =
-            &name_info_bytes[size..size + name_info.FileNameLength as usize];
-        let name_u16 = slice::from_raw_parts(
-            name_bytes.as_ptr() as *const u16, name_bytes.len() / 2);
-        let name = OsString::from_wide(name_u16)
-            .as_os_str().to_string_lossy().into_owned();
-        name.contains("msys-") || name.contains("-pty")
+    let size = mem::size_of::<FILE_NAME_INFO>();
+    let mut name_info_bytes = vec![0u8; size + MAX_PATH];
+    let res = GetFileInformationByHandleEx(
+        handle,
+        FileNameInfo,
+        &mut *name_info_bytes as *mut _ as *mut c_void,
+        name_info_bytes.len() as u32);
+    if res == 0 {
+        return true;
     }
+    let name_info: FILE_NAME_INFO =
+        *(name_info_bytes[0..size].as_ptr() as *const FILE_NAME_INFO);
+    let name_bytes =
+        &name_info_bytes[size..size + name_info.FileNameLength as usize];
+    let name_u16 = slice::from_raw_parts(
+        name_bytes.as_ptr() as *const u16, name_bytes.len() / 2);
+    let name = OsString::from_wide(name_u16)
+        .as_os_str().to_string_lossy().into_owned();
+    name.contains("msys-") || name.contains("-pty")
 }
 
 /// Returns true if there is a console on the given file descriptor.
@@ -145,8 +138,8 @@ unsafe fn console_on_fd(fd: DWORD) -> bool {
 
 /// Returns true if there is a console on the given handle.
 #[cfg(windows)]
-fn console_on_handle(handle: HANDLE) -> bool {
+unsafe fn console_on_handle(handle: HANDLE) -> bool {
     use kernel32::GetConsoleMode;
     let mut out = 0;
-    unsafe { GetConsoleMode(handle, &mut out) != 0 }
+    GetConsoleMode(handle, &mut out) != 0
 }

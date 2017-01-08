@@ -15,6 +15,7 @@ extern crate memchr;
 extern crate memmap;
 extern crate num_cpus;
 extern crate regex;
+extern crate same_file;
 extern crate termcolor;
 #[cfg(windows)]
 extern crate winapi;
@@ -106,7 +107,11 @@ fn run_parallel(args: Arc<Args>) -> Result<u64> {
             if quiet_matched.has_match() {
                 return Quit;
             }
-            let dent = match get_or_log_dir_entry(result, args.no_messages()) {
+            let dent = match get_or_log_dir_entry(
+                result,
+                args.stdout_handle(),
+                args.no_messages(),
+            ) {
                 None => return Continue,
                 Some(dent) => dent,
             };
@@ -148,7 +153,11 @@ fn run_one_thread(args: Arc<Args>) -> Result<u64> {
     let mut paths_searched: u64 = 0;
     let mut match_count = 0;
     for result in args.walker() {
-        let dent = match get_or_log_dir_entry(result, args.no_messages()) {
+        let dent = match get_or_log_dir_entry(
+            result,
+            args.stdout_handle(),
+            args.no_messages(),
+        ) {
             None => continue,
             Some(dent) => dent,
         };
@@ -190,11 +199,15 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
         }
         file_count
     });
-    let no_messages = args.no_messages();
     args.walker_parallel().run(move || {
+        let args = args.clone();
         let tx = tx.clone();
         Box::new(move |result| {
-            if let Some(dent) = get_or_log_dir_entry(result, no_messages) {
+            if let Some(dent) = get_or_log_dir_entry(
+                result,
+                args.stdout_handle(),
+                args.no_messages(),
+            ) {
                 tx.send(dent).unwrap();
             }
             ignore::WalkState::Continue
@@ -208,7 +221,11 @@ fn run_files_one_thread(args: Arc<Args>) -> Result<u64> {
     let mut printer = args.printer(stdout.lock());
     let mut file_count = 0;
     for result in args.walker() {
-        let dent = match get_or_log_dir_entry(result, args.no_messages()) {
+        let dent = match get_or_log_dir_entry(
+            result,
+            args.stdout_handle(),
+            args.no_messages(),
+        ) {
             None => continue,
             Some(dent) => dent,
         };
@@ -231,6 +248,7 @@ fn run_types(args: Arc<Args>) -> Result<u64> {
 
 fn get_or_log_dir_entry(
     result: result::Result<ignore::DirEntry, ignore::Error>,
+    stdout_handle: Option<&same_file::Handle>,
     no_messages: bool,
 ) -> Option<ignore::DirEntry> {
     match result {
@@ -253,14 +271,56 @@ fn get_or_log_dir_entry(
             // A depth of 0 means the user gave the path explicitly, so we
             // should always try to search it.
             if dent.depth() == 0 && !ft.is_dir() {
-                Some(dent)
-            } else if ft.is_file() {
-                Some(dent)
-            } else {
-                None
+                return Some(dent);
+            } else if !ft.is_file() {
+                return None;
             }
+            // If we are redirecting stdout to a file, then don't search that
+            // file.
+            if is_stdout_file(&dent, stdout_handle, no_messages) {
+                return None;
+            }
+            Some(dent)
         }
     }
+}
+
+fn is_stdout_file(
+    dent: &ignore::DirEntry,
+    stdout_handle: Option<&same_file::Handle>,
+    no_messages: bool,
+) -> bool {
+    let stdout_handle = match stdout_handle {
+        None => return false,
+        Some(stdout_handle) => stdout_handle,
+    };
+    // If we know for sure that these two things aren't equal, then avoid
+    // the costly extra stat call to determine equality.
+    if !maybe_dent_eq_handle(dent, stdout_handle) {
+        return false;
+    }
+    match same_file::Handle::from_path(dent.path()) {
+        Ok(h) => stdout_handle == &h,
+        Err(err) => {
+            if !no_messages {
+                eprintln!("{}: {}", dent.path().display(), err);
+            }
+            false
+        }
+    }
+}
+
+#[cfg(unix)]
+fn maybe_dent_eq_handle(
+    dent: &ignore::DirEntry,
+    handle: &same_file::Handle,
+) -> bool {
+    dent.ino() == Some(handle.ino())
+}
+
+#[cfg(not(unix))]
+fn maybe_dent_eq_handle(_: &ignore::DirEntry, _: &same_file::Handle) -> bool {
+    true
 }
 
 fn eprint_nothing_searched() {

@@ -15,6 +15,7 @@ use grep::{Grep, GrepBuilder};
 use log;
 use num_cpus;
 use regex;
+use same_file;
 use termcolor;
 
 use app;
@@ -65,6 +66,7 @@ pub struct Args {
     quiet_matched: QuietMatched,
     replace: Option<Vec<u8>>,
     sort_files: bool,
+    stdout_handle: Option<same_file::Handle>,
     text: bool,
     threads: usize,
     type_list: bool,
@@ -180,6 +182,17 @@ impl Args {
     /// Create a new writer for single-threaded searching with color support.
     pub fn stdout(&self) -> termcolor::Stdout {
         termcolor::Stdout::new(self.color_choice)
+    }
+
+    /// Returns a handle to stdout for filtering search.
+    ///
+    /// A handle is returned if and only if ripgrep's stdout is being
+    /// redirected to a file. The handle returned corresponds to that file.
+    ///
+    /// This can be used to ensure that we do not attempt to search a file
+    /// that ripgrep is writing to.
+    pub fn stdout_handle(&self) -> Option<&same_file::Handle> {
+        self.stdout_handle.as_ref()
     }
 
     /// Create a new buffer writer for multi-threaded searching with color
@@ -338,6 +351,7 @@ impl<'a> ArgMatches<'a> {
             quiet_matched: QuietMatched::new(quiet),
             replace: self.replace(),
             sort_files: self.is_present("sort-files"),
+            stdout_handle: self.stdout_handle(),
             text: self.text(),
             threads: try!(self.threads()),
             type_list: self.is_present("type-list"),
@@ -516,6 +530,28 @@ impl<'a> ArgMatches<'a> {
             || paths.len() > 1
             || paths.get(0).map_or(false, |p| p.is_dir())
         }
+    }
+
+    /// Returns a handle to stdout for filtering search.
+    ///
+    /// A handle is returned if and only if ripgrep's stdout is being
+    /// redirected to a file. The handle returned corresponds to that file.
+    ///
+    /// This can be used to ensure that we do not attempt to search a file
+    /// that ripgrep is writing to.
+    fn stdout_handle(&self) -> Option<same_file::Handle> {
+        let h = match same_file::Handle::stdout() {
+            Err(_) => return None,
+            Ok(h) => h,
+        };
+        let md = match h.as_file().metadata() {
+            Err(_) => return None,
+            Ok(md) => md,
+        };
+        if !md.is_file() {
+            return None;
+        }
+        Some(h)
     }
 
     /// Returns true if and only if memory map searching should be tried.
