@@ -245,7 +245,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
 -j, --threads *ARG*
 : The number of threads to use. 0 means use the number of logical CPUs
-  (capped at 6). [default: 0]
+  (capped at 12). [default: 0]
 
 --version
 : Show the version number of ripgrep and exit.
