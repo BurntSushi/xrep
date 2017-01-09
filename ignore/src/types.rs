@@ -166,7 +166,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
     ("rdoc", &["*.rdoc"]),
     ("rst", &["*.rst"]),
-    ("ruby", &["*.rb"]),
+    ("ruby", &["Gemfile", "*.gemspec", ".irbrc", "Rakefile", "*.rb"]),
     ("rust", &["*.rs"]),
     ("sass", &["*.scss"]),
     ("scala", &["*.scala"]),
