@@ -26,8 +26,11 @@ path = "tests/tests.rs"
 
 [dependencies]
 bytecount = "0.1.4"
+byteorder = { version = "1.0.0", optional = true }
 clap = "2.19.0"
+crc = { version = "1.4.0", optional = true }
 env_logger = { version = "0.3", default-features = false }
+flate2 = { version = "0.2.14", optional = true }
 grep = { version = "0.1.4", path = "grep" }
 ignore = { version = "0.1.5", path = "ignore" }
 lazy_static = "0.2"
@@ -48,8 +51,10 @@ clap = "2.18"
 lazy_static = "0.2"
 
 [features]
+default = ["uncompress"]
 avx-accel = ["bytecount/avx-accel"]
 simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
+uncompress = ["byteorder", "flate2", "crc"]
 
 [profile.release]
 debug = true

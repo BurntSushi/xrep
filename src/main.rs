@@ -1,7 +1,13 @@
 extern crate bytecount;
+#[cfg(feature = "uncompress")]
+extern crate byteorder;
 #[macro_use]
 extern crate clap;
+#[cfg(feature = "uncompress")]
+extern crate crc;
 extern crate env_logger;
+#[cfg(feature = "uncompress")]
+extern crate flate2;
 extern crate grep;
 extern crate ignore;
 #[cfg(windows)]
@@ -46,12 +52,15 @@ macro_rules! eprintln {
 mod app;
 mod args;
 mod atty;
+mod magic;
 mod pathutil;
 mod printer;
 mod search_buffer;
 mod search_stream;
 mod unescape;
 mod worker;
+#[cfg(feature = "uncompress")]
+mod zip;
 
 pub type Result<T> = result::Result<T, Box<Error + Send + Sync>>;
 

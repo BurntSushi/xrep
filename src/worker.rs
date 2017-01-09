@@ -2,15 +2,20 @@ use std::fs::File;
 use std::io;
 use std::path::Path;
 
+#[cfg(feature = "uncompress")]
+use flate2::read::GzDecoder;
 use grep::Grep;
 use ignore::DirEntry;
 use memmap::{Mmap, Protection};
 use termcolor::WriteColor;
 
+use magic::{Magic, MagicReader};
 use pathutil::strip_prefix;
 use printer::Printer;
 use search_buffer::BufferSearcher;
 use search_stream::{InputBuffer, Searcher};
+#[cfg(feature = "uncompress")]
+use zip;
 
 use Result;
 
@@ -39,6 +44,7 @@ struct Options {
     no_messages: bool,
     quiet: bool,
     text: bool,
+    uncompress_depth: usize,
 }
 
 impl Default for Options {
@@ -57,6 +63,7 @@ impl Default for Options {
             no_messages: false,
             quiet: false,
             text: false,
+            uncompress_depth: 0,
         }
     }
 }
@@ -176,6 +183,12 @@ impl WorkerBuilder {
         self.opts.text = yes;
         self
     }
+
+    /// If greater than zero, search within compressed files.
+    pub fn uncompress_depth(mut self, depth: usize) -> Self {
+        self.opts.uncompress_depth = depth;
+        self
+    }
 }
 
 /// Worker is responsible for executing searches on file paths, while choosing
@@ -216,12 +229,16 @@ impl Worker {
                     path = p;
                 }
                 if self.opts.mmap {
-                    self.search_mmap(printer, path, &file)
+                    self.search_mmap(printer, path, file)
                 } else {
                     self.search(printer, path, file)
                 }
             }
         };
+        self.result_count(result)
+    }
+
+    fn result_count(&self, result: Result<u64>) -> u64 {
         match result {
             Ok(count) => {
                 count
@@ -236,6 +253,79 @@ impl Worker {
     }
 
     fn search<R: io::Read, W: WriteColor>(
+        &mut self,
+        printer: &mut Printer<W>,
+        path: &Path,
+        rdr: R,
+    ) -> Result<u64> {
+        let depth = self.opts.uncompress_depth;
+        self.search_uncompress(printer, path, rdr, depth)
+    }
+
+    fn search_uncompress<R: io::Read, W: WriteColor>(
+        &mut self,
+        printer: &mut Printer<W>,
+        path: &Path,
+        mut rdr: R,
+        uncompress_depth: usize,
+    ) -> Result<u64> {
+        if cfg!(feature = "uncompress") && uncompress_depth > 0 {
+            let mrdr = try!(MagicReader::new(rdr.by_ref() as &mut io::Read));
+            let magic = mrdr.magic();
+            self.search_magic(printer, path, mrdr, magic, uncompress_depth)
+        } else {
+            self.search_stream(printer, path, rdr)
+        }
+    }
+
+    #[cfg(feature = "uncompress")]
+    fn search_magic<R: io::Read, W: WriteColor>(
+        &mut self,
+        printer: &mut Printer<W>,
+        path: &Path,
+        rdr: R,
+        magic: Magic,
+        uncompress_depth: usize,
+    ) -> Result<u64> {
+        match magic {
+            Magic::Unknown => self.search_stream(printer, path, rdr),
+            Magic::Gzip => self.search_uncompress(printer, path,
+                try!(GzDecoder::new(rdr)), uncompress_depth - 1),
+            Magic::Zip => {
+                let mut count = 0;
+                try!(zip::for_each_entry(io::BufReader::new(rdr), |name, rdr| {
+                    count += match rdr {
+                        Ok(rdr) => {
+                            let result = self.search_uncompress(printer,
+                                &path.join(name), rdr, uncompress_depth - 1);
+                            self.result_count(result)
+                        }
+                        Err(err) => self.result_count(Err(err.into())),
+                    };
+                    Ok(if self.opts.quiet && count > 0 {
+                        zip::Action::Stop
+                    } else {
+                        zip::Action::Continue
+                    })
+                }));
+                Ok(count)
+            }
+        }
+    }
+
+    #[cfg(not(feature = "uncompress"))]
+    fn search_magic<R: io::Read, W: WriteColor>(
+        &mut self,
+        printer: &mut Printer<W>,
+        path: &Path,
+        rdr: R,
+        _magic: Magic,
+        _uncompress_depth: usize,
+    ) -> Result<u64> {
+        self.search_stream(printer, path, rdr)
+    }
+
+    fn search_stream<R: io::Read, W: WriteColor>(
         &mut self,
         printer: &mut Printer<W>,
         path: &Path,
@@ -263,7 +353,7 @@ impl Worker {
         &mut self,
         printer: &mut Printer<W>,
         path: &Path,
-        file: &File,
+        file: File,
     ) -> Result<u64> {
         if try!(file.metadata()).len() == 0 {
             // Opening a memory map with an empty file results in an error.
@@ -273,9 +363,18 @@ impl Worker {
             // regular read calls.
             return self.search(printer, path, file);
         }
-        let mmap = try!(Mmap::open(file, Protection::Read));
-        let searcher = BufferSearcher::new(
-            printer, &self.grep, path, unsafe { mmap.as_slice() });
+
+        let mmap = try!(Mmap::open(&file, Protection::Read));
+        let buf = unsafe { mmap.as_slice() };
+        if cfg!(feature = "uncompress") && self.opts.uncompress_depth > 0 {
+            let magic = Magic::from_slice(buf);
+            if magic != Magic::Unknown {
+                let depth = self.opts.uncompress_depth;
+                return self.search_magic(printer, path, buf, magic, depth);
+            }
+        }
+
+        let searcher = BufferSearcher::new(printer, &self.grep, path, buf);
         Ok(searcher
             .count(self.opts.count)
             .files_with_matches(self.opts.files_with_matches)
