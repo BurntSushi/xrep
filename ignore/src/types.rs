@@ -112,6 +112,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "*.C", "*.cc", "*.cpp", "*.cxx",
         "*.h", "*.H", "*.hh", "*.hpp",
     ]),
+    ("crystal", &["Projectfile", "*.cr"]),
     ("cs", &["*.cs"]),
     ("csharp", &["*.cs"]),
     ("css", &["*.css"]),
