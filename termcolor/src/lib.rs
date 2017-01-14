@@ -187,7 +187,7 @@ impl ColorChoice {
 /// Satisfies `io::Write` and `WriteColor`, and supports optional coloring
 /// to stdout.
 pub struct Stdout {
-    wtr: WriterInner<'static, io::Stdout>,
+    wtr: LossyStdout<WriterInner<'static, io::Stdout>>,
 }
 
 /// `StdoutLock` is a locked reference to a `Stdout`.
@@ -197,7 +197,7 @@ pub struct Stdout {
 ///
 /// The lifetime `'a` refers to the lifetime of the corresponding `Stdout`.
 pub struct StdoutLock<'a> {
-    wtr: WriterInner<'a, io::StdoutLock<'a>>,
+    wtr: LossyStdout<WriterInner<'a, io::StdoutLock<'a>>>,
 }
 
 /// WriterInner is a (limited) generic representation of a writer. It is
@@ -230,7 +230,7 @@ impl Stdout {
             } else {
                 WriterInner::NoColor(NoColor(io::stdout()))
             };
-        Stdout { wtr: wtr }
+        Stdout { wtr: LossyStdout::new(wtr) }
     }
 
     /// Create a new `Stdout` with the given color preferences.
@@ -242,11 +242,13 @@ impl Stdout {
     /// the `WriteColor` trait.
     #[cfg(windows)]
     pub fn new(choice: ColorChoice) -> Stdout {
+        let con = wincolor::Console::stdout();
+        let is_win_console = con.is_ok();
         let wtr =
             if choice.should_attempt_color() {
                 if choice.should_ansi() {
                     WriterInner::Ansi(Ansi(io::stdout()))
-                } else if let Ok(console) = wincolor::Console::stdout() {
+                } else if let Ok(console) = con {
                     WriterInner::Windows {
                         wtr: io::stdout(),
                         console: Mutex::new(console),
@@ -257,7 +259,7 @@ impl Stdout {
             } else {
                 WriterInner::NoColor(NoColor(io::stdout()))
             };
-        Stdout { wtr: wtr }
+        Stdout { wtr: LossyStdout::new(wtr).is_console(is_win_console) }
     }
 
     /// Lock the underlying writer.
@@ -268,7 +270,28 @@ impl Stdout {
     /// This method is **not reentrant**. It may panic if `lock` is called
     /// while a `StdoutLock` is still alive.
     pub fn lock(&self) -> StdoutLock {
-        let locked = match self.wtr {
+        StdoutLock::from_stdout(self)
+    }
+}
+
+impl<'a> StdoutLock<'a> {
+    #[cfg(not(windows))]
+    fn from_stdout(stdout: &Stdout) -> StdoutLock {
+        let locked = match *stdout.wtr.get_ref() {
+            WriterInner::Unreachable(_) => unreachable!(),
+            WriterInner::NoColor(ref w) => {
+                WriterInner::NoColor(NoColor(w.0.lock()))
+            }
+            WriterInner::Ansi(ref w) => {
+                WriterInner::Ansi(Ansi(w.0.lock()))
+            }
+        };
+        StdoutLock { wtr: stdout.wtr.wrap(locked) }
+    }
+
+    #[cfg(windows)]
+    fn from_stdout(stdout: &Stdout) -> StdoutLock {
+        let locked = match *stdout.wtr.get_ref() {
             WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref w) => {
                 WriterInner::NoColor(NoColor(w.0.lock()))
@@ -288,7 +311,7 @@ impl Stdout {
                 panic!("cannot call Stdout.lock while a StdoutLock is alive");
             }
         };
-        StdoutLock { wtr: locked }
+        StdoutLock { wtr: stdout.wtr.wrap(locked) }
     }
 }
 
@@ -407,7 +430,7 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
 /// It is intended for a `BufferWriter` to be put in an `Arc` and written to
 /// from multiple threads simultaneously.
 pub struct BufferWriter {
-    stdout: io::Stdout,
+    stdout: LossyStdout<io::Stdout>,
     printed: AtomicBool,
     separator: Option<Vec<u8>>,
     color_choice: ColorChoice,
@@ -424,7 +447,7 @@ impl BufferWriter {
     #[cfg(not(windows))]
     pub fn stdout(choice: ColorChoice) -> BufferWriter {
         BufferWriter {
-            stdout: io::stdout(),
+            stdout: LossyStdout::new(io::stdout()),
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
@@ -441,12 +464,14 @@ impl BufferWriter {
     /// the buffers themselves.
     #[cfg(windows)]
     pub fn stdout(choice: ColorChoice) -> BufferWriter {
+        let con = wincolor::Console::stdout().ok().map(Mutex::new);
+        let stdout = LossyStdout::new(io::stdout()).is_console(con.is_some());
         BufferWriter {
-            stdout: io::stdout(),
+            stdout: stdout,
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
-            console: wincolor::Console::stdout().ok().map(Mutex::new),
+            console: con,
         }
     }
 
@@ -485,7 +510,7 @@ impl BufferWriter {
         if buf.is_empty() {
             return Ok(());
         }
-        let mut stdout = self.stdout.lock();
+        let mut stdout = self.stdout.wrap(self.stdout.get_ref().lock());
         if let Some(ref sep) = self.separator {
             if self.printed.load(Ordering::SeqCst) {
                 try!(stdout.write_all(sep));
@@ -885,7 +910,7 @@ impl WindowsBuffer {
     fn print(
         &self,
         console: &mut wincolor::Console,
-        stdout: &mut io::StdoutLock,
+        stdout: &mut LossyStdout<io::StdoutLock>,
     ) -> io::Result<()> {
         let mut last = 0;
         for &(pos, ref spec) in &self.colors {
@@ -1093,5 +1118,81 @@ impl FromStr for Color {
             "white" => Ok(Color::White),
             _ => Err(ParseColorError(s.to_string())),
         }
+    }
+}
+
+struct LossyStdout<W> {
+    wtr: W,
+    #[cfg(windows)]
+    is_console: bool,
+}
+
+impl<W: io::Write> LossyStdout<W> {
+    #[cfg(not(windows))]
+    fn new(wtr: W) -> LossyStdout<W> { LossyStdout { wtr: wtr } }
+
+    #[cfg(windows)]
+    fn new(wtr: W) -> LossyStdout<W> {
+        LossyStdout { wtr: wtr, is_console: false }
+    }
+
+    #[cfg(not(windows))]
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
+        LossyStdout::new(wtr)
+    }
+
+    #[cfg(windows)]
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
+        LossyStdout::new(wtr).is_console(self.is_console)
+    }
+
+    #[cfg(windows)]
+    fn is_console(mut self, yes: bool) -> LossyStdout<W> {
+        self.is_console = yes;
+        self
+    }
+
+    fn get_ref(&self) -> &W {
+        &self.wtr
+    }
+}
+
+impl<W: WriteColor> WriteColor for LossyStdout<W> {
+    fn supports_color(&self) -> bool { self.wtr.supports_color() }
+    fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
+        self.wtr.set_color(spec)
+    }
+    fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
+}
+
+impl<W: io::Write> io::Write for LossyStdout<W> {
+    #[cfg(not(windows))]
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.wtr.write(buf)
+    }
+
+    #[cfg(windows)]
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if self.is_console {
+            write_lossy_utf8(&mut self.wtr, buf)
+        } else {
+            self.wtr.write(buf)
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.wtr.flush()
+    }
+}
+
+#[cfg(windows)]
+fn write_lossy_utf8<W: io::Write>(mut w: W, buf: &[u8]) -> io::Result<usize> {
+    match ::std::str::from_utf8(buf) {
+        Ok(s) => w.write(s.as_bytes()),
+        Err(ref e) if e.valid_up_to() == 0 => {
+            try!(w.write(b"\xEF\xBF\xBD"));
+            Ok(1)
+        }
+        Err(e) => w.write(&buf[..e.valid_up_to()]),
     }
 }
