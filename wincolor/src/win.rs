@@ -3,7 +3,7 @@ use std::mem;
 
 use kernel32;
 use winapi::{DWORD, HANDLE, WORD};
-use winapi::winbase::STD_OUTPUT_HANDLE;
+use winapi::winbase::{STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
 use winapi::wincon::{
     FOREGROUND_BLUE as FG_BLUE,
     FOREGROUND_GREEN as FG_GREEN,
@@ -44,13 +44,11 @@ impl Drop for Console {
 }
 
 impl Console {
-    /// Create a new Console to stdout.
-    ///
-    /// If there was a problem creating the console, then an error is returned.
-    pub fn stdout() -> io::Result<Console> {
+    /// Get a console for a standard I/O stream.
+    fn create_for_stream(handle_id: DWORD) -> io::Result<Console> {
         let mut info = unsafe { mem::zeroed() };
         let (handle, res) = unsafe {
-            let handle = kernel32::GetStdHandle(STD_OUTPUT_HANDLE);
+            let handle = kernel32::GetStdHandle(handle_id);
             (handle, kernel32::GetConsoleScreenBufferInfo(handle, &mut info))
         };
         if res == 0 {
@@ -62,6 +60,20 @@ impl Console {
             start_attr: attr,
             cur_attr: attr,
         })
+    }
+
+    /// Create a new Console to stdout.
+    ///
+    /// If there was a problem creating the console, then an error is returned.
+    pub fn stdout() -> io::Result<Console> {
+        Self::create_for_stream(STD_OUTPUT_HANDLE)
+    }
+
+    /// Create a new Console to stderr.
+    ///
+    /// If there was a problem creating the console, then an error is returned.
+    pub fn stderr() -> io::Result<Console> {
+        Self::create_for_stream(STD_ERROR_HANDLE)
     }
 
     /// Applies the current text attributes.
