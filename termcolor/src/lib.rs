@@ -307,7 +307,7 @@ impl<'a> LockedStandardStream<'a> for io::StderrLock<'a> {
 /// (stderr). It satisfies `io::Write` and `WriteColor`, and supports optional
 /// coloring.
 pub struct StandardStream<T: LockableStandardStream> {
-    wtr: LossyStdout<WriterInner<'static, T>>,
+    wtr: LossyStream<WriterInner<'static, T>>,
 }
 
 impl<T: LockableStandardStream> StandardStream<T> {
@@ -323,7 +323,7 @@ impl<T: LockableStandardStream> StandardStream<T> {
             } else {
                 WriterInner::NoColor(NoColor(T::create_standard_stream()))
             };
-        StandardStream { wtr: LossyStdout::new(wtr) }
+        StandardStream { wtr: LossyStream::new(wtr) }
     }
 
     /// Create a new `StandardStream<T>` with the given color preferences.
@@ -352,7 +352,7 @@ impl<T: LockableStandardStream> StandardStream<T> {
             } else {
                 WriterInner::NoColor(NoColor(T::create_standard_stream()))
             };
-        StandardStream { wtr: LossyStdout::new(wtr).is_console(is_win_console) }
+        StandardStream { wtr: LossyStream::new(wtr).is_console(is_win_console) }
     }
 }
 
@@ -377,7 +377,7 @@ impl<T: LockableStandardStream> WriteColor for StandardStream<T> {
 ///
 /// The lifetime `'a` refers to the lifetime of the corresponding `LockedStandardStream`.
 pub struct StandardStreamLock<'a, T: LockedStandardStream<'a>> {
-    wtr: LossyStdout<WriterInner<'a, T>>,
+    wtr: LossyStream<WriterInner<'a, T>>,
 }
 
 impl<'a, T: 'a + LockedStandardStream<'a>> StandardStreamLock<'a, T> {
@@ -585,7 +585,7 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
 /// It is intended for a `StandardStreamWriter` to be put in an `Arc` and written to
 /// from multiple threads simultaneously.
 pub struct StandardStreamWriter<T: LockableStandardStream> {
-    stream: LossyStdout<T>,
+    stream: LossyStream<T>,
     printed: AtomicBool,
     separator: Option<Vec<u8>>,
     color_choice: ColorChoice,
@@ -602,7 +602,7 @@ impl<T: LockableStandardStream> StandardStreamWriter<T> {
     #[cfg(not(windows))]
     pub fn create(choice: ColorChoice) -> StandardStreamWriter<T> {
         StandardStreamWriter {
-            stream: LossyStdout::new(T::create_standard_stream()),
+            stream: LossyStream::new(T::create_standard_stream()),
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
@@ -620,7 +620,7 @@ impl<T: LockableStandardStream> StandardStreamWriter<T> {
     #[cfg(windows)]
     pub fn create(choice: ColorChoice) -> StandardStreamWriter<'a, T> {
         let con = T::Parent::create_windows_console().ok().map(Mutex::new);
-        let stream = LossyStdout::new(T::Parent::create_standard_stream()).is_console(con.is_some());
+        let stream = LossyStream::new(T::Parent::create_standard_stream()).is_console(con.is_some());
         StandardStreamWriter {
             stream: stream,
             printed: AtomicBool::new(false),
@@ -1078,7 +1078,7 @@ impl WindowsBuffer {
     fn print(
         &self,
         console: &mut wincolor::Console,
-        stdout: &mut LossyStdout<io::StdoutLock>,
+        stdout: &mut LossyStream<io::StdoutLock>,
     ) -> io::Result<()> {
         let mut last = 0;
         for &(pos, ref spec) in &self.colors {
@@ -1289,33 +1289,33 @@ impl FromStr for Color {
     }
 }
 
-struct LossyStdout<W> {
+struct LossyStream<W> {
     wtr: W,
     #[cfg(windows)]
     is_console: bool,
 }
 
-impl<W: io::Write> LossyStdout<W> {
+impl<W: io::Write> LossyStream<W> {
     #[cfg(not(windows))]
-    fn new(wtr: W) -> LossyStdout<W> { LossyStdout { wtr: wtr } }
+    fn new(wtr: W) -> LossyStream<W> { LossyStream { wtr: wtr } }
 
     #[cfg(windows)]
-    fn new(wtr: W) -> LossyStdout<W> {
-        LossyStdout { wtr: wtr, is_console: false }
+    fn new(wtr: W) -> LossyStream<W> {
+        LossyStream { wtr: wtr, is_console: false }
     }
 
     #[cfg(not(windows))]
-    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
-        LossyStdout::new(wtr)
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStream<Q> {
+        LossyStream::new(wtr)
     }
 
     #[cfg(windows)]
-    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
-        LossyStdout::new(wtr).is_console(self.is_console)
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStream<Q> {
+        LossyStream::new(wtr).is_console(self.is_console)
     }
 
     #[cfg(windows)]
-    fn is_console(mut self, yes: bool) -> LossyStdout<W> {
+    fn is_console(mut self, yes: bool) -> LossyStream<W> {
         self.is_console = yes;
         self
     }
@@ -1325,7 +1325,7 @@ impl<W: io::Write> LossyStdout<W> {
     }
 }
 
-impl<W: WriteColor> WriteColor for LossyStdout<W> {
+impl<W: WriteColor> WriteColor for LossyStream<W> {
     fn supports_color(&self) -> bool { self.wtr.supports_color() }
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         self.wtr.set_color(spec)
@@ -1333,7 +1333,7 @@ impl<W: WriteColor> WriteColor for LossyStdout<W> {
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
 }
 
-impl<W: io::Write> io::Write for LossyStdout<W> {
+impl<W: io::Write> io::Write for LossyStream<W> {
     #[cfg(not(windows))]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.wtr.write(buf)
