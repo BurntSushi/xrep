@@ -21,10 +21,10 @@ analogous to `std::io::Stderr` and `std::io::StderrLock`.
 
 `Buffer` is an in memory buffer that supports colored text. In a parallel
 program, each thread might write to its own buffer. A buffer can be printed to
-stdout or stderr using a `BufferWriter`. The advantage of this design is that
-each thread can work in parallel on a buffer without having to synchronize
-access to global resources such as the Windows console. Moreover, this design
-also prevents interleaving of buffer output.
+stdout or stderr using a `StandardStreamWriter`. The advantage of this design
+is that each thread can work in parallel on a buffer without having to
+synchronize access to global resources such as the Windows console. Moreover,
+this design also prevents interleaving of buffer output.
 
 `Ansi` and `NoColor` both satisfy `WriteColor` for arbitrary implementors of
 `io::Write`. These types are useful when you know exactly what you need. An
@@ -47,26 +47,29 @@ try!(writeln!(&mut stdout, "green text!"));
 # Ok(()) }
 ```
 
-# Example: using `BufferWriter`
+# Example: using `StandardStreamWriter`
 
-A `BufferWriter` can create buffers and write buffers to stdout or stderr. It
-does *not* implement `io::Write` or `WriteColor` itself. Instead, `Buffer`
-implements `io::Write` and `io::WriteColor`.
+A `StandardStreamWriter` can create buffers and write buffers to stdout or
+stderr. It does *not* implement `io::Write` or `WriteColor` itself. Instead,
+`Buffer` implements `io::Write` and `io::WriteColor`.
 
 This example shows how to print some green text to stdout.
 
 ```rust,no_run
 # fn test() -> Result<(), Box<::std::error::Error>> {
-use std::io::Write;
-use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
+use std::io::{self, Write};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStreamWriter, WriteColor};
 
-let mut bufwtr = BufferWriter::stdout(ColorChoice::Always);
-let mut buffer = bufwtr.buffer();
+let mut sswtr = StandardStreamWriter::<io::Stdout>::create(ColorChoice::Always);
+let mut buffer = sswtr.buffer();
 try!(buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
 try!(writeln!(&mut buffer, "green text!"));
-try!(bufwtr.print(&buffer));
+try!(sswtr.print(&buffer));
 # Ok(()) }
 ```
+
+The type `BufferWriter` is a compatibility alias for
+`StandardStreamWriter<io::Stdout>`.
 */
 
 #![deny(missing_docs)]
