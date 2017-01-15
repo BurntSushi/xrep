@@ -412,7 +412,7 @@ impl<'a, T: 'a + LockedStandardStream<'a>> StandardStreamLock<'a, T> {
             #[cfg(windows)]
             WriterInner::Windows { ref wtr, ref console } => {
                 WriterInner::WindowsLocked {
-                    wtr: wtr.lock(),
+                    wtr: T::make_from_parent(wtr),
                     console: console.lock().unwrap(),
                 }
             }
@@ -421,7 +421,7 @@ impl<'a, T: 'a + LockedStandardStream<'a>> StandardStreamLock<'a, T> {
                 panic!("cannot call StandardStream.lock while a StandardStreamLock is alive");
             }
         };
-        StandardStreamLock { wtr: stdout.wtr.wrap(locked) }
+        StandardStreamLock { wtr: parent.wtr.wrap(locked) }
     }
 }
 
@@ -618,9 +618,9 @@ impl<T: LockableStandardStream> StandardStreamWriter<T> {
     /// The specific color/style settings can be configured when writing to
     /// the buffers themselves.
     #[cfg(windows)]
-    pub fn create(choice: ColorChoice) -> StandardStreamWriter<'a, T> {
-        let con = T::Parent::create_windows_console().ok().map(Mutex::new);
-        let stream = LossyStream::new(T::Parent::create_standard_stream()).is_console(con.is_some());
+    pub fn create(choice: ColorChoice) -> StandardStreamWriter<T> {
+        let con = T::create_windows_console().ok().map(Mutex::new);
+        let stream = LossyStream::new(T::create_standard_stream()).is_console(con.is_some());
         StandardStreamWriter {
             stream: stream,
             printed: AtomicBool::new(false),
@@ -1073,25 +1073,25 @@ impl WindowsBuffer {
         self.colors.push((pos, spec));
     }
 
-    /// Print the contents to the given stdout handle, and use the console
+    /// Print the contents to the given stream handle, and use the console
     /// for coloring.
     fn print(
         &self,
         console: &mut wincolor::Console,
-        stdout: &mut LossyStream<io::StdoutLock>,
+        stream: &mut LossyStream<StandardStreamLockObject>,
     ) -> io::Result<()> {
         let mut last = 0;
         for &(pos, ref spec) in &self.colors {
-            try!(stdout.write_all(&self.buf[last..pos]));
-            try!(stdout.flush());
+            try!(stream.write_all(&self.buf[last..pos]));
+            try!(stream.flush());
             last = pos;
             match *spec {
                 None => try!(console.reset()),
                 Some(ref spec) => try!(spec.write_console(console)),
             }
         }
-        try!(stdout.write_all(&self.buf[last..]));
-        stdout.flush()
+        try!(stream.write_all(&self.buf[last..]));
+        stream.flush()
     }
 
     /// Clear the buffer.
