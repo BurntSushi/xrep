@@ -55,3 +55,4 @@ simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
 
 [profile.release]
 debug = true
+lto = true
