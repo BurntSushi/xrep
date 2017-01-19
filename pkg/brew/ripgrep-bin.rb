@@ -11,8 +11,8 @@ class RipgrepBin < Formula
     bin.install "rg"
     man1.install "rg.1"
     
-    bash_completion.install "completion/rg.bash-completion"
-    fish_completion.install "completion/rg.fish"
-    zsh_completion.install "completion/_rg"
+    bash_completion.install "complete/rg.bash-completion"
+    fish_completion.install "complete/rg.fish"
+    zsh_completion.install "complete/_rg"
   end
 end
