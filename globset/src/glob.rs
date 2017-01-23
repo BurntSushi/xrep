@@ -1,5 +1,6 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt;
+use std::hash;
 use std::iter;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, is_separator};
@@ -76,12 +77,25 @@ impl MatchStrategy {
 ///
 /// It cannot be used directly to match file paths, but it can be converted
 /// to a regular expression string or a matcher.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Glob {
     glob: String,
     re: String,
     opts: GlobOptions,
     tokens: Tokens,
+}
+
+impl PartialEq for Glob {
+  fn eq(&self, other: &Glob) -> bool {
+    self.glob == other.glob && self.opts == other.opts
+  }
+}
+
+impl hash::Hash for Glob {
+  fn hash<H: hash::Hasher>(&self, state: &mut H) {
+    self.glob.hash(state);
+    self.opts.hash(state);
+  }
 }
 
 impl fmt::Display for Glob {
@@ -173,7 +187,7 @@ pub struct GlobBuilder<'a> {
     opts: GlobOptions,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 struct GlobOptions {
     /// Whether to match case insensitively.
     case_insensitive: bool,
