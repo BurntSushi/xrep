@@ -103,6 +103,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("awk", &["*.awk"]),
     ("c", &["*.c", "*.h", "*.H"]),
     ("cbor", &["*.cbor"]),
+    ("ceylon", &["*.ceylon"]),
     ("clojure", &["*.clj", "*.cljc", "*.cljs", "*.cljx"]),
     ("cmake", &["*.cmake", "CMakeLists.txt"]),
     ("coffeescript", &["*.coffee"]),
