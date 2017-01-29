@@ -454,7 +454,7 @@ fn gitconfig_contents() -> Option<Vec<u8>> {
 fn excludes_file_default() -> Option<PathBuf> {
     env::var_os("XDG_CONFIG_HOME")
         .and_then(|x| if x.is_empty() { None } else { Some(PathBuf::from(x)) })
-        .or_else(|| env::home_dir())
+        .or_else(|| env::home_dir().map(|p| p.join(".config")))
         .map(|x| x.join("git/ignore"))
 }
 
