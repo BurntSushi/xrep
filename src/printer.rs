@@ -46,6 +46,8 @@ pub struct Printer<W> {
     colors: ColorSpecs,
     /// The separator to use for file paths. If empty, this is ignored.
     path_separator: Option<u8>,
+    /// Restrict lines to this many columns.
+    max_columns: Option<usize>
 }
 
 impl<W: WriteColor> Printer<W> {
@@ -65,6 +67,7 @@ impl<W: WriteColor> Printer<W> {
             with_filename: false,
             colors: ColorSpecs::default(),
             path_separator: None,
+            max_columns: None,
         }
     }
 
@@ -141,6 +144,12 @@ impl<W: WriteColor> Printer<W> {
     /// When set, each match is prefixed with the file name that it came from.
     pub fn with_filename(mut self, yes: bool) -> Printer<W> {
         self.with_filename = yes;
+        self
+    }
+
+    /// Configure the max. number of columns used for printing matching lines.
+    pub fn max_columns(mut self, max_columns: Option<usize>) -> Printer<W> {
+        self.max_columns = max_columns;
         self
     }
 
