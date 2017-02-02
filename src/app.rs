@@ -169,6 +169,9 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
              .short("j").value_name("ARG").takes_value(true)
              .validator(validate_number))
         .arg(flag("vimgrep"))
+        .arg(flag("max-columns").short("M")
+             .value_name("NUM").takes_value(true)
+             .validator(validate_number))
         .arg(flag("type-add")
              .value_name("TYPE").takes_value(true)
              .multiple(true).number_of_values(1))
@@ -473,6 +476,11 @@ lazy_static! {
              "Show results with every match on its own line, including \
               line numbers and column numbers. With this option, a line with \
               more than one match will be printed more than once.");
+        doc!(h, "max-columns",
+             "Don't print lines longer than this limit in bytes.",
+             "Don't print lines longer than this limit in bytes. Longer lines \
+              are omitted, and only the number of matches in that line is \
+              printed.");
 
         doc!(h, "type-add",
              "Add a new glob for a file type.",

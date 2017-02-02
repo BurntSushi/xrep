@@ -1314,6 +1314,36 @@ clean!(feature_109_case_sensitive_part2, "test", ".",
     wd.assert_err(&mut cmd);
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/129
+clean!(feature_129_matches, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("foo", "test\ntest abcdefghijklmnopqrstuvwxyz test");
+    cmd.arg("-M26");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "foo:test\nfoo:[Omitted long line with 2 matches]\n";
+    assert_eq!(lines, expected);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/129
+clean!(feature_129_context, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("foo", "test\nabcdefghijklmnopqrstuvwxyz");
+    cmd.arg("-M20").arg("-C1");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "foo:test\nfoo-[Omitted long context line]\n";
+    assert_eq!(lines, expected);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/129
+clean!(feature_129_replace, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("foo", "test\ntest abcdefghijklmnopqrstuvwxyz test");
+    cmd.arg("-M26").arg("-rfoo");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "foo:foo\nfoo:[Omitted long line with 2 replacements]\n";
+    assert_eq!(lines, expected);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/159
 clean!(feature_159_works, "test", ".", |wd: WorkDir, mut cmd: Command| {
     wd.create("foo", "test\ntest");

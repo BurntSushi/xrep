@@ -203,6 +203,10 @@ Project home page: https://github.com/BurntSushi/ripgrep
 -L, --follow
 : Follow symlinks.
 
+-M, --max-columns *NUM*
+: Don't print lines longer than this limit in bytes. Longer lines are omitted,
+  and only the number of matches in that line is printed.
+
 -m, --max-count *NUM*
 : Limit the number of matching lines per file searched to NUM.
 
