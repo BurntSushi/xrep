@@ -370,3 +370,17 @@ $ cargo test
 ```
 
 from the repository root.
+
+### Known issues
+
+#### I just hit Ctrl+C in the middle of ripgrep's output and now my terminal's foreground color is wrong!
+
+Type in `color` on Windows and `echo -ne "\033[0m"` on Unix to restore your
+original foreground color.
+
+PR [#187](https://github.com/BurntSushi/ripgrep/pull/187) fixed this, and it
+was later deprecated in
+[#281](https://github.com/BurntSushi/ripgrep/issues/281). A full explanation is
+available [here][msys issue explanation].
+
+[msys issue explanation]: https://github.com/BurntSushi/ripgrep/issues/281#issuecomment-269093893
