@@ -15,32 +15,33 @@ Windows console API, which requires synchronous communication.
 The `WriteColor` trait extends the `io::Write` trait with methods for setting
 colors or resetting them.
 
-`Stdout` and `StdoutLock` both satisfy `WriteColor` and are analogous to
-`std::io::Stdout` and `std::io::StdoutLock`.
+`StandardStream` and `StandardStreamLock` both satisfy `WriteColor` and are
+analogous to `std::io::Stdout` and `std::io::StdoutLock`, or `std::io::Stderr`
+and `std::io::StderrLock`.
 
 `Buffer` is an in memory buffer that supports colored text. In a parallel
-program, each thread might write to its own buffer. A buffer can be printed
-to stdout using a `BufferWriter`. The advantage of this design is that
-each thread can work in parallel on a buffer without having to synchronize
-access to global resources such as the Windows console. Moreover, this design
-also prevents interleaving of buffer output.
+program, each thread might write to its own buffer. A buffer can be printed to
+using a `BufferWriter`. The advantage of this design is that each thread can
+work in parallel on a buffer without having to synchronize access to global
+resources such as the Windows console. Moreover, this design also prevents
+interleaving of buffer output.
 
 `Ansi` and `NoColor` both satisfy `WriteColor` for arbitrary implementors of
 `io::Write`. These types are useful when you know exactly what you need. An
 analogous type for the Windows console is not provided since it cannot exist.
 
-# Example: using `Stdout`
+# Example: using `StandardStream`
 
-The `Stdout` type in this crate works similarly to `std::io::Stdout`, except
-it is augmented with methods for coloring by the `WriteColor` trait. For
-example, to write some green text:
+The `StandardStream` type in this crate works similarly to `std::io::Stdout`,
+except it is augmented with methods for coloring by the `WriteColor` trait.
+For example, to write some green text:
 
 ```rust,no_run
 # fn test() -> Result<(), Box<::std::error::Error>> {
 use std::io::Write;
-use termcolor::{Color, ColorChoice, ColorSpec, Stdout, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-let mut stdout = Stdout::new(ColorChoice::Always);
+let mut stdout = StandardStream::stdout(ColorChoice::Always);
 try!(stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
 try!(writeln!(&mut stdout, "green text!"));
 # Ok(()) }
@@ -48,18 +49,18 @@ try!(writeln!(&mut stdout, "green text!"));
 
 # Example: using `BufferWriter`
 
-A `BufferWriter` can create buffers and write buffers to stdout. It does *not*
-implement `io::Write` or `WriteColor` itself. Instead, `Buffer` implements
-`io::Write` and `io::WriteColor`.
+A `BufferWriter` can create buffers and write buffers to stdout or stderr. It
+does *not* implement `io::Write` or `WriteColor` itself. Instead, `Buffer`
+implements `io::Write` and `io::WriteColor`.
 
-This example shows how to print some green text to stdout.
+This example shows how to print some green text to stderr.
 
 ```rust,no_run
 # fn test() -> Result<(), Box<::std::error::Error>> {
 use std::io::Write;
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-let mut bufwtr = BufferWriter::stdout(ColorChoice::Always);
+let mut bufwtr = BufferWriter::stderr(ColorChoice::Always);
 let mut buffer = bufwtr.buffer();
 try!(buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
 try!(writeln!(&mut buffer, "green text!"));
@@ -184,20 +185,89 @@ impl ColorChoice {
     }
 }
 
-/// Satisfies `io::Write` and `WriteColor`, and supports optional coloring
-/// to stdout.
-pub struct Stdout {
-    wtr: LossyStdout<WriterInner<'static, io::Stdout>>,
+/// `std::io` implements `Stdout` and `Stderr` (and their `Lock` variants) as
+/// separate types, which makes it difficult to abstract over them. We use
+/// some simple internal enum types to work around this.
+
+enum StandardStreamType {
+    Stdout,
+    Stderr,
 }
 
-/// `StdoutLock` is a locked reference to a `Stdout`.
+enum IoStandardStream {
+    Stdout(io::Stdout),
+    Stderr(io::Stderr),
+}
+
+impl IoStandardStream {
+    fn new(sty: StandardStreamType) -> IoStandardStream {
+        match sty {
+            StandardStreamType::Stdout => IoStandardStream::Stdout(io::stdout()),
+            StandardStreamType::Stderr => IoStandardStream::Stderr(io::stderr()),
+        }
+    }
+
+    fn lock(&self) -> IoStandardStreamLock {
+        match *self {
+            IoStandardStream::Stdout(ref s) => IoStandardStreamLock::StdoutLock(s.lock()),
+            IoStandardStream::Stderr(ref s) => IoStandardStreamLock::StderrLock(s.lock()),
+        }
+    }
+}
+
+impl io::Write for IoStandardStream {
+    fn write(&mut self, b: &[u8]) -> io::Result<usize> {
+        match *self {
+            IoStandardStream::Stdout(ref mut s) => s.write(b),
+            IoStandardStream::Stderr(ref mut s) => s.write(b),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match *self {
+            IoStandardStream::Stdout(ref mut s) => s.flush(),
+            IoStandardStream::Stderr(ref mut s) => s.flush(),
+        }
+    }
+}
+
+/// Same rigamorale for the locked variants of the standard streams.
+
+enum IoStandardStreamLock<'a> {
+    StdoutLock(io::StdoutLock<'a>),
+    StderrLock(io::StderrLock<'a>),
+}
+
+impl<'a> io::Write for IoStandardStreamLock<'a> {
+    fn write(&mut self, b: &[u8]) -> io::Result<usize> {
+        match *self {
+            IoStandardStreamLock::StdoutLock(ref mut s) => s.write(b),
+            IoStandardStreamLock::StderrLock(ref mut s) => s.write(b),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match *self {
+            IoStandardStreamLock::StdoutLock(ref mut s) => s.flush(),
+            IoStandardStreamLock::StderrLock(ref mut s) => s.flush(),
+        }
+    }
+}
+
+/// Satisfies `io::Write` and `WriteColor`, and supports optional coloring
+/// to either of the standard output streams, stdout and stderr.
+pub struct StandardStream {
+    wtr: LossyStandardStream<WriterInner<'static, IoStandardStream>>,
+}
+
+/// `StandardStreamLock` is a locked reference to a `StandardStream`.
 ///
 /// This implements the `io::Write` and `WriteColor` traits, and is constructed
 /// via the `Write::lock` method.
 ///
-/// The lifetime `'a` refers to the lifetime of the corresponding `Stdout`.
-pub struct StdoutLock<'a> {
-    wtr: LossyStdout<WriterInner<'a, io::StdoutLock<'a>>>,
+/// The lifetime `'a` refers to the lifetime of the corresponding `StandardStream`.
+pub struct StandardStreamLock<'a> {
+    wtr: LossyStandardStream<WriterInner<'a, IoStandardStreamLock<'a>>>,
 }
 
 /// WriterInner is a (limited) generic representation of a writer. It is
@@ -217,23 +287,23 @@ enum WriterInner<'a, W> {
     WindowsLocked { wtr: W, console: MutexGuard<'a, wincolor::Console> },
 }
 
-impl Stdout {
-    /// Create a new `Stdout` with the given color preferences.
+impl StandardStream {
+    /// Create a new `StandardStream` with the given color preferences.
     ///
     /// The specific color/style settings can be configured when writing via
     /// the `WriteColor` trait.
     #[cfg(not(windows))]
-    pub fn new(choice: ColorChoice) -> Stdout {
+    fn create(sty: StandardStreamType, choice: ColorChoice) -> StandardStream {
         let wtr =
             if choice.should_attempt_color() {
-                WriterInner::Ansi(Ansi(io::stdout()))
+                WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
             } else {
-                WriterInner::NoColor(NoColor(io::stdout()))
+                WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
             };
-        Stdout { wtr: LossyStdout::new(wtr) }
+        StandardStream { wtr: LossyStandardStream::new(wtr) }
     }
 
-    /// Create a new `Stdout` with the given color preferences.
+    /// Create a new `StandardStream` with the given color preferences.
     ///
     /// If coloring is desired and a Windows console could not be found, then
     /// ANSI escape sequences are used instead.
@@ -241,25 +311,52 @@ impl Stdout {
     /// The specific color/style settings can be configured when writing via
     /// the `WriteColor` trait.
     #[cfg(windows)]
-    pub fn new(choice: ColorChoice) -> Stdout {
-        let con = wincolor::Console::stdout();
+    fn create(sty: StandardStreamType, choice: ColorChoice) -> StandardStream {
+        let con = match sty {
+            StandardStreamType::Stdout => wincolor::Console::stdout(),
+            StandardStreamType::Stderr => wincolor::Console::stderr(),
+        };
         let is_win_console = con.is_ok();
         let wtr =
             if choice.should_attempt_color() {
                 if choice.should_ansi() {
-                    WriterInner::Ansi(Ansi(io::stdout()))
+                    WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
                 } else if let Ok(console) = con {
                     WriterInner::Windows {
-                        wtr: io::stdout(),
+                        wtr: IoStandardStream::new(sty),
                         console: Mutex::new(console),
                     }
                 } else {
-                    WriterInner::Ansi(Ansi(io::stdout()))
+                    WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
                 }
             } else {
-                WriterInner::NoColor(NoColor(io::stdout()))
+                WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
             };
-        Stdout { wtr: LossyStdout::new(wtr).is_console(is_win_console) }
+        StandardStream { wtr: LossyStandardStream::new(wtr).is_console(is_win_console) }
+    }
+
+    /// Create a new `StandardStream` with the given color preferences that
+    /// writes to standard output.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing via
+    /// the `WriteColor` trait.
+    pub fn stdout(choice: ColorChoice) -> StandardStream {
+        StandardStream::create(StandardStreamType::Stdout, choice)
+    }
+
+    /// Create a new `StandardStream` with the given color preferences that
+    /// writes to standard error.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing via
+    /// the `WriteColor` trait.
+    pub fn stderr(choice: ColorChoice) -> StandardStream {
+        StandardStream::create(StandardStreamType::Stderr, choice)
     }
 
     /// Lock the underlying writer.
@@ -268,16 +365,16 @@ impl Stdout {
     /// `WriteColor`.
     ///
     /// This method is **not reentrant**. It may panic if `lock` is called
-    /// while a `StdoutLock` is still alive.
-    pub fn lock(&self) -> StdoutLock {
-        StdoutLock::from_stdout(self)
+    /// while a `StandardStreamLock` is still alive.
+    pub fn lock(&self) -> StandardStreamLock {
+        StandardStreamLock::from_stream(self)
     }
 }
 
-impl<'a> StdoutLock<'a> {
+impl<'a> StandardStreamLock<'a> {
     #[cfg(not(windows))]
-    fn from_stdout(stdout: &Stdout) -> StdoutLock {
-        let locked = match *stdout.wtr.get_ref() {
+    fn from_stream(stream: &StandardStream) -> StandardStreamLock {
+        let locked = match *stream.wtr.get_ref() {
             WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref w) => {
                 WriterInner::NoColor(NoColor(w.0.lock()))
@@ -286,12 +383,12 @@ impl<'a> StdoutLock<'a> {
                 WriterInner::Ansi(Ansi(w.0.lock()))
             }
         };
-        StdoutLock { wtr: stdout.wtr.wrap(locked) }
+        StandardStreamLock { wtr: stream.wtr.wrap(locked) }
     }
 
     #[cfg(windows)]
-    fn from_stdout(stdout: &Stdout) -> StdoutLock {
-        let locked = match *stdout.wtr.get_ref() {
+    fn from_stream(stream: &StandardStream) -> StandardStreamLock {
+        let locked = match *stream.wtr.get_ref() {
             WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref w) => {
                 WriterInner::NoColor(NoColor(w.0.lock()))
@@ -308,19 +405,19 @@ impl<'a> StdoutLock<'a> {
             }
             #[cfg(windows)]
             WriterInner::WindowsLocked{..} => {
-                panic!("cannot call Stdout.lock while a StdoutLock is alive");
+                panic!("cannot call StandardStream.lock while a StandardStreamLock is alive");
             }
         };
-        StdoutLock { wtr: stdout.wtr.wrap(locked) }
+        StandardStreamLock { wtr: stream.wtr.wrap(locked) }
     }
 }
 
-impl io::Write for Stdout {
+impl io::Write for StandardStream {
     fn write(&mut self, b: &[u8]) -> io::Result<usize> { self.wtr.write(b) }
     fn flush(&mut self) -> io::Result<()> { self.wtr.flush() }
 }
 
-impl WriteColor for Stdout {
+impl WriteColor for StandardStream {
     fn supports_color(&self) -> bool { self.wtr.supports_color() }
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         self.wtr.set_color(spec)
@@ -328,12 +425,12 @@ impl WriteColor for Stdout {
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
 }
 
-impl<'a> io::Write for StdoutLock<'a> {
+impl<'a> io::Write for StandardStreamLock<'a> {
     fn write(&mut self, b: &[u8]) -> io::Result<usize> { self.wtr.write(b) }
     fn flush(&mut self) -> io::Result<()> { self.wtr.flush() }
 }
 
-impl<'a> WriteColor for StdoutLock<'a> {
+impl<'a> WriteColor for StandardStreamLock<'a> {
     fn supports_color(&self) -> bool { self.wtr.supports_color() }
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         self.wtr.set_color(spec)
@@ -420,7 +517,7 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
     }
 }
 
-/// Writes colored buffers to stdout.
+/// Writes colored buffers to stdout or stderr.
 ///
 /// Writable buffers can be obtained by calling `buffer` on a `BufferWriter`.
 ///
@@ -430,7 +527,7 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
 /// It is intended for a `BufferWriter` to be put in an `Arc` and written to
 /// from multiple threads simultaneously.
 pub struct BufferWriter {
-    stdout: LossyStdout<io::Stdout>,
+    stream: LossyStandardStream<IoStandardStream>,
     printed: AtomicBool,
     separator: Option<Vec<u8>>,
     color_choice: ColorChoice,
@@ -439,23 +536,23 @@ pub struct BufferWriter {
 }
 
 impl BufferWriter {
-    /// Create a new `BufferWriter` that writes to stdout with the given
-    /// color preferences.
+    /// Create a new `BufferWriter` that writes to a standard stream with the
+    /// given color preferences.
     ///
     /// The specific color/style settings can be configured when writing to
     /// the buffers themselves.
     #[cfg(not(windows))]
-    pub fn stdout(choice: ColorChoice) -> BufferWriter {
+    fn create(sty: StandardStreamType, choice: ColorChoice) -> BufferWriter {
         BufferWriter {
-            stdout: LossyStdout::new(io::stdout()),
+            stream: LossyStandardStream::new(IoStandardStream::new(sty)),
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
         }
     }
 
-    /// Create a new `BufferWriter` that writes to stdout with the given
-    /// color preferences.
+    /// Create a new `BufferWriter` that writes to a standard stream with the
+    /// given color preferences.
     ///
     /// If coloring is desired and a Windows console could not be found, then
     /// ANSI escape sequences are used instead.
@@ -463,16 +560,43 @@ impl BufferWriter {
     /// The specific color/style settings can be configured when writing to
     /// the buffers themselves.
     #[cfg(windows)]
-    pub fn stdout(choice: ColorChoice) -> BufferWriter {
-        let con = wincolor::Console::stdout().ok().map(Mutex::new);
-        let stdout = LossyStdout::new(io::stdout()).is_console(con.is_some());
+    fn create(sty: StandardStreamType, choice: ColorChoice) -> BufferWriter {
+        let con = match sty {
+            StandardStreamType::Stdout => wincolor::Console::stdout(),
+            StandardStreamType::Stderr => wincolor::Console::stderr(),
+        }.ok().map(Mutex::new);
+        let stream = LossyStandardStream::new(IoStandardStream::new(sty)).is_console(con.is_some());
         BufferWriter {
-            stdout: stdout,
+            stream: stream,
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
             console: con,
         }
+    }
+
+    /// Create a new `BufferWriter` that writes to stdout with the given
+    /// color preferences.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing to
+    /// the buffers themselves.
+    pub fn stdout(choice: ColorChoice) -> BufferWriter {
+        BufferWriter::create(StandardStreamType::Stdout, choice)
+    }
+
+    /// Create a new `BufferWriter` that writes to stderr with the given
+    /// color preferences.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing to
+    /// the buffers themselves.
+    pub fn stderr(choice: ColorChoice) -> BufferWriter {
+        BufferWriter::create(StandardStreamType::Stderr, choice)
     }
 
     /// If set, the separator given is printed between buffers. By default, no
@@ -510,16 +634,16 @@ impl BufferWriter {
         if buf.is_empty() {
             return Ok(());
         }
-        let mut stdout = self.stdout.wrap(self.stdout.get_ref().lock());
+        let mut stream = self.stream.wrap(self.stream.get_ref().lock());
         if let Some(ref sep) = self.separator {
             if self.printed.load(Ordering::SeqCst) {
-                try!(stdout.write_all(sep));
-                try!(stdout.write_all(b"\n"));
+                try!(stream.write_all(sep));
+                try!(stream.write_all(b"\n"));
             }
         }
         match buf.0 {
-            BufferInner::NoColor(ref b) => try!(stdout.write_all(&b.0)),
-            BufferInner::Ansi(ref b) => try!(stdout.write_all(&b.0)),
+            BufferInner::NoColor(ref b) => try!(stream.write_all(&b.0)),
+            BufferInner::Ansi(ref b) => try!(stream.write_all(&b.0)),
             #[cfg(windows)]
             BufferInner::Windows(ref b) => {
                 // We guarantee by construction that we have a console here.
@@ -527,7 +651,7 @@ impl BufferWriter {
                 let console_mutex = self.console.as_ref()
                     .expect("got Windows buffer but have no Console");
                 let mut console = console_mutex.lock().unwrap();
-                try!(b.print(&mut *console, &mut stdout));
+                try!(b.print(&mut *console, &mut stream));
             }
         }
         self.printed.store(true, Ordering::SeqCst);
@@ -905,25 +1029,25 @@ impl WindowsBuffer {
         self.colors.push((pos, spec));
     }
 
-    /// Print the contents to the given stdout handle, and use the console
+    /// Print the contents to the given stream handle, and use the console
     /// for coloring.
     fn print(
         &self,
         console: &mut wincolor::Console,
-        stdout: &mut LossyStdout<io::StdoutLock>,
+        stream: &mut LossyStandardStream<IoStandardStreamLock>,
     ) -> io::Result<()> {
         let mut last = 0;
         for &(pos, ref spec) in &self.colors {
-            try!(stdout.write_all(&self.buf[last..pos]));
-            try!(stdout.flush());
+            try!(stream.write_all(&self.buf[last..pos]));
+            try!(stream.flush());
             last = pos;
             match *spec {
                 None => try!(console.reset()),
                 Some(ref spec) => try!(spec.write_console(console)),
             }
         }
-        try!(stdout.write_all(&self.buf[last..]));
-        stdout.flush()
+        try!(stream.write_all(&self.buf[last..]));
+        stream.flush()
     }
 
     /// Clear the buffer.
@@ -1121,33 +1245,33 @@ impl FromStr for Color {
     }
 }
 
-struct LossyStdout<W> {
+struct LossyStandardStream<W> {
     wtr: W,
     #[cfg(windows)]
     is_console: bool,
 }
 
-impl<W: io::Write> LossyStdout<W> {
+impl<W: io::Write> LossyStandardStream<W> {
     #[cfg(not(windows))]
-    fn new(wtr: W) -> LossyStdout<W> { LossyStdout { wtr: wtr } }
+    fn new(wtr: W) -> LossyStandardStream<W> { LossyStandardStream { wtr: wtr } }
 
     #[cfg(windows)]
-    fn new(wtr: W) -> LossyStdout<W> {
-        LossyStdout { wtr: wtr, is_console: false }
+    fn new(wtr: W) -> LossyStandardStream<W> {
+        LossyStandardStream { wtr: wtr, is_console: false }
     }
 
     #[cfg(not(windows))]
-    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
-        LossyStdout::new(wtr)
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStandardStream<Q> {
+        LossyStandardStream::new(wtr)
     }
 
     #[cfg(windows)]
-    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStdout<Q> {
-        LossyStdout::new(wtr).is_console(self.is_console)
+    fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStandardStream<Q> {
+        LossyStandardStream::new(wtr).is_console(self.is_console)
     }
 
     #[cfg(windows)]
-    fn is_console(mut self, yes: bool) -> LossyStdout<W> {
+    fn is_console(mut self, yes: bool) -> LossyStandardStream<W> {
         self.is_console = yes;
         self
     }
@@ -1157,7 +1281,7 @@ impl<W: io::Write> LossyStdout<W> {
     }
 }
 
-impl<W: WriteColor> WriteColor for LossyStdout<W> {
+impl<W: WriteColor> WriteColor for LossyStandardStream<W> {
     fn supports_color(&self) -> bool { self.wtr.supports_color() }
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         self.wtr.set_color(spec)
@@ -1165,7 +1289,7 @@ impl<W: WriteColor> WriteColor for LossyStdout<W> {
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
 }
 
-impl<W: io::Write> io::Write for LossyStdout<W> {
+impl<W: io::Write> io::Write for LossyStandardStream<W> {
     #[cfg(not(windows))]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.wtr.write(buf)

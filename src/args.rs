@@ -182,8 +182,8 @@ impl Args {
     }
 
     /// Create a new writer for single-threaded searching with color support.
-    pub fn stdout(&self) -> termcolor::Stdout {
-        termcolor::Stdout::new(self.color_choice)
+    pub fn stdout(&self) -> termcolor::StandardStream {
+        termcolor::StandardStream::stdout(self.color_choice)
     }
 
     /// Returns a handle to stdout for filtering search.

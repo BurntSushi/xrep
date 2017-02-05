@@ -39,12 +39,13 @@ extern crate termcolor;
 The `WriteColor` trait extends the `io::Write` trait with methods for setting
 colors or resetting them.
 
-`Stdout` and `StdoutLock` both satisfy `WriteColor` and are analogous to
-`std::io::Stdout` and `std::io::StdoutLock`.
+`StandardStream` and `StandardStreamLock` both satisfy `WriteColor` and are
+analogous to `std::io::Stdout` and `std::io::StdoutLock`, or `std::io::Stderr`
+and `std::io::StderrLock`.
 
 `Buffer` is an in memory buffer that supports colored text. In a parallel
-program, each thread might write to its own buffer. A buffer can be printed
-to stdout using a `BufferWriter`. The advantage of this design is that
+program, each thread might write to its own buffer. A buffer can be printed to
+stdout or stderr using a `BufferWriter`. The advantage of this design is that
 each thread can work in parallel on a buffer without having to synchronize
 access to global resources such as the Windows console. Moreover, this design
 also prevents interleaving of buffer output.
@@ -53,34 +54,34 @@ also prevents interleaving of buffer output.
 `io::Write`. These types are useful when you know exactly what you need. An
 analogous type for the Windows console is not provided since it cannot exist.
 
-### Example: using `Stdout`
+### Example: using `StandardStream`
 
-The `Stdout` type in this crate works similarly to `std::io::Stdout`, except
-it is augmented with methods for coloring by the `WriteColor` trait. For
-example, to write some green text:
+The `StandardStream` type in this crate works similarly to `std::io::Stdout`,
+except it is augmented with methods for coloring by the `WriteColor` trait.
+For example, to write some green text:
 
 ```rust
 use std::io::Write;
-use termcolor::{Color, ColorChoice, ColorSpec, Stdout, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-let mut stdout = Stdout::new(ColorChoice::Always);
+let mut stdout = StandardStream::stdout(ColorChoice::Always);
 try!(stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
 try!(writeln!(&mut stdout, "green text!"));
 ```
 
 ### Example: using `BufferWriter`
 
-A `BufferWriter` can create buffers and write buffers to stdout. It does *not*
-implement `io::Write` or `WriteColor` itself. Instead, `Buffer` implements
-`io::Write` and `io::WriteColor`.
+A `BufferWriter` can create buffers and write buffers to stdout or stderr. It
+does *not* implement `io::Write` or `WriteColor` itself. Instead, `Buffer`
+implements `io::Write` and `io::WriteColor`.
 
-This example shows how to print some green text to stdout.
+This example shows how to print some green text to stderr.
 
 ```rust
 use std::io::Write;
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-let mut bufwtr = BufferWriter::stdout(ColorChoice::Always);
+let mut bufwtr = BufferWriter::stderr(ColorChoice::Always);
 let mut buffer = bufwtr.buffer();
 try!(buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
 try!(writeln!(&mut buffer, "green text!"));
