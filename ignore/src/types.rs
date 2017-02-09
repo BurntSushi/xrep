@@ -186,6 +186,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("ts", &["*.ts", "*.tsx"]),
     ("txt", &["*.txt"]),
     ("toml", &["*.toml", "Cargo.lock"]),
+    ("twig", &["*.twig"]),
     ("vala", &["*.vala"]),
     ("vb", &["*.vb"]),
     ("vimscript", &["*.vim"]),
