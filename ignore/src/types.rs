@@ -145,6 +145,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("kotlin", &["*.kt", "*.kts"]),
     ("less", &["*.less"]),
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
+    ("log", &["*.log"]),
     ("lua", &["*.lua"]),
     ("m4", &["*.ac", "*.m4"]),
     ("make", &["gnumakefile", "Gnumakefile", "makefile", "Makefile", "*.mk", "*.mak"]),
