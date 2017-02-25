@@ -392,7 +392,9 @@ impl DirEntryRaw {
 /// continues.
 /// * Fifth, if the path hasn't been whitelisted and it is hidden, then the
 /// path is skipped.
-/// * Sixth, if the path has made it this far then it is yielded in the
+/// * Sixth, unless the path is a directory, the size of the file is compared
+/// against the max filesize limit. If it exceeds the limit, it is skipped.
+/// * Seventh, if the path has made it this far then it is yielded in the
 /// iterator.
 #[derive(Clone)]
 pub struct WalkBuilder {
@@ -400,6 +402,7 @@ pub struct WalkBuilder {
     ig_builder: IgnoreBuilder,
     parents: bool,
     max_depth: Option<usize>,
+    max_filesize: Option<u64>,
     follow_links: bool,
     sorter: Option<Arc<Fn(&OsString, &OsString) -> cmp::Ordering + 'static>>,
     threads: usize,
@@ -412,6 +415,7 @@ impl fmt::Debug for WalkBuilder {
             .field("ig_builder", &self.ig_builder)
             .field("parents", &self.parents)
             .field("max_depth", &self.max_depth)
+            .field("max_filesize", &self.max_filesize)
             .field("follow_links", &self.follow_links)
             .field("threads", &self.threads)
             .finish()
@@ -431,6 +435,7 @@ impl WalkBuilder {
             ig_builder: IgnoreBuilder::new(),
             parents: true,
             max_depth: None,
+            max_filesize: None,
             follow_links: false,
             sorter: None,
             threads: 0,
@@ -464,6 +469,7 @@ impl WalkBuilder {
             it: None,
             ig_root: ig_root.clone(),
             ig: ig_root.clone(),
+            max_filesize: self.max_filesize,
             parents: self.parents,
         }
     }
@@ -478,6 +484,7 @@ impl WalkBuilder {
             paths: self.paths.clone().into_iter(),
             ig_root: self.ig_builder.build(),
             max_depth: self.max_depth,
+            max_filesize: self.max_filesize,
             follow_links: self.follow_links,
             parents: self.parents,
             threads: self.threads,
@@ -505,6 +512,12 @@ impl WalkBuilder {
     /// Whether to follow symbolic links or not.
     pub fn follow_links(&mut self, yes: bool) -> &mut WalkBuilder {
         self.follow_links = yes;
+        self
+    }
+
+    /// Whether to ignore files above the specified limit.
+    pub fn max_filesize(&mut self, filesize: Option<u64>) -> &mut WalkBuilder {
+        self.max_filesize = filesize;
         self
     }
 
@@ -650,6 +663,7 @@ pub struct Walk {
     it: Option<WalkEventIter>,
     ig_root: Ignore,
     ig: Ignore,
+    max_filesize: Option<u64>,
     parents: bool,
 }
 
@@ -667,7 +681,10 @@ impl Walk {
         if ent.depth() == 0 {
             return false;
         }
-        skip_path(&self.ig, ent.path(), ent.file_type().is_dir())
+
+        let ft = ent.file_type().is_dir();
+        skip_path(&self.ig, ent.path(), ft) ||
+        skip_filesize(self.max_filesize, ent.path(), &ent.metadata().ok(), ft)
     }
 }
 
@@ -824,6 +841,7 @@ pub struct WalkParallel {
     paths: vec::IntoIter<PathBuf>,
     ig_root: Ignore,
     parents: bool,
+    max_filesize: Option<u64>,
     max_depth: Option<usize>,
     follow_links: bool,
     threads: usize,
@@ -886,6 +904,7 @@ impl WalkParallel {
                 threads: threads,
                 parents: self.parents,
                 max_depth: self.max_depth,
+                max_filesize: self.max_filesize,
                 follow_links: self.follow_links,
             };
             handles.push(thread::spawn(|| worker.run()));
@@ -1000,6 +1019,9 @@ struct Worker {
     /// The maximum depth of directories to descend. A value of `0` means no
     /// descension at all.
     max_depth: Option<usize>,
+    /// The maximum size a searched file can be (in bytes). If a file exceeds
+    /// this size it will be skipped.
+    max_filesize: Option<u64>,
     /// Whether to follow symbolic links or not. When this is enabled, loop
     /// detection is performed.
     follow_links: bool,
@@ -1106,7 +1128,10 @@ impl Worker {
             }
         }
         let is_dir = dent.file_type().map_or(false, |ft| ft.is_dir());
-        if !skip_path(ig, dent.path(), is_dir) {
+        if !skip_path(ig, dent.path(), is_dir) &&
+           !skip_filesize(self.max_filesize, dent.path(),
+                          &dent.metadata().ok(), is_dir)
+        {
             self.queue.push(Message::Work(Work {
                 dent: dent,
                 ignore: ig.clone(),
@@ -1253,6 +1278,34 @@ fn check_symlink_loop(
     Ok(())
 }
 
+fn skip_filesize(
+    max_filesize: Option<u64>,
+    path: &Path,
+    ent: &Option<Metadata>,
+    is_dir: bool
+) -> bool {
+    if is_dir {
+        return false;
+    }
+
+    let filesize = match *ent {
+        Some(ref md) => Some(md.len()),
+        None => None
+    };
+
+    match (filesize, max_filesize) {
+        (Some(fs), Some(m_fs)) => {
+            if fs > m_fs {
+                debug!("ignoring {}: {} bytes", path.display(), fs);
+                true
+            } else {
+                false
+            }
+        }
+        _ => false
+    }
+}
+
 fn skip_path(ig: &Ignore, path: &Path, is_dir: bool) -> bool {
     let m = ig.matched(path, is_dir);
     if m.is_ignore() {
@@ -1280,6 +1333,11 @@ mod tests {
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();
         file.write_all(contents.as_bytes()).unwrap();
+    }
+
+    fn wfile_size<P: AsRef<Path>>(path: P, size: u64) {
+        let file = File::create(path).unwrap();
+        file.set_len(size).unwrap();
     }
 
     #[cfg(unix)]
@@ -1435,6 +1493,32 @@ mod tests {
         assert_paths(td.path(), builder.max_depth(Some(1)), &["a", "foo"]);
         assert_paths(td.path(), builder.max_depth(Some(2)), &[
             "a", "a/b", "foo", "a/foo",
+        ]);
+    }
+
+    #[test]
+    fn max_filesize() {
+        let td = TempDir::new("walk-test-").unwrap();
+        mkdirp(td.path().join("a/b"));
+        wfile_size(td.path().join("foo"), 0);
+        wfile_size(td.path().join("bar"), 400);
+        wfile_size(td.path().join("baz"), 600);
+        wfile_size(td.path().join("a/foo"), 600);
+        wfile_size(td.path().join("a/bar"), 500);
+        wfile_size(td.path().join("a/baz"), 200);
+
+        let mut builder = WalkBuilder::new(td.path());
+        assert_paths(td.path(), &builder, &[
+            "a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz",
+        ]);
+        assert_paths(td.path(), builder.max_filesize(Some(0)), &[
+            "a", "a/b", "foo"
+        ]);
+        assert_paths(td.path(), builder.max_filesize(Some(500)), &[
+            "a", "a/b", "foo", "bar", "a/bar", "a/baz"
+        ]);
+        assert_paths(td.path(), builder.max_filesize(Some(50000)), &[
+            "a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz",
         ]);
     }
 
