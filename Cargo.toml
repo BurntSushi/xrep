@@ -29,7 +29,7 @@ path = "tests/tests.rs"
 atty = "0.2.2"
 bytecount = "0.1.4"
 clap = "2.19.0"
-env_logger = { version = "0.3", default-features = false }
+env_logger = { version = "0.4", default-features = false }
 grep = { version = "0.1.5", path = "grep" }
 ignore = { version = "0.1.7", path = "ignore" }
 lazy_static = "0.2"
