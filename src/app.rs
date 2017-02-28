@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use clap::{App, AppSettings, Arg, ArgSettings};
+use regex::Regex;
 
 const ABOUT: &'static str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.
@@ -145,6 +146,9 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
         .arg(flag("max-count")
              .short("m").value_name("NUM").takes_value(true)
              .validator(validate_number))
+        .arg(flag("max-filesize")
+             .value_name("NUM+SUFFIX?").takes_value(true)
+             .validator(validate_max_filesize))
         .arg(flag("maxdepth")
              .value_name("NUM").takes_value(true)
              .validator(validate_number))
@@ -371,6 +375,13 @@ lazy_static! {
         doc!(h, "max-count",
              "Limit the number of matches.",
              "Limit the number of matching lines per file searched to NUM.");
+        doc!(h, "max-filesize",
+             "Ignore files larger than NUM in size.",
+             "Ignore files larger than NUM in size. Does not ignore directories. \
+              \n\nThe input format accepts suffixes of K, M or G which \
+              correspond to kilobytes, megabytes and gigabytes. If no suffix is \
+              provided the input is treated as bytes. \
+              \n\nExample: --max-filesize 50K or --max-filesize 80M");
         doc!(h, "maxdepth",
              "Descend at most NUM directories.",
              "Limit the depth of directory traversal to NUM levels beyond \
@@ -490,4 +501,25 @@ lazy_static! {
 
 fn validate_number(s: String) -> Result<(), String> {
     s.parse::<usize>().map(|_|()).map_err(|err| err.to_string())
+}
+
+fn validate_max_filesize(s: String) -> Result<(), String> {
+    let re = Regex::new(r#"^(\d+)([KMG])?$"#).unwrap();
+    let caps = try!(re.captures(&s)
+                      .ok_or("invalid format for max-filesize argument"));
+
+    let value = caps.get(1);
+    let suffix = caps.get(2).map(|x| x.as_str());
+
+    match value {
+        Some(value) => {
+            try!(value.as_str().parse::<u64>().map_err(|err| err.to_string()));
+        }
+        None => ()
+    }
+
+    match suffix {
+        None | Some("K") | Some("M") | Some("G") => Ok(()),
+        _ => Err(From::from("invalid suffix for max-filesize argument"))
+    }
 }

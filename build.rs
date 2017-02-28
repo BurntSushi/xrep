@@ -2,6 +2,7 @@
 extern crate clap;
 #[macro_use]
 extern crate lazy_static;
+extern crate regex;
 
 use std::env;
 use std::fs;

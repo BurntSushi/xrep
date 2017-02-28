@@ -45,6 +45,7 @@ termcolor = { version = "0.3.0", path = "termcolor" }
 [build-dependencies]
 clap = "2.18"
 lazy_static = "0.2"
+regex = "0.2.1"
 
 [features]
 avx-accel = ["bytecount/avx-accel"]

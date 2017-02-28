@@ -187,8 +187,15 @@ Project home page: https://github.com/BurntSushi/ripgrep
 -L, --follow
 : Follow symlinks.
 
--m, --max-count NUM
+-m, --max-count *NUM*
 : Limit the number of matching lines per file searched to NUM.
+
+--max-filesize *NUM*+*SUFFIX*?
+: Ignore files larger than *NUM* in size. Directories will never be ignored.
+
+    *SUFFIX* is optional and may be one of K, M or G. These correspond to
+    kilobytes, megabytes and gigabytes respectively. If omitted the input is
+    treated as bytes.
 
 --maxdepth *NUM*
 : Descend at most NUM directories below the command line arguments.

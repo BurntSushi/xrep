@@ -55,6 +55,7 @@ pub struct Args {
     line_number: bool,
     line_per_match: bool,
     max_count: Option<u64>,
+    max_filesize: Option<u64>,
     maxdepth: Option<usize>,
     mmap: bool,
     no_ignore: bool,
@@ -285,6 +286,7 @@ impl Args {
         wd.follow_links(self.follow);
         wd.hidden(!self.hidden);
         wd.max_depth(self.maxdepth);
+        wd.max_filesize(self.max_filesize);
         wd.overrides(self.glob_overrides.clone());
         wd.types(self.types.clone());
         wd.git_global(!self.no_ignore && !self.no_ignore_vcs);
@@ -342,6 +344,7 @@ impl<'a> ArgMatches<'a> {
             line_number: self.line_number(),
             line_per_match: self.is_present("vimgrep"),
             max_count: try!(self.usize_of("max-count")).map(|max| max as u64),
+            max_filesize: try!(self.max_filesize()),
             maxdepth: try!(self.usize_of("maxdepth")),
             mmap: mmap,
             no_ignore: self.no_ignore(),
@@ -777,6 +780,33 @@ impl<'a> ArgMatches<'a> {
             btypes.negate(&ty);
         }
         btypes.build().map_err(From::from)
+    }
+
+    /// Parses the max-filesize argument option into a byte count.
+    fn max_filesize(&self) -> Result<Option<u64>> {
+        use regex::Regex;
+
+        let max_filesize = match self.value_of_lossy("max-filesize") {
+            Some(x) => x,
+            None => return Ok(None)
+        };
+
+        let re = Regex::new(r#"^(\d+)([KMG])?$"#).unwrap();
+        let caps = try!(re.captures(&max_filesize)
+                          .ok_or("invalid format for max-filesize argument"));
+
+        let value = match caps.get(1) {
+            Some(value) => Some(try!(value.as_str().parse::<u64>())),
+            None => None
+        };
+        let suffix = caps.get(2).map(|x| x.as_str());
+        match suffix {
+            None      => Ok(value),
+            Some("K") => Ok(value.map(|x| x * 1024)),
+            Some("M") => Ok(value.map(|x| x * 1024 * 1024)),
+            Some("G") => Ok(value.map(|x| x * 1024 * 1024 * 1024)),
+            _ => Err(From::from("invalid suffix for max-filesize argument"))
+        }
     }
 
     /// Returns true if ignore files should be ignored.

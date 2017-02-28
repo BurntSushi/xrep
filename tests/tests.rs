@@ -432,6 +432,18 @@ sherlock!(context_line_numbers, "world|attached",
     assert_eq!(lines, expected);
 });
 
+sherlock!(max_filesize_parse_error_length, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--max-filesize").arg("44444444444444444444");
+    wd.assert_err(&mut cmd);
+});
+
+sherlock!(max_filesize_parse_error_suffix, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--max-filesize").arg("45k");
+    wd.assert_err(&mut cmd);
+});
+
 sherlock!(ignore_hidden, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     wd.remove("sherlock");
     wd.create(".sherlock", hay::SHERLOCK);
