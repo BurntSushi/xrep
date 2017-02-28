@@ -167,6 +167,12 @@ $ brew tap burntsushi/ripgrep https://github.com/BurntSushi/ripgrep.git
 $ brew install burntsushi/ripgrep/ripgrep-bin
 ```
 
+If you're a **Windows Chocolatey** user, then you can install `ripgrep` from the [official repo](https://chocolatey.org/packages/ripgrep):
+
+```
+$ choco install ripgrep
+```
+
 If you're an **Arch Linux** user, then you can install `ripgrep` from the official repos:
 
 ```
