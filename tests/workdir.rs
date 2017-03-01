@@ -46,6 +46,13 @@ impl WorkDir {
         self.create_bytes(name, contents.as_bytes());
     }
 
+    /// Create a new file with the given name and size.
+    pub fn create_size<P: AsRef<Path>>(&self, name: P, filesize: u64) {
+        let path = self.dir.join(name);
+        let file = nice_err(&path, File::create(&path));
+        nice_err(&path, file.set_len(filesize));
+    }
+
     /// Create a new file with the given name and contents in this directory.
     pub fn create_bytes<P: AsRef<Path>>(&self, name: P, contents: &[u8]) {
         let path = self.dir.join(name);

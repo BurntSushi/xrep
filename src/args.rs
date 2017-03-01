@@ -791,20 +791,18 @@ impl<'a> ArgMatches<'a> {
             None => return Ok(None)
         };
 
-        let re = Regex::new(r#"^(\d+)([KMG])?$"#).unwrap();
+        let re = Regex::new("^([0-9]+)([KMG])?$").unwrap();
         let caps = try!(re.captures(&max_filesize)
                           .ok_or("invalid format for max-filesize argument"));
 
-        let value = match caps.get(1) {
-            Some(value) => Some(try!(value.as_str().parse::<u64>())),
-            None => None
-        };
+        let value = try!(caps[1].parse::<u64>().map_err(|err| err.to_string()));
         let suffix = caps.get(2).map(|x| x.as_str());
+
         match suffix {
-            None      => Ok(value),
-            Some("K") => Ok(value.map(|x| x * 1024)),
-            Some("M") => Ok(value.map(|x| x * 1024 * 1024)),
-            Some("G") => Ok(value.map(|x| x * 1024 * 1024 * 1024)),
+            None      => Ok(Some(value)),
+            Some("K") => Ok(Some(value * 1024)),
+            Some("M") => Ok(Some(value * 1024 * 1024)),
+            Some("G") => Ok(Some(value * 1024 * 1024 * 1024)),
             _ => Err(From::from("invalid suffix for max-filesize argument"))
         }
     }

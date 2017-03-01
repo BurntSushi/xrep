@@ -444,6 +444,51 @@ sherlock!(max_filesize_parse_error_suffix, "Sherlock", ".",
     wd.assert_err(&mut cmd);
 });
 
+sherlock!(max_filesize_parse_no_suffix, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.remove("sherlock");
+    wd.create_size("foo", 40);
+    wd.create_size("bar", 60);
+
+    cmd.arg("--max-filesize").arg("50").arg("--files");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+foo
+";
+
+    assert_eq!(lines, expected);
+});
+
+sherlock!(max_filesize_parse_k_suffix, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.remove("sherlock");
+    wd.create_size("foo", 3048);
+    wd.create_size("bar", 4100);
+
+    cmd.arg("--max-filesize").arg("4K").arg("--files");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+foo
+";
+
+    assert_eq!(lines, expected);
+});
+
+sherlock!(max_filesize_parse_m_suffix, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.remove("sherlock");
+    wd.create_size("foo", 1000000);
+    wd.create_size("bar", 1400000);
+
+    cmd.arg("--max-filesize").arg("1M").arg("--files");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+foo
+";
+
+    assert_eq!(lines, expected);
+});
+
 sherlock!(ignore_hidden, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     wd.remove("sherlock");
     wd.create(".sherlock", hay::SHERLOCK);
