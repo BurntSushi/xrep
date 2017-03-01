@@ -682,9 +682,16 @@ impl Walk {
             return false;
         }
 
-        let ft = ent.file_type().is_dir();
-        skip_path(&self.ig, ent.path(), ft) ||
-        skip_filesize(self.max_filesize, ent.path(), &ent.metadata().ok(), ft)
+        let is_dir = ent.file_type().is_dir();
+        let max_size = self.max_filesize;
+        let should_skip_path = skip_path(&self.ig, ent.path(), is_dir);
+        let should_skip_filesize = if !is_dir && max_size.is_some() {
+            skip_filesize(max_size.unwrap(), ent.path(), &ent.metadata().ok())
+        } else {
+            false
+        };
+
+        should_skip_path || should_skip_filesize
     }
 }
 
@@ -1128,10 +1135,15 @@ impl Worker {
             }
         }
         let is_dir = dent.file_type().map_or(false, |ft| ft.is_dir());
-        if !skip_path(ig, dent.path(), is_dir) &&
-           !skip_filesize(self.max_filesize, dent.path(),
-                          &dent.metadata().ok(), is_dir)
-        {
+        let max_size = self.max_filesize;
+        let should_skip_path = skip_path(ig, dent.path(), is_dir);
+        let should_skip_filesize = if !is_dir && max_size.is_some() {
+            skip_filesize(max_size.unwrap(), dent.path(), &dent.metadata().ok())
+        } else {
+            false
+        };
+
+        if !should_skip_path && !should_skip_filesize {
             self.queue.push(Message::Work(Work {
                 dent: dent,
                 ignore: ig.clone(),
@@ -1278,31 +1290,27 @@ fn check_symlink_loop(
     Ok(())
 }
 
+// Before calling this function, make sure that you ensure that is really
+// necessary as the arguments imply a file stat.
 fn skip_filesize(
-    max_filesize: Option<u64>,
+    max_filesize: u64,
     path: &Path,
-    ent: &Option<Metadata>,
-    is_dir: bool
+    ent: &Option<Metadata>
 ) -> bool {
-    if is_dir {
-        return false;
-    }
-
     let filesize = match *ent {
         Some(ref md) => Some(md.len()),
         None => None
     };
 
-    match (filesize, max_filesize) {
-        (Some(fs), Some(m_fs)) => {
-            if fs > m_fs {
-                debug!("ignoring {}: {} bytes", path.display(), fs);
-                true
-            } else {
-                false
-            }
+    if let Some(fs) = filesize {
+        if fs > max_filesize {
+            debug!("ignoring {}: {} bytes", path.display(), fs);
+            true
+        } else {
+            false
         }
-        _ => false
+    } else {
+        false
     }
 }
 
