@@ -659,9 +659,18 @@ impl Tokens {
                     for pat in patterns {
                         let mut altre = String::new();
                         self.tokens_to_regex(options, &pat, &mut altre);
-                        parts.push(altre);
+                        if !altre.is_empty() {
+                            parts.push(altre);
+                        }
                     }
-                    re.push_str(&parts.join("|"));
+
+                    // It is possible to have an empty set in which case the
+                    // resulting alternation '()' would be an error.
+                    if !parts.is_empty() {
+                        re.push('(');
+                        re.push_str(&parts.join("|"));
+                        re.push(')');
+                    }
                 }
             }
         }

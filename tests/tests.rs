@@ -1326,6 +1326,27 @@ fn regression_270() {
     assert_eq!(lines, path("foo:-test\n"));
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/391
+#[test]
+fn regression_391() {
+    let wd = WorkDir::new("regression_391");
+    wd.create_dir(".git");
+    wd.create("lock", "");
+    wd.create("bar.py", "");
+    wd.create(".git/packed-refs", "");
+    wd.create(".git/description", "");
+
+    let mut cmd = wd.command();
+    cmd.arg("--no-ignore").arg("--hidden").arg("--follow").arg("--files")
+        .arg("--glob")
+        .arg("!{.git,node_modules,plugged}/**")
+        .arg("--glob")
+        .arg("*.{js,json,php,md,styl,scss,sass,pug,html,config,py,cpp,c,go,hs}");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "bar.py\n");
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");
