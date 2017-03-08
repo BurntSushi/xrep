@@ -3,11 +3,25 @@ use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
 
-use regex::bytes::Regex;
+use regex::bytes::{Regex, Replacer, Captures};
 use termcolor::{Color, ColorSpec, ParseColorError, WriteColor};
 
 use pathutil::strip_prefix;
 use ignore::types::FileTypeDef;
+
+/// CountingReplacer implements the Replacer interface for Regex,
+/// and counts how often replacement is being performed.
+struct CountingReplacer<'r> {
+    replace: &'r [u8],
+    count: &'r mut usize,
+}
+
+impl<'r> Replacer for CountingReplacer<'r> {
+    fn replace_append(&mut self, caps: &Captures, dst: &mut Vec<u8>) {
+        *self.count += 1;
+        caps.expand(self.replace, dst);
+    }
+}
 
 /// Printer encapsulates all output logic for searching.
 ///
@@ -46,6 +60,8 @@ pub struct Printer<W> {
     colors: ColorSpecs,
     /// The separator to use for file paths. If empty, this is ignored.
     path_separator: Option<u8>,
+    /// Restrict lines to this many columns.
+    max_columns: Option<usize>
 }
 
 impl<W: WriteColor> Printer<W> {
@@ -65,6 +81,7 @@ impl<W: WriteColor> Printer<W> {
             with_filename: false,
             colors: ColorSpecs::default(),
             path_separator: None,
+            max_columns: None,
         }
     }
 
@@ -141,6 +158,12 @@ impl<W: WriteColor> Printer<W> {
     /// When set, each match is prefixed with the file name that it came from.
     pub fn with_filename(mut self, yes: bool) -> Printer<W> {
         self.with_filename = yes;
+        self
+    }
+
+    /// Configure the max. number of columns used for printing matching lines.
+    pub fn max_columns(mut self, max_columns: Option<usize>) -> Printer<W> {
+        self.max_columns = max_columns;
         self
     }
 
@@ -263,31 +286,57 @@ impl<W: WriteColor> Printer<W> {
             self.write(b":");
         }
         if self.replace.is_some() {
-            let line = re.replace_all(
-                &buf[start..end], &**self.replace.as_ref().unwrap());
+            let mut count = 0;
+            let line = {
+                let replacer = CountingReplacer { count: &mut count, replace : &**self.replace.as_ref().unwrap() };
+                re.replace_all(&buf[start..end], replacer)
+            };
+            if let Some(max_columns) = self.max_columns {
+                if line.len() > max_columns {
+                    let _ = self.wtr.set_color(self.colors.line());
+                    self.write(format!(" [Omitted long line with {} replacements]", count).as_bytes());
+                    let _ = self.wtr.reset();
+                    self.write_eol();
+                    return;
+                }
+            }
             self.write(&line);
+            if line.last() != Some(&self.eol) {
+                self.write_eol();
+            }
         } else {
             self.write_matched_line(re, &buf[start..end]);
-        }
-        if buf[start..end].last() != Some(&self.eol) {
-            self.write_eol();
+            // write_matched_line guarantees to write a newline.
         }
     }
 
     fn write_matched_line(&mut self, re: &Regex, buf: &[u8]) {
+        if let Some(max_columns) = self.max_columns {
+            if buf.len() > max_columns {
+                let count = re.find_iter(buf).count();
+                let _ = self.wtr.set_color(self.colors.line());
+                self.write(format!(" [Omitted long line with {} matches]", count).as_bytes());
+                let _ = self.wtr.reset();
+                self.write_eol();
+                return;
+            }
+        }
         if !self.wtr.supports_color() || self.colors.matched().is_none() {
             self.write(buf);
-            return;
+        } else {
+            let mut last_written = 0;
+            for m in re.find_iter(buf) {
+                self.write(&buf[last_written..m.start()]);
+                let _ = self.wtr.set_color(self.colors.matched());
+                self.write(&buf[m.start()..m.end()]);
+                let _ = self.wtr.reset();
+                last_written = m.end();
+            }
+            self.write(&buf[last_written..]);
         }
-        let mut last_written = 0;
-        for m in re.find_iter(buf) {
-            self.write(&buf[last_written..m.start()]);
-            let _ = self.wtr.set_color(self.colors.matched());
-            self.write(&buf[m.start()..m.end()]);
-            let _ = self.wtr.reset();
-            last_written = m.end();
+        if buf.last() != Some(&self.eol) {
+            self.write_eol();
         }
-        self.write(&buf[last_written..]);
     }
 
     pub fn context<P: AsRef<Path>>(
@@ -311,6 +360,15 @@ impl<W: WriteColor> Printer<W> {
         }
         if let Some(line_number) = line_number {
             self.line_number(line_number, b'-');
+        }
+        if let Some(max_columns) = self.max_columns {
+            if end - start > max_columns {
+                let _ = self.wtr.set_color(self.colors.line());
+                self.write(format!(" [Omitted long context line]").as_bytes());
+                let _ = self.wtr.reset();
+                self.write_eol();
+                return;
+            }
         }
         self.write(&buf[start..end]);
         if buf[start..end].last() != Some(&self.eol) {
