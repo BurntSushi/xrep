@@ -2,11 +2,13 @@ use std::fs::File;
 use std::io;
 use std::path::Path;
 
+use encoding_rs::Encoding;
 use grep::Grep;
 use ignore::DirEntry;
 use memmap::{Mmap, Protection};
 use termcolor::WriteColor;
 
+use decoder::DecodeReader;
 use pathutil::strip_prefix;
 use printer::Printer;
 use search_buffer::BufferSearcher;
@@ -27,6 +29,7 @@ pub struct WorkerBuilder {
 #[derive(Clone, Debug)]
 struct Options {
     mmap: bool,
+    encoding: Option<&'static Encoding>,
     after_context: usize,
     before_context: usize,
     count: bool,
@@ -45,6 +48,7 @@ impl Default for Options {
     fn default() -> Options {
         Options {
             mmap: false,
+            encoding: None,
             after_context: 0,
             before_context: 0,
             count: false,
@@ -80,6 +84,7 @@ impl WorkerBuilder {
         Worker {
             grep: self.grep,
             inpbuf: inpbuf,
+            decodebuf: vec![0; 8 * (1<<10)],
             opts: self.opts,
         }
     }
@@ -103,6 +108,15 @@ impl WorkerBuilder {
     /// Disabled by default.
     pub fn count(mut self, yes: bool) -> Self {
         self.opts.count = yes;
+        self
+    }
+
+    /// Set the encoding to use to read each file.
+    ///
+    /// If the encoding is `None` (the default), then the encoding is
+    /// automatically detected on a best-effort per-file basis.
+    pub fn encoding(mut self, enc: Option<&'static Encoding>) -> Self {
+        self.opts.encoding = enc;
         self
     }
 
@@ -181,8 +195,9 @@ impl WorkerBuilder {
 /// Worker is responsible for executing searches on file paths, while choosing
 /// streaming search or memory map search as appropriate.
 pub struct Worker {
-    inpbuf: InputBuffer,
     grep: Grep,
+    inpbuf: InputBuffer,
+    decodebuf: Vec<u8>,
     opts: Options,
 }
 
@@ -241,6 +256,8 @@ impl Worker {
         path: &Path,
         rdr: R,
     ) -> Result<u64> {
+        let rdr = DecodeReader::new(
+            rdr, &mut self.decodebuf, self.opts.encoding);
         let searcher = Searcher::new(
             &mut self.inpbuf, printer, &self.grep, path, rdr);
         searcher
@@ -274,8 +291,13 @@ impl Worker {
             return self.search(printer, path, file);
         }
         let mmap = try!(Mmap::open(file, Protection::Read));
-        let searcher = BufferSearcher::new(
-            printer, &self.grep, path, unsafe { mmap.as_slice() });
+        let buf = unsafe { mmap.as_slice() };
+        if buf.len() >= 3 && Encoding::for_bom(buf).is_some() {
+            // If we have a UTF-16 bom in our memory map, then we need to fall
+            // back to the stream reader, which will do transcoding.
+            return self.search(printer, path, file);
+        }
+        let searcher = BufferSearcher::new(printer, &self.grep, path, buf);
         Ok(searcher
             .count(self.opts.count)
             .files_with_matches(self.opts.files_with_matches)

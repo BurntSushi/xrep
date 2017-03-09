@@ -136,6 +136,13 @@ Project home page: https://github.com/BurntSushi/ripgrep
 --debug
 : Show debug messages.
 
+-E, --encoding *ENCODING*
+: Specify the text encoding that ripgrep will use on all files
+  searched. The default value is 'auto', which will cause ripgrep to do
+  a best effort automatic detection of encoding on a per-file basis.
+  Other supported values can be found in the list of labels here:
+  https://encoding.spec.whatwg.org/#concept-encoding-get
+
 -f, --file FILE ...
 : Search for patterns from the given file, with one pattern per line. When this
   flag is used or multiple times or in combination with the -e/--regexp flag,

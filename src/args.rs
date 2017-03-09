@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap;
+use encoding_rs::Encoding;
 use env_logger;
 use grep::{Grep, GrepBuilder};
 use log;
@@ -41,6 +42,7 @@ pub struct Args {
     column: bool,
     context_separator: Vec<u8>,
     count: bool,
+    encoding: Option<&'static Encoding>,
     files_with_matches: bool,
     files_without_matches: bool,
     eol: u8,
@@ -224,6 +226,7 @@ impl Args {
             .after_context(self.after_context)
             .before_context(self.before_context)
             .count(self.count)
+            .encoding(self.encoding)
             .files_with_matches(self.files_with_matches)
             .files_without_matches(self.files_without_matches)
             .eol(self.eol)
@@ -330,6 +333,7 @@ impl<'a> ArgMatches<'a> {
             column: self.column(),
             context_separator: self.context_separator(),
             count: self.is_present("count"),
+            encoding: try!(self.encoding()),
             files_with_matches: self.is_present("files-with-matches"),
             files_without_matches: self.is_present("files-without-match"),
             eol: b'\n',
@@ -569,12 +573,17 @@ impl<'a> ArgMatches<'a> {
     /// will need to search.
     fn mmap(&self, paths: &[PathBuf]) -> Result<bool> {
         let (before, after) = try!(self.contexts());
+        let enc = try!(self.encoding());
         Ok(if before > 0 || after > 0 || self.is_present("no-mmap") {
             false
         } else if self.is_present("mmap") {
             true
         } else if cfg!(target_os = "macos") {
             // On Mac, memory maps appear to suck. Neat.
+            false
+        } else if enc.is_some() {
+            // There's no practical way to transcode a memory map that isn't
+            // isomorphic to searching over io::Read.
             false
         } else {
             // If we're only searching a few paths and all of them are
@@ -719,6 +728,29 @@ impl<'a> ArgMatches<'a> {
             specs.push(try!(spec_str.parse()));
         }
         Ok(ColorSpecs::new(&specs))
+    }
+
+    /// Return the text encoding specified.
+    ///
+    /// If the label given by the caller doesn't correspond to a valid
+    /// supported encoding (and isn't `auto`), then return an error.
+    ///
+    /// A `None` encoding implies that the encoding should be automatically
+    /// detected on a per-file basis.
+    fn encoding(&self) -> Result<Option<&'static Encoding>> {
+        match self.0.value_of_lossy("encoding") {
+            None => Ok(None),
+            Some(label) => {
+                if label == "auto" {
+                    return Ok(None);
+                }
+                match Encoding::for_label(label.as_bytes()) {
+                    Some(enc) => Ok(Some(enc)),
+                    None => Err(From::from(
+                        format!("unsupported encoding: {}", label))),
+                }
+            }
+        }
     }
 
     /// Returns the approximate number of threads that ripgrep should use.

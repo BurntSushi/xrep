@@ -96,6 +96,8 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
              .possible_values(&["never", "auto", "always", "ansi"]))
         .arg(flag("colors").value_name("SPEC")
              .takes_value(true).multiple(true).number_of_values(1))
+        .arg(flag("encoding").short("E").value_name("ENCODING")
+             .takes_value(true).number_of_values(1))
         .arg(flag("fixed-strings").short("F"))
         .arg(flag("glob").short("g")
              .takes_value(true).multiple(true).number_of_values(1)
@@ -251,6 +253,14 @@ lazy_static! {
               change the match color to magenta and the background color for \
               line numbers to yellow:\n\n\
               rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.");
+        doc!(h, "encoding",
+             "Specify the text encoding of files to search.",
+             "Specify the text encoding that ripgrep will use on all files \
+              searched. The default value is 'auto', which will cause ripgrep \
+              to do a best effort automatic detection of encoding on a \
+              per-file basis. Other supported values can be found in the list \
+              of labels here: \
+              https://encoding.spec.whatwg.org/#concept-encoding-get");
         doc!(h, "fixed-strings",
              "Treat the pattern as a literal string.",
              "Treat the pattern as a literal string instead of a regular \
@@ -335,9 +345,9 @@ lazy_static! {
               provided are searched. Empty pattern lines will match all input \
               lines, and the newline is not counted as part of the pattern.");
         doc!(h, "files-with-matches",
-             "Only show the path of each file with at least one match.");
+             "Only show the paths with at least one match.");
         doc!(h, "files-without-match",
-             "Only show the path of each file that contains zero matches.");
+             "Only show the paths that contains zero matches.");
         doc!(h, "with-filename",
              "Show file name for each match.",
              "Prefix each match with the file name that contains it. This is \

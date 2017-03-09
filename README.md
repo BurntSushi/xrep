@@ -83,6 +83,10 @@ increases the times to `3.081s` for ripgrep and `11.403s` for GNU grep.
   of search results, searching multiple patterns, highlighting matches with
   color and full Unicode support. Unlike GNU grep, `ripgrep` stays fast while
   supporting Unicode (which is always on).
+* `ripgrep` supports searching files in text encodings other than UTF-8, such
+  as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
+  automatically detecting UTF-16 is provided. Other text encodings must be
+  specifically specified with the `-E/--encoding` flag.)
 
 In other words, use `ripgrep` if you like speed, filtering by default, fewer
 bugs and Unicode support.
@@ -101,18 +105,12 @@ give you a glimpse at some important downsides or missing features of
   support for Unicode categories (e.g., `\p{Sc}` to match currency symbols or
   `\p{Lu}` to match any uppercase letter). (Fancier regexes will never be
   supported.)
-* If you need to search files with text encodings other than UTF-8 (like
-  UTF-16), then `ripgrep` won't work. `ripgrep` will still work on ASCII
-  compatible encodings like latin1 or otherwise partially valid UTF-8.
-  `ripgrep` *can* search for arbitrary bytes though, which might work in
-  a pinch. (Likely to be supported in the future.)
 * `ripgrep` doesn't yet support searching compressed files. (Likely to be
   supported in the future.)
 * `ripgrep` doesn't have multiline search. (Unlikely to ever be supported.)
 
-In other words, if you like fancy regexes, non-UTF-8 character encodings,
-searching compressed files or multiline search, then `ripgrep` may not quite
-meet your needs (yet).
+In other words, if you like fancy regexes, searching compressed files or
+multiline search, then `ripgrep` may not quite meet your needs (yet).
 
 ### Is it really faster than everything else?
 

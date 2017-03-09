@@ -1057,6 +1057,52 @@ clean!(regression_405, "test", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "bar/foo/file2.txt:test\n");
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1
+clean!(feature_1_sjis, "Шерлок Холмс", ".", |wd: WorkDir, mut cmd: Command| {
+    let sherlock =
+        b"\x84Y\x84u\x84\x82\x84|\x84\x80\x84{ \x84V\x84\x80\x84|\x84}\x84\x83";
+    wd.create_bytes("foo", &sherlock[..]);
+    cmd.arg("-Esjis");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "foo:Шерлок Холмс\n");
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1
+clean!(feature_1_utf16_auto, "Шерлок Холмс", ".",
+|wd: WorkDir, mut cmd: Command| {
+    let sherlock =
+        b"\xff\xfe(\x045\x04@\x04;\x04>\x04:\x04 \x00%\x04>\x04;\x04<\x04A\x04";
+    wd.create_bytes("foo", &sherlock[..]);
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "foo:Шерлок Холмс\n");
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1
+clean!(feature_1_utf16_explicit, "Шерлок Холмс", ".",
+|wd: WorkDir, mut cmd: Command| {
+    let sherlock =
+        b"\xff\xfe(\x045\x04@\x04;\x04>\x04:\x04 \x00%\x04>\x04;\x04<\x04A\x04";
+    wd.create_bytes("foo", &sherlock[..]);
+    cmd.arg("-Eutf-16le");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "foo:Шерлок Холмс\n");
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1
+clean!(feature_1_eucjp, "Шерлок Холмс", ".",
+|wd: WorkDir, mut cmd: Command| {
+    let sherlock =
+        b"\xa7\xba\xa7\xd6\xa7\xe2\xa7\xdd\xa7\xe0\xa7\xdc \xa7\xb7\xa7\xe0\xa7\xdd\xa7\xde\xa7\xe3";
+    wd.create_bytes("foo", &sherlock[..]);
+    cmd.arg("-Eeuc-jp");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "foo:Шерлок Холмс\n");
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/7
 sherlock!(feature_7, "-fpat", "sherlock", |wd: WorkDir, mut cmd: Command| {
     wd.create("pat", "Sherlock\nHolmes");
