@@ -40,6 +40,7 @@ before_deploy:
   - cargo build --release
   - mkdir staging
   - copy target\release\rg.exe staging
+  - ps: copy target\release\build\ripgrep-*\out\_rg.ps1 staging
   - cd staging
     # release zipfile will look like 'rust-everywhere-v1.2.3-x86_64-pc-windows-msvc'
   - 7z a ../%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip *
