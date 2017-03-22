@@ -1492,6 +1492,21 @@ fn regression_391() {
     assert_eq!(lines, "bar.py\n");
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/416
+#[test]
+fn regression_416() {
+    let wd = WorkDir::new("regression_416");
+    wd.create("cf_lf_eol", "foo\r\nbar\r\nbaz\r\n");
+    // TODO: consider adding files to check behavior when `\r` is *not* followed by `\n`
+
+    let mut cmd = wd.command();
+    cmd.arg("bar$");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "bar\n");
+
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");
