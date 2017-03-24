@@ -1498,12 +1498,23 @@ fn regression_416() {
     let wd = WorkDir::new("regression_416");
     wd.create("cf_lf_eol", "foo\r\nbar\r\nbaz\r\n");
     // TODO: consider adding files to check behavior when `\r` is *not* followed by `\n`
+    // (...but what should that behavior be? There *are* some systems that treat `\r` on its own as
+    // a newline.)
 
     let mut cmd = wd.command();
     cmd.arg("bar$");
 
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, "bar\n");
+
+    // Check that we match on an initial blank line.
+    wd.create("first_line_blank", "\nfoo\n");
+    let mut cmd = wd.command();
+    cmd.arg("^$");
+
+    // XXX TODO better way to check this?
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "\n");
 
 }
 
