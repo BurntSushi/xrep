@@ -1166,6 +1166,32 @@ be, to a very large extent, the result of luck. Sherlock Holmes
     assert_eq!(lines, expected);
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/34
+sherlock!(feature_34_only_matching, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--only-matching");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:Sherlock
+sherlock:Sherlock
+";
+    assert_eq!(lines, expected);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/34
+sherlock!(feature_34_only_matching_line_column, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--only-matching").arg("--column").arg("--line-number");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:1:57:Sherlock
+sherlock:3:49:Sherlock
+";
+    assert_eq!(lines, expected);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/45
 sherlock!(feature_45_relative_cwd, "test", ".",
 |wd: WorkDir, mut cmd: Command| {
