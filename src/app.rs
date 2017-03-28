@@ -158,7 +158,7 @@ fn app<F>(next_line_help: bool, doc: F) -> App<'static, 'static>
         .arg(flag("no-ignore"))
         .arg(flag("no-ignore-parent"))
         .arg(flag("no-ignore-vcs"))
-        .arg(flag("null"))
+        .arg(flag("null").short("0"))
         .arg(flag("path-separator").value_name("SEPARATOR").takes_value(true))
         .arg(flag("pretty").short("p"))
         .arg(flag("replace").short("r").value_name("ARG").takes_value(true))
