@@ -4,7 +4,7 @@ version = "0.5.0"
 dependencies = [
  "atty 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytecount 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "clap 2.22.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.22.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "grep 0.1.6",
@@ -63,7 +63,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "clap"
-version = "2.22.1"
+version = "2.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -338,7 +338,7 @@ dependencies = [
 "checksum bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1370e9fc2a6ae53aea8b7a5110edbd08836ed87c88736dfabccade1c2b44bff4"
 "checksum bytecount 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "1e8f09fbc8c6726a4b616dcfbd4f54491068d6bb1b93ac03c78ac18ff9a5924a"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
-"checksum clap 2.22.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e17a4a72ffea176f77d6e2db609c6c919ef221f23862c9915e687fb54d833485"
+"checksum clap 2.22.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3cae8c5a1108961e9bafb1096b8cbb6a31c17ab1a276ce9b52334be99962f653"
 "checksum crossbeam 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)" = "0c5ea215664ca264da8a9d9c3be80d2eaf30923c259d03e870388eb927508f97"
 "checksum encoding_rs 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a1cca0a26f904955d80d70b9bff1019e4f4cbc06f2fcbccf8bd3d889cc1c9b7"
 "checksum env_logger 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e3856f1697098606fc6cb97a93de88ca3f3bc35bb878c725920e6e82ecf05e83"
