@@ -1057,6 +1057,33 @@ clean!(regression_405, "test", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, format!("{}:test\n", path("bar/foo/file2.txt")));
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/428
+clean!(regression_428_color_context_path, "foo", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("sherlock", "foo\nbar");
+    cmd.arg("-A1").arg("-H").arg("--no-heading").arg("-N")
+       .arg("--colors=match:none").arg("--color=always");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = format!("\
+{colored_path}:foo
+{colored_path}-bar
+", colored_path=format!("\x1b\x5b\x6d\x1b\x5b\x33\x35\x6d{path}\x1b\x5b\x6d", path=path("sherlock")));
+    assert_eq!(lines, expected);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/428
+clean!(regression_428_unrecognized_style, "Sherlok", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--colors=match:style:");
+    wd.assert_err(&mut cmd);
+
+    let output = cmd.output().unwrap();
+    let err = String::from_utf8_lossy(&output.stderr);
+    let expected = "\
+Unrecognized style attribute ''. Choose from: nobold, bold, nointense, intense.
+";
+    assert_eq!(err, expected);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1
 clean!(feature_1_sjis, "Шерлок Холмс", ".", |wd: WorkDir, mut cmd: Command| {
     let sherlock =

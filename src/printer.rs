@@ -204,22 +204,14 @@ impl<W: WriteColor> Printer<W> {
     pub fn path<P: AsRef<Path>>(&mut self, path: P) {
         let path = strip_prefix("./", path.as_ref()).unwrap_or(path.as_ref());
         self.write_path(path);
-        if self.null {
-            self.write(b"\x00");
-        } else {
-            self.write_eol();
-        }
+        self.write_path_eol();
     }
 
     /// Prints the given path and a count of the number of matches found.
     pub fn path_count<P: AsRef<Path>>(&mut self, path: P, count: u64) {
         if self.with_filename {
             self.write_path(path);
-            if self.null {
-                self.write(b"\x00");
-            } else {
-                self.write(b":");
-            }
+            self.write_path_sep(b':');
         }
         self.write(count.to_string().as_bytes());
         self.write_eol();
@@ -227,13 +219,11 @@ impl<W: WriteColor> Printer<W> {
 
     /// Prints the context separator.
     pub fn context_separate(&mut self) {
-        // N.B. We can't use `write` here because of borrowing restrictions.
         if self.context_separator.is_empty() {
             return;
         }
-        self.has_printed = true;
         let _ = self.wtr.write_all(&self.context_separator);
-        let _ = self.wtr.write_all(&[self.eol]);
+        self.write_eol();
     }
 
     pub fn matched<P: AsRef<Path>>(
@@ -280,16 +270,17 @@ impl<W: WriteColor> Printer<W> {
     ) {
         if self.heading && self.with_filename && !self.has_printed {
             self.write_file_sep();
-            self.write_heading(path.as_ref());
+            self.write_path(path);
+            self.write_path_eol();
         } else if !self.heading && self.with_filename {
-            self.write_non_heading_path(path.as_ref());
+            self.write_path(path);
+            self.write_path_sep(b':');
         }
         if let Some(line_number) = line_number {
             self.line_number(line_number, b':');
         }
         if let Some(c) = column {
-            self.write((c + 1).to_string().as_bytes());
-            self.write(b":");
+            self.column_number(c + 1, b':');
         }
         if self.replace.is_some() {
             let mut count = 0;
@@ -299,11 +290,8 @@ impl<W: WriteColor> Printer<W> {
                 re.replace_all(&buf[start..end], replacer)
             };
             if self.max_columns.map_or(false, |m| line.len() > m) {
-                let _ = self.wtr.set_color(self.colors.matched());
-                let msg = format!(
-                    "[Omitted long line with {} replacements]", count);
-                self.write(msg.as_bytes());
-                let _ = self.wtr.reset();
+                let msg = format!("[Omitted long line with {} replacements]", count);
+                self.write_colored(msg.as_bytes(), |colors| colors.matched());
                 self.write_eol();
                 return;
             }
@@ -320,10 +308,8 @@ impl<W: WriteColor> Printer<W> {
     fn write_matched_line(&mut self, re: &Regex, buf: &[u8]) {
         if self.max_columns.map_or(false, |m| buf.len() > m) {
             let count = re.find_iter(buf).count();
-            let _ = self.wtr.set_color(self.colors.matched());
             let msg = format!("[Omitted long line with {} matches]", count);
-            self.write(msg.as_bytes());
-            let _ = self.wtr.reset();
+            self.write_colored(msg.as_bytes(), |colors| colors.matched());
             self.write_eol();
             return;
         }
@@ -333,9 +319,7 @@ impl<W: WriteColor> Printer<W> {
             let mut last_written = 0;
             for m in re.find_iter(buf) {
                 self.write(&buf[last_written..m.start()]);
-                let _ = self.wtr.set_color(self.colors.matched());
-                self.write(&buf[m.start()..m.end()]);
-                let _ = self.wtr.reset();
+                self.write_colored(&buf[m.start()..m.end()], |colors| colors.matched());
                 last_written = m.end();
             }
             self.write(&buf[last_written..]);
@@ -355,14 +339,11 @@ impl<W: WriteColor> Printer<W> {
     ) {
         if self.heading && self.with_filename && !self.has_printed {
             self.write_file_sep();
-            self.write_heading(path.as_ref());
+            self.write_path(path);
+            self.write_path_eol();
         } else if !self.heading && self.with_filename {
-            self.write_path(path.as_ref());
-            if self.null {
-                self.write(b"\x00");
-            } else {
-                self.write(b"-");
-            }
+            self.write_path(path);
+            self.write_path_sep(b'-');
         }
         if let Some(line_number) = line_number {
             self.line_number(line_number, b'-');
@@ -378,10 +359,19 @@ impl<W: WriteColor> Printer<W> {
         }
     }
 
-    fn write_heading<P: AsRef<Path>>(&mut self, path: P) {
-        let _ = self.wtr.set_color(self.colors.path());
-        self.write_path(path.as_ref());
-        let _ = self.wtr.reset();
+    fn separator(&mut self, sep: &[u8]) {
+        self.write(&sep);
+    }
+
+    fn write_path_sep(&mut self, sep: u8) {
+        if self.null {
+            self.write(b"\x00");
+        } else {
+            self.separator(&[sep]);
+        }
+    }
+
+    fn write_path_eol(&mut self) {
         if self.null {
             self.write(b"\x00");
         } else {
@@ -389,52 +379,43 @@ impl<W: WriteColor> Printer<W> {
         }
     }
 
-    fn write_non_heading_path<P: AsRef<Path>>(&mut self, path: P) {
-        let _ = self.wtr.set_color(self.colors.path());
-        self.write_path(path.as_ref());
-        let _ = self.wtr.reset();
-        if self.null {
-            self.write(b"\x00");
-        } else {
-            self.write(b":");
-        }
-    }
-
-    fn line_number(&mut self, n: u64, sep: u8) {
-        let _ = self.wtr.set_color(self.colors.line());
-        self.write(n.to_string().as_bytes());
-        let _ = self.wtr.reset();
-        self.write(&[sep]);
-    }
-
     #[cfg(unix)]
     fn write_path<P: AsRef<Path>>(&mut self, path: P) {
         use std::os::unix::ffi::OsStrExt;
-
         let path = path.as_ref().as_os_str().as_bytes();
-        match self.path_separator {
-            None => self.write(path),
-            Some(sep) => self.write_path_with_sep(path, sep),
-        }
+        self.write_path_replace_separator(path);
     }
 
     #[cfg(not(unix))]
     fn write_path<P: AsRef<Path>>(&mut self, path: P) {
         let path = path.as_ref().to_string_lossy();
+        self.write_path_replace_separator(path.as_bytes());
+    }
+
+    fn write_path_replace_separator(&mut self, path: &[u8]) {
         match self.path_separator {
-            None => self.write(path.as_bytes()),
-            Some(sep) => self.write_path_with_sep(path.as_bytes(), sep),
+            None => self.write_colored(path, |colors| colors.path()),
+            Some(sep) => {
+                let transformed_path: Vec<_> = path.iter().map(|&b| {
+                    if b == b'/' || (cfg!(windows) && b == b'\\') {
+                        sep
+                    } else {
+                        b
+                    }
+                }).collect();
+                self.write_colored(&transformed_path, |colors| colors.path());
+            }
         }
     }
 
-    fn write_path_with_sep(&mut self, path: &[u8], sep: u8) {
-        let mut path = path.to_vec();
-        for b in &mut path {
-            if *b == b'/' || (cfg!(windows) && *b == b'\\') {
-                *b = sep;
-            }
-        }
-        self.write(&path);
+    fn line_number(&mut self, n: u64, sep: u8) {
+        self.write_colored(n.to_string().as_bytes(), |colors| colors.line());
+        self.separator(&[sep]);
+    }
+
+    fn column_number(&mut self, n: u64, sep: u8) {
+        self.write(n.to_string().as_bytes());
+        self.separator(&[sep]);
     }
 
     fn write(&mut self, buf: &[u8]) {
@@ -445,6 +426,14 @@ impl<W: WriteColor> Printer<W> {
     fn write_eol(&mut self) {
         let eol = self.eol;
         self.write(&[eol]);
+    }
+
+    fn write_colored<F>(&mut self, buf: &[u8], get_color: F)
+        where F: Fn(&ColorSpecs) -> &ColorSpec
+    {
+        let _ = self.wtr.set_color( get_color(&self.colors) );
+        self.write(buf);
+        let _ = self.wtr.reset();
     }
 
     fn write_file_sep(&mut self) {
@@ -503,7 +492,7 @@ impl fmt::Display for Error {
             }
             Error::UnrecognizedStyle(ref name) => {
                 write!(f, "Unrecognized style attribute '{}'. Choose from: \
-                           nobold, bold.", name)
+                           nobold, bold, nointense, intense.", name)
             }
             Error::InvalidFormat(ref original) => {
                 write!(f, "Invalid color speci format: '{}'. Valid format \
