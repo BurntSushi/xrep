@@ -1390,6 +1390,15 @@ clean!(feature_275_pathsep, "test", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "fooZbar:test\n");
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/419
+sherlock!(feature_419_zero_as_shortcut_for_null, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-0").arg("--count");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "sherlock\x002\n");
+});
+
 #[test]
 fn binary_nosearch() {
     let wd = WorkDir::new("binary_nosearch");
