@@ -378,6 +378,51 @@ $ cargo test
 
 from the repository root.
 
+### Tips
+
+#### Windows Powershell
+
+##### Powershell Profile
+
+To customize powershell on start-up there is a special powershell script that has to be created.
+In order to find its location run command `Get-Command $profile | Select-Object -ExpandProperty Definition`
+See [more](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx) for profile details.
+
+Any powershell code in this file gets evaluated at the start of console.
+This way you can have own aliases to be created at start.
+
+##### Setup function alias
+
+Often you can find a need to make alias for the favourite utility.
+
+But powershell function aliases do not behave like your typical linux shell alias.
+
+You always need to propagate arguments and **Stdin** input.
+But it cannot be done simply as `function grep() { $input | rg.exe --hidden $args }`
+
+Use below example as reference to how setup alias in powershell.
+
+```powershell
+function grep {
+    $count = @($input).Count
+    $input.Reset()
+
+    if ($count) {
+        $input | rg.exe --hidden $args
+    }
+    else {
+        rg.exe --hidden $args
+    }
+}
+```
+
+Powershell special variables:
+* input - is powershell **Stdin** object that allows you to access its content.
+* args - is array of arguments passed to this function.
+
+This alias checks whether there is **Stdin** input and propagates only if there is some lines.
+Otherwise empty `$input` will make powershell to trigger `rg` to search empty **Stdin**
+
 ### Known issues
 
 #### I just hit Ctrl+C in the middle of ripgrep's output and now my terminal's foreground color is wrong!
