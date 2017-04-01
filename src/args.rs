@@ -788,12 +788,24 @@ impl<'a> ArgMatches<'a> {
         let casei =
             self.is_present("ignore-case")
             && !self.is_present("case-sensitive");
-        GrepBuilder::new(&try!(self.pattern()))
+        let gb = GrepBuilder::new(&try!(self.pattern()))
             .case_smart(smart)
             .case_insensitive(casei)
-            .line_terminator(b'\n')
-            .build()
-            .map_err(From::from)
+            .line_terminator(b'\n');
+
+        let gb = if let Some(limit) = try!(self.dfa_size_limit()) {
+            gb.dfa_size_limit(limit)
+        } else {
+            gb
+        };
+
+        let gb = if let Some(limit) = try!(self.regex_size_limit()) {
+            gb.size_limit(limit)
+        } else {
+            gb
+        };
+
+        gb.build().map_err(From::from)
     }
 
     /// Builds the set of glob overrides from the command line flags.
@@ -824,29 +836,90 @@ impl<'a> ArgMatches<'a> {
         btypes.build().map_err(From::from)
     }
 
-    /// Parses the max-filesize argument option into a byte count.
-    fn max_filesize(&self) -> Result<Option<u64>> {
+    /// Parses an argument of the form `[0-9]+(KMG)?`.
+    ///
+    /// This always returns the result as a type `u64`. This must be converted
+    /// to the appropriate type by the caller.
+    fn parse_human_readable_size_arg(&self, arg_name: &str)
+        -> Result<Option<u64>>
+    {
         use regex::Regex;
 
-        let max_filesize = match self.value_of_lossy("max-filesize") {
+        let arg_value = match self.value_of_lossy(arg_name) {
             Some(x) => x,
             None => return Ok(None)
         };
 
         let re = Regex::new("^([0-9]+)([KMG])?$").unwrap();
-        let caps = try!(re.captures(&max_filesize)
-                          .ok_or("invalid format for max-filesize argument"));
+        let caps = try!(re.captures(&arg_value)
+                          .ok_or(format!("invalid format for {} argument",
+                                 arg_name)));
 
-        let value = try!(caps[1].parse::<u64>().map_err(|err|err.to_string()));
+        let value = try!(caps[1].parse::<u64>()
+                            .map_err(|err| err.to_string()));
         let suffix = caps.get(2).map(|x| x.as_str());
+
+        let v_10 = value.checked_mul(1024);
+        let v_20 = v_10.and_then(|x| x.checked_mul(1024));
+        let v_30 = v_20.and_then(|x| x.checked_mul(1024));
+
+        let try_suffix = |x: Option<u64>| {
+            if x.is_some() {
+                Ok(x)
+            } else {
+                Err(From::from(format!("overflow occured for {} argument",
+                                       arg_name)))
+            }
+        };
 
         match suffix {
             None      => Ok(Some(value)),
-            Some("K") => Ok(Some(value * 1024)),
-            Some("M") => Ok(Some(value * 1024 * 1024)),
-            Some("G") => Ok(Some(value * 1024 * 1024 * 1024)),
-            _ => Err(From::from("invalid suffix for max-filesize argument"))
+            Some("K") => try_suffix(v_10),
+            Some("M") => try_suffix(v_20),
+            Some("G") => try_suffix(v_30),
+            _ => Err(From::from(format!("invalid suffix for {} argument",
+                                        arg_name)))
         }
+    }
+
+    /// Convert the result of a `parse_human_readable_size_arg` call into
+    /// a `usize`, failing if the type does not fit.
+    fn human_readable_to_usize(value: Option<u64>)
+        -> Result<Option<usize>>
+    {
+        use std::usize;
+
+        match value {
+            Some(v) => {
+                if v <= usize::MAX as u64 {
+                    Ok(Some(v as usize))
+                } else {
+                    // This error string is the same as that produced by the
+                    // `ParseIntError` type.
+                    Err(From::from(format!(
+                                   "number too large to fit in target type")))
+                }
+            }
+
+            r @ _ => Ok(r.map(|x| x as usize))
+        }
+    }
+
+    /// Parse the dfa-size-limit argument option into a byte count.
+    fn dfa_size_limit(&self) -> Result<Option<usize>> {
+        let r = try!(self.parse_human_readable_size_arg("dfa-size-limit"));
+        ArgMatches::human_readable_to_usize(r)
+    }
+
+    /// Parse the regex-size-limit argument option into a byte count.
+    fn regex_size_limit(&self) -> Result<Option<usize>> {
+        let r = try!(self.parse_human_readable_size_arg("regex-size-limit"));
+        ArgMatches::human_readable_to_usize(r)
+    }
+
+    /// Parses the max-filesize argument option into a byte count.
+    fn max_filesize(&self) -> Result<Option<u64>> {
+        self.parse_human_readable_size_arg("max-filesize")
     }
 
     /// Returns true if ignore files should be ignored.
