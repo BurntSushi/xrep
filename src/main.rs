@@ -17,6 +17,8 @@ extern crate num_cpus;
 extern crate regex;
 extern crate same_file;
 extern crate termcolor;
+extern crate ctrlc;
+extern crate clonablechild;
 
 use std::error::Error;
 use std::process;
@@ -25,6 +27,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::thread;
+use std::env;
 
 use args::Args;
 use worker::Work;
@@ -54,7 +57,56 @@ mod worker;
 
 pub type Result<T> = result::Result<T, Box<Error + Send + Sync>>;
 
+const CHILD_ENV_VAR: &'static str = "ripgrep-child-started";
+
+fn is_parent() -> bool {
+    env::var_os(CHILD_ENV_VAR).is_none()
+}
+
 fn main() {
+    if is_parent() {
+        use std::io::Write;
+        //Provides into_clonable method for Child struct.
+        //It allows to both wait and kill in parallel.
+        use clonablechild::{ChildExt};
+        use termcolor::{WriteColor, StandardStream};
+
+        //Stdout writer should be initialized prior to starting child process for reset to work.
+        let mut stdout = StandardStream::stdout(termcolor::ColorChoice::Auto);
+
+        let exe = env::current_exe().expect("Could not retrieve own exe's path");
+        let child = process::Command::new(exe).env(CHILD_ENV_VAR, "1")
+                                              .args(env::args_os().skip(1))
+                                              .spawn()
+                                              .expect("Could not start child process");
+        let child = child.into_clonable();
+        let child_clone = child.clone();
+
+        ctrlc::set_handler(move || {
+            let _ = child_clone.kill();
+        }).expect("Could not set Ctrl-C handler");
+
+        let result = child.wait();
+
+        match result {
+            Ok(code) => {
+                let code = code.code().unwrap_or(1);
+                if code != 0 {
+                    let _ = stdout.reset();
+                    let _ = stdout.flush();
+                }
+                process::exit(code);
+            }
+            Err(err) => {
+                let _ = stdout.reset();
+                let _ = stdout.flush();
+
+                eprintln!("{}", err);
+                process::exit(1);
+            }
+        }
+    }
+
     match Args::parse().map(Arc::new).and_then(run) {
         Ok(0) => process::exit(1),
         Ok(_) => process::exit(0),

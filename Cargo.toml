@@ -26,6 +26,8 @@ name = "integration"
 path = "tests/tests.rs"
 
 [dependencies]
+ctrlc = "^3.0"
+clonablechild = "^0.1"
 atty = "0.2.2"
 bytecount = "0.1.4"
 clap = "2.23.1"
