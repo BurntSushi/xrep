@@ -144,6 +144,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("no-ignore-parent"))
         .arg(flag("no-ignore-vcs"))
         .arg(flag("null").short("0"))
+        .arg(flag("only-matching").short("o").conflicts_with("replace"))
         .arg(flag("path-separator").value_name("SEPARATOR").takes_value(true))
         .arg(flag("pretty").short("p"))
         .arg(flag("replace").short("r").value_name("ARG").takes_value(true))
@@ -421,6 +422,9 @@ lazy_static! {
               printing a list of matching files such as with --count, \
               --files-with-matches and --files. This option is useful for use \
               with xargs.");
+        doc!(h, "only-matching",
+             "Print only the matched (non-empty) parts of a matching line, \
+              with each such part on a separate output line.");
         doc!(h, "path-separator",
              "Path separator to use when printing file paths.",
              "The path separator to use when printing file paths. This \

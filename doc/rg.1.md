@@ -249,6 +249,10 @@ Project home page: https://github.com/BurntSushi/ripgrep
   a list of matching files such as with --count, --files-with-matches
   and --files.
 
+-o, --only-matching
+: Print only the matched (non-empty) parts of a matching line, with each such
+  part on a separate output line.
+
 --path-separator *SEPARATOR*
 : The path separator to use when printing file paths. This defaults to your
   platform's path separator, which is / on Unix and \\ on Windows. This flag is

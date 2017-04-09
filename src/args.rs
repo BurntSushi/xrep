@@ -65,6 +65,7 @@ pub struct Args {
     no_ignore_vcs: bool,
     no_messages: bool,
     null: bool,
+    only_matching: bool,
     path_separator: Option<u8>,
     quiet: bool,
     quiet_matched: QuietMatched,
@@ -141,6 +142,7 @@ impl Args {
             .heading(self.heading)
             .line_per_match(self.line_per_match)
             .null(self.null)
+            .only_matching(self.only_matching)
             .path_separator(self.path_separator)
             .with_filename(self.with_filename)
             .max_columns(self.max_columns);
@@ -345,6 +347,7 @@ impl<'a> ArgMatches<'a> {
             no_ignore_vcs: self.no_ignore_vcs(),
             no_messages: self.is_present("no-messages"),
             null: self.is_present("null"),
+            only_matching: self.is_present("only-matching"),
             path_separator: try!(self.path_separator()),
             quiet: quiet,
             quiet_matched: QuietMatched::new(quiet),

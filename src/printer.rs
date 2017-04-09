@@ -58,6 +58,8 @@ pub struct Printer<W> {
     /// Whether to print NUL bytes after a file path instead of new lines
     /// or `:`.
     null: bool,
+    /// Print only the matched (non-empty) parts of a matching line
+    only_matching: bool,
     /// A string to use as a replacement of each match in a matching line.
     replace: Option<Vec<u8>>,
     /// Whether to prefix each match with the corresponding file name.
@@ -83,6 +85,7 @@ impl<W: WriteColor> Printer<W> {
             heading: false,
             line_per_match: false,
             null: false,
+            only_matching: false,
             replace: None,
             with_filename: false,
             colors: ColorSpecs::default(),
@@ -141,6 +144,12 @@ impl<W: WriteColor> Printer<W> {
     /// visual separators (like `:`, `-` and `\n`).
     pub fn null(mut self, yes: bool) -> Printer<W> {
         self.null = yes;
+        self
+    }
+
+    /// Print only the matched (non-empty) parts of a matching line
+    pub fn only_matching(mut self, yes: bool) -> Printer<W> {
+        self.only_matching = yes;
         self
     }
 
@@ -232,7 +241,7 @@ impl<W: WriteColor> Printer<W> {
         end: usize,
         line_number: Option<u64>,
     ) {
-        if !self.line_per_match {
+        if !self.line_per_match && !self.only_matching {
             let column =
                 if self.column {
                     Some(re.find(&buf[start..end])
@@ -298,7 +307,13 @@ impl<W: WriteColor> Printer<W> {
                 self.write_eol();
             }
         } else {
-            self.write_matched_line(re, &buf[start..end]);
+            let line_buf = if self.only_matching {
+                let m = re.find(&buf[start..end]).unwrap();
+                &buf[start + m.start()..start + m.end()]
+            } else {
+                &buf[start..end]
+            };
+            self.write_matched_line(re, line_buf);
             // write_matched_line guarantees to write a newline.
         }
     }
