@@ -114,6 +114,8 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("column"))
         .arg(flag("context-separator")
              .value_name("SEPARATOR").takes_value(true))
+        .arg(flag("dfa-size-limit")
+             .value_name("NUM+SUFFIX?").takes_value(true))
         .arg(flag("debug"))
         .arg(flag("file").short("f")
              .value_name("FILE").takes_value(true)
@@ -148,6 +150,8 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("path-separator").value_name("SEPARATOR").takes_value(true))
         .arg(flag("pretty").short("p"))
         .arg(flag("replace").short("r").value_name("ARG").takes_value(true))
+        .arg(flag("regex-size-limit")
+             .value_name("NUM+SUFFIX?").takes_value(true))
         .arg(flag("case-sensitive").short("s"))
         .arg(flag("smart-case").short("S"))
         .arg(flag("sort-files"))
@@ -326,6 +330,13 @@ lazy_static! {
         doc!(h, "debug",
              "Show debug messages.",
              "Show debug messages. Please use this when filing a bug report.");
+        doc!(h, "dfa-size-limit",
+             "The upper size limit of the generated dfa.",
+             "The upper size limit of the generated dfa. The default limit is \
+              10M. This should only be changed on very large regex inputs \
+              where the (slower) fallback regex engine may otherwise be used. \
+              \n\nThe argument accepts the same size suffixes as allowed in \
+              the 'max-filesize' argument.");
         doc!(h, "file",
              "Search for patterns from the given file.",
              "Search for patterns from the given file, with one pattern per \
@@ -444,6 +455,11 @@ lazy_static! {
               Note that the replacement by default replaces each match, and \
               NOT the entire line. To replace the entire line, you should \
               match the entire line.");
+        doc!(h, "regex-size-limit",
+             "The upper size limit of the compiled regex.",
+             "The upper size limit of the compiled regex. The default limit \
+              is 10M. \n\nThe argument accepts the same size suffixes as \
+              allowed in the 'max-filesize' argument.");
         doc!(h, "case-sensitive",
              "Search case sensitively.",
              "Search case sensitively. This overrides -i/--ignore-case and \

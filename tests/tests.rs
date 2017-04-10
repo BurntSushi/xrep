@@ -455,7 +455,6 @@ sherlock!(max_filesize_parse_no_suffix, "Sherlock", ".",
     let expected = "\
 foo
 ";
-
     assert_eq!(lines, expected);
 });
 
@@ -470,7 +469,6 @@ sherlock!(max_filesize_parse_k_suffix, "Sherlock", ".",
     let expected = "\
 foo
 ";
-
     assert_eq!(lines, expected);
 });
 
@@ -485,8 +483,17 @@ sherlock!(max_filesize_parse_m_suffix, "Sherlock", ".",
     let expected = "\
 foo
 ";
-
     assert_eq!(lines, expected);
+});
+
+sherlock!(max_filesize_suffix_overflow, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.remove("sherlock");
+    wd.create_size("foo", 1000000);
+
+    // 2^35 * 2^30 would otherwise overflow
+    cmd.arg("--max-filesize").arg("34359738368G").arg("--files");
+    wd.assert_err(&mut cmd);
 });
 
 sherlock!(ignore_hidden, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
@@ -1442,6 +1449,37 @@ clean!(feature_275_pathsep, "test", ".", |wd: WorkDir, mut cmd: Command| {
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, "fooZbar:test\n");
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/362
+sherlock!(feature_362_dfa_size_limit, r"For\s",
+|wd: WorkDir, mut cmd: Command| {
+    // This should fall back to the nfa engine but should still produce the
+    // expected result.
+    cmd.arg("--dfa-size-limit").arg("10");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(feature_362_exceeds_regex_size_limit, r"[0-9]\w+",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--regex-size-limit").arg("10K");
+    wd.assert_err(&mut cmd);
+});
+
+#[cfg(target_pointer_width = "32")]
+sherlock!(feature_362_u64_to_narrow_usize_suffix_overflow, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.remove("sherlock");
+    wd.create_size("foo", 1000000);
+
+    // 2^35 * 2^20 is ok for u64, but not for usize
+    cmd.arg("--dfa-size-limit").arg("34359738368M").arg("--files");
+    wd.assert_err(&mut cmd);
+});
+
 
 // See: https://github.com/BurntSushi/ripgrep/issues/419
 sherlock!(feature_419_zero_as_shortcut_for_null, "Sherlock", ".",
