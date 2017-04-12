@@ -155,6 +155,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("mk", &["mkfile"]),
     ("ml", &["*.ml"]),
     ("nim", &["*.nim"]),
+    ("nix", &["*.nix"]),
     ("objc", &["*.h", "*.m"]),
     ("objcpp", &["*.h", "*.mm"]),
     ("ocaml", &["*.ml", "*.mli", "*.mll", "*.mly"]),
