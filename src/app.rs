@@ -288,7 +288,16 @@ lazy_static! {
               color settings for {type}.\n\nFor example, the following \
               command will change the match color to magenta and the \
               background color for line numbers to yellow:\n\n\
-              rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.");
+              rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.\n\n\
+              Extended colors can be used for {value} when the terminal \
+              supports ANSI color sequences. These are specified as either \
+              'x' (256-color) or 'x,x,x' (24-bit truecolor) where x is a \
+              number between 0 and 255 inclusive. \n\nFor example, the \
+              following command will change the match background color to that \
+              represented by the rgb value (0,128,255):\n\n\
+              rg --colors 'match:bg:0,128,255'\n\nNote that the the intense \
+              and nointense style flags will have no effect when used \
+              alongside these extended color codes.");
         doc!(h, "encoding",
              "Specify the text encoding of files to search.",
              "Specify the text encoding that ripgrep will use on all files \

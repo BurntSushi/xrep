@@ -1006,6 +1006,60 @@ impl<W: io::Write> Ansi<W> {
                 }
             }
         }
+        macro_rules! write_var_ansi_code {
+            ($pre:expr, $($code:expr),+) => {{
+                // The loop generates at worst a literal of the form
+                // '255,255,255m' which is 12-bytes.
+                // The largest `pre` expression we currently use is 7 bytes.
+                // This gives us the maximum of 19-bytes for our work buffer.
+                let pre_len = $pre.len();
+                assert!(pre_len <= 7);
+                let mut fmt = [0u8; 19];
+                fmt[..pre_len].copy_from_slice($pre);
+                let mut i = pre_len - 1;
+                $(
+                    let c1: u8 = ($code / 100) % 10;
+                    let c2: u8 = ($code / 10) % 10;
+                    let c3: u8 = $code % 10;
+                    let mut printed = false;
+
+                    if c1 != 0 {
+                        printed = true;
+                        i += 1;
+                        fmt[i] = b'0' + c1;
+                    }
+                    if c2 != 0 || printed {
+                        i += 1;
+                        fmt[i] = b'0' + c2;
+                    }
+                    // If we received a zero value we must still print a value.
+                    i += 1;
+                    fmt[i] = b'0' + c3;
+                    i += 1;
+                    fmt[i] = b';';
+                )+
+
+                fmt[i] = b'm';
+                self.write_all(&fmt[0..i+1])
+            }}
+        }
+        macro_rules! write_custom {
+            ($ansi256:expr) => {
+                if fg {
+                    write_var_ansi_code!(b"\x1B[38;5;", $ansi256)
+                } else {
+                    write_var_ansi_code!(b"\x1B[48;5;", $ansi256)
+                }
+            };
+
+            ($r:expr, $g:expr, $b:expr) => {{
+                if fg {
+                    write_var_ansi_code!(b"\x1B[38;2;", $r, $g, $b)
+                } else {
+                    write_var_ansi_code!(b"\x1B[48;2;", $r, $g, $b)
+                }
+            }};
+        }
         if intense {
             match *c {
                 Color::Black => write_intense!("8"),
@@ -1016,6 +1070,8 @@ impl<W: io::Write> Ansi<W> {
                 Color::Magenta => write_intense!("13"),
                 Color::Yellow => write_intense!("11"),
                 Color::White => write_intense!("15"),
+                Color::Ansi256(c) => write_custom!(c),
+                Color::Rgb(r, g, b) => write_custom!(r, g, b),
                 Color::__Nonexhaustive => unreachable!(),
             }
         } else {
@@ -1028,6 +1084,8 @@ impl<W: io::Write> Ansi<W> {
                 Color::Magenta => write_normal!("5"),
                 Color::Yellow => write_normal!("3"),
                 Color::White => write_normal!("7"),
+                Color::Ansi256(c) => write_custom!(c),
+                Color::Rgb(r, g, b) => write_custom!(r, g, b),
                 Color::__Nonexhaustive => unreachable!(),
             }
         }
@@ -1212,17 +1270,28 @@ impl ColorSpec {
         use wincolor::Intense;
 
         let intense = if self.intense { Intense::Yes } else { Intense::No };
-        if let Some(color) = self.fg_color.as_ref().map(|c| c.to_windows()) {
+
+        let fg_color = self.fg_color.as_ref().and_then(|c| c.to_windows());
+        if let Some(color) = fg_color {
             console.fg(intense, color)?;
         }
-        if let Some(color) = self.bg_color.as_ref().map(|c| c.to_windows()) {
+
+        let bg_color = self.bg_color.as_ref().and_then(|c| c.to_windows());
+        if let Some(color) = bg_color {
             console.bg(intense, color)?;
         }
         Ok(())
     }
 }
 
-/// The set of available English colors for the terminal foreground/background.
+/// The set of available colors for the terminal foreground/background.
+///
+/// The `Ansi256` and `Rgb` colors will only output the correct codes when
+/// paired with the `Ansi` `WriteColor` implementation.
+///
+/// The `Ansi256` and `Rgb` color types are not supported when writing colors
+/// on Windows using the console. If they are used on Windows, then they are
+/// silently ignored and no colors will be emitted.
 ///
 /// Note that this set may expand over time.
 #[allow(missing_docs)]
@@ -1236,6 +1305,8 @@ pub enum Color {
     Magenta,
     Yellow,
     White,
+    Ansi256(u8),
+    Rgb(u8, u8, u8),
     #[doc(hidden)]
     __Nonexhaustive,
 }
@@ -1243,39 +1314,74 @@ pub enum Color {
 #[cfg(windows)]
 impl Color {
     /// Translate this color to a wincolor::Color.
-    fn to_windows(&self) -> wincolor::Color {
+    fn to_windows(&self) -> Option<wincolor::Color> {
         match *self {
-            Color::Black => wincolor::Color::Black,
-            Color::Blue => wincolor::Color::Blue,
-            Color::Green => wincolor::Color::Green,
-            Color::Red => wincolor::Color::Red,
-            Color::Cyan => wincolor::Color::Cyan,
-            Color::Magenta => wincolor::Color::Magenta,
-            Color::Yellow => wincolor::Color::Yellow,
-            Color::White => wincolor::Color::White,
+            Color::Black => Some(wincolor::Color::Black),
+            Color::Blue => Some(wincolor::Color::Blue),
+            Color::Green => Some(wincolor::Color::Green),
+            Color::Red => Some(wincolor::Color::Red),
+            Color::Cyan => Some(wincolor::Color::Cyan),
+            Color::Magenta => Some(wincolor::Color::Magenta),
+            Color::Yellow => Some(wincolor::Color::Yellow),
+            Color::White => Some(wincolor::Color::White),
+            Color::Ansi256(_) => None,
+            Color::Rgb(_, _, _) => None,
             Color::__Nonexhaustive => unreachable!(),
         }
     }
 }
 
-/// An error from parsing an invalid color name.
+/// An error from parsing an invalid color specification.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ParseColorError(String);
+pub struct ParseColorError {
+    kind: ParseColorErrorKind,
+    given: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum ParseColorErrorKind {
+    InvalidName,
+    InvalidAnsi256,
+    InvalidRgb,
+}
 
 impl ParseColorError {
     /// Return the string that couldn't be parsed as a valid color.
-    pub fn invalid(&self) -> &str { &self.0 }
+    pub fn invalid(&self) -> &str { &self.given }
 }
 
 impl error::Error for ParseColorError {
-    fn description(&self) -> &str { "unrecognized color name" }
+    fn description(&self) -> &str {
+        use self::ParseColorErrorKind::*;
+        match self.kind {
+            InvalidName => "unrecognized color name",
+            InvalidAnsi256 => "invalid ansi256 color number",
+            InvalidRgb => "invalid RGB color triple",
+        }
+    }
 }
 
 impl fmt::Display for ParseColorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unrecognized color name '{}'. Choose from: \
-                black, blue, green, red, cyan, magenta, yellow, white.",
-                self.0)
+        use self::ParseColorErrorKind::*;
+        match self.kind {
+            InvalidName => {
+                write!(f, "unrecognized color name '{}'. Choose from: \
+                        black, blue, green, red, cyan, magenta, yellow, \
+                        white",
+                        self.given)
+            }
+            InvalidAnsi256 => {
+                write!(f, "unrecognized ansi256 color number, \
+                           should be '[0-255]', but is '{}'",
+                           self.given)
+            }
+            InvalidRgb => {
+                write!(f, "unrecognized RGB color triple, \
+                           should be '[0-255],[0-255],[0-255]', but is '{}'",
+                           self.given)
+            }
+        }
     }
 }
 
@@ -1292,7 +1398,52 @@ impl FromStr for Color {
             "magenta" => Ok(Color::Magenta),
             "yellow" => Ok(Color::Yellow),
             "white" => Ok(Color::White),
-            _ => Err(ParseColorError(s.to_string())),
+            _ => {
+                // - Ansi256: '[0-255]'
+                // - Rgb:     '[0-255],[0-255],[0-255]'
+                let codes: Vec<&str> = s.split(',').collect();
+                if codes.len() == 1 {
+                    if let Ok(n) = codes[0].parse::<u8>() {
+                        Ok(Color::Ansi256(n))
+                    } else {
+                        if s.chars().all(|c| c.is_digit(10)) {
+                            Err(ParseColorError {
+                                kind: ParseColorErrorKind::InvalidAnsi256,
+                                given: s.to_string(),
+                            })
+                        } else {
+                            Err(ParseColorError {
+                                kind: ParseColorErrorKind::InvalidName,
+                                given: s.to_string(),
+                            })
+                        }
+                    }
+                } else if codes.len() == 3 {
+                    let mut v = vec![];
+                    for code in codes {
+                        let n = code.parse::<u8>().map_err(|_| {
+                            ParseColorError {
+                                kind: ParseColorErrorKind::InvalidRgb,
+                                given: s.to_string(),
+                            }
+                        })?;
+                        v.push(n);
+                    }
+                    Ok(Color::Rgb(v[0], v[1], v[2]))
+                } else {
+                    Err(if s.contains(",") {
+                        ParseColorError {
+                            kind: ParseColorErrorKind::InvalidRgb,
+                            given: s.to_string(),
+                        }
+                    } else {
+                        ParseColorError {
+                            kind: ParseColorErrorKind::InvalidName,
+                            given: s.to_string(),
+                        }
+                    })
+                }
+            }
         }
     }
 }
@@ -1377,12 +1528,90 @@ fn write_lossy_utf8<W: io::Write>(mut w: W, buf: &[u8]) -> io::Result<usize> {
 
 #[cfg(test)]
 mod tests {
-    use super::StandardStream;
+    use super::{
+        Ansi, Color, ParseColorError, ParseColorErrorKind, StandardStream,
+    };
 
     fn assert_is_send<T: Send>() {}
 
     #[test]
     fn standard_stream_is_send() {
         assert_is_send::<StandardStream>();
+    }
+
+    #[test]
+    fn test_simple_parse_ok() {
+        let color = "green".parse::<Color>();
+        assert_eq!(color, Ok(Color::Green));
+    }
+
+    #[test]
+    fn test_256_parse_ok() {
+        let color = "7".parse::<Color>();
+        assert_eq!(color, Ok(Color::Ansi256(7)));
+
+        // In range of standard color codes
+        let color = "32".parse::<Color>();
+        assert_eq!(color, Ok(Color::Ansi256(32)));
+    }
+
+    #[test]
+    fn test_256_parse_err_out_of_range() {
+        let color = "256".parse::<Color>();
+        assert_eq!(color, Err(ParseColorError {
+            kind: ParseColorErrorKind::InvalidAnsi256,
+            given: "256".to_string(),
+        }));
+    }
+
+    #[test]
+    fn test_rgb_parse_ok() {
+        let color = "0,0,0".parse::<Color>();
+        assert_eq!(color, Ok(Color::Rgb(0, 0, 0)));
+
+        let color = "0,128,255".parse::<Color>();
+        assert_eq!(color, Ok(Color::Rgb(0, 128, 255)));
+    }
+
+    #[test]
+    fn test_rgb_parse_err_out_of_range() {
+        let color = "0,0,256".parse::<Color>();
+        assert_eq!(color, Err(ParseColorError {
+            kind: ParseColorErrorKind::InvalidRgb,
+            given: "0,0,256".to_string(),
+        }));
+    }
+
+    #[test]
+    fn test_rgb_parse_err_bad_format() {
+        let color = "0,0".parse::<Color>();
+        assert_eq!(color, Err(ParseColorError {
+            kind: ParseColorErrorKind::InvalidRgb,
+            given: "0,0".to_string(),
+        }));
+
+        let color = "not_a_color".parse::<Color>();
+        assert_eq!(color, Err(ParseColorError {
+            kind: ParseColorErrorKind::InvalidName,
+            given: "not_a_color".to_string(),
+        }));
+    }
+
+    #[test]
+    fn test_var_ansi_write_rgb() {
+        let mut buf = Ansi::new(vec![]);
+        let _ = buf.write_color(true, &Color::Rgb(254, 253, 255), false);
+        assert_eq!(buf.0, b"\x1B[38;2;254;253;255m");
+    }
+
+    #[test]
+    fn test_var_ansi_write_256() {
+        let mut buf = Ansi::new(vec![]);
+        let _ = buf.write_color(false, &Color::Ansi256(7), false);
+        assert_eq!(buf.0, b"\x1B[48;5;7m");
+
+        let mut buf = Ansi::new(vec![]);
+        let _ = buf.write_color(false, &Color::Ansi256(208), false);
+        assert_eq!(buf.0, b"\x1B[48;5;208m");
     }
 }
