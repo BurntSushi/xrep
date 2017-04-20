@@ -6,3 +6,11 @@ target
 /ignore/Cargo.lock
 /termcolor/Cargo.lock
 /wincolor/Cargo.lock
+
+# Snapcraft files
+stage
+prime
+parts
+*.snap
+*.pyc
+ripgrep*_source.tar.bz2
