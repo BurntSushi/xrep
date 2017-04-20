@@ -1607,6 +1607,51 @@ fn regression_391() {
     assert_eq!(lines, "bar.py\n");
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/451
+#[test]
+fn regression_451_only_matching_as_in_issue() {
+    let wd = WorkDir::new("regression_451_only_matching");
+    let path = "digits.txt";
+    wd.create(path, "1 2 3\n");
+
+    let mut cmd = wd.command();
+    cmd.arg("[0-9]+").arg(path).arg("--only-matching");
+    let lines: String = wd.stdout(&mut cmd);
+
+    let expected = "\
+1
+2
+3
+";
+
+    assert_eq!(lines, expected);
+}
+
+// See: https://github.com/BurntSushi/ripgrep/issues/451
+#[test]
+fn regression_451_only_matching() {
+    let wd = WorkDir::new("regression_451_only_matching");
+    let path = "digits.txt";
+    wd.create(path, "1 2 3\n123\n");
+
+    let mut cmd = wd.command();
+    cmd.arg("[0-9]").arg(path)
+        .arg("--only-matching")
+        .arg("--column");
+    let lines: String = wd.stdout(&mut cmd);
+
+    let expected = "\
+1:1:1
+1:3:2
+1:5:3
+2:1:1
+2:2:2
+2:3:3
+";
+
+    assert_eq!(lines, expected);
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");

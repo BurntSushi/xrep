@@ -242,23 +242,13 @@ impl<W: WriteColor> Printer<W> {
         line_number: Option<u64>,
     ) {
         if !self.line_per_match && !self.only_matching {
-            let column =
-                if self.column {
-                    Some(re.find(&buf[start..end])
-                           .map(|m| m.start()).unwrap_or(0) as u64)
-                } else {
-                    None
-                };
+            let column = re.find(&buf[start..end])
+                           .map(|m| m.start()).unwrap_or(0);
             return self.write_match(
                 re, path, buf, start, end, line_number, column);
         }
         for m in re.find_iter(&buf[start..end]) {
-            let column =
-                if self.column {
-                    Some(m.start() as u64)
-                } else {
-                    None
-                };
+            let column = m.start();
             self.write_match(
                 re, path.as_ref(), buf, start, end, line_number, column);
         }
@@ -272,7 +262,7 @@ impl<W: WriteColor> Printer<W> {
         start: usize,
         end: usize,
         line_number: Option<u64>,
-        column: Option<u64>,
+        column: usize,
     ) {
         if self.heading && self.with_filename && !self.has_printed {
             self.write_file_sep();
@@ -285,8 +275,8 @@ impl<W: WriteColor> Printer<W> {
         if let Some(line_number) = line_number {
             self.line_number(line_number, b':');
         }
-        if let Some(c) = column {
-            self.column_number(c + 1, b':');
+        if self.column {
+            self.column_number(column as u64 + 1, b':');
         }
         if self.replace.is_some() {
             let mut count = 0;
@@ -308,8 +298,9 @@ impl<W: WriteColor> Printer<W> {
             }
         } else {
             let line_buf = if self.only_matching {
-                let m = re.find(&buf[start..end]).unwrap();
-                &buf[start + m.start()..start + m.end()]
+                let start_offset = start + column;
+                let m = re.find(&buf[start_offset..end]).unwrap();
+                &buf[start_offset + m.start()..start_offset + m.end()]
             } else {
                 &buf[start..end]
             };
