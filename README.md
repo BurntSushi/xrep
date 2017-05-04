@@ -343,6 +343,11 @@ or `/etc/bash_completion.d/`.
 
 For **fish**, move `rg.fish` to `$HOME/.config/fish/completions`.
 
+For **PowerShell**, add `. _rg.ps1` to your PowerShell
+[profile](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx)
+(note the leading period). If the `_rg.ps1` file is not on your `PATH`, do
+`. /path/to/_rg.ps1` instead. 
+
 ### Building
 
 `ripgrep` is written in Rust, so you'll need to grab a
@@ -423,12 +428,48 @@ Powershell special variables:
 This alias checks whether there is **Stdin** input and propagates only if there is some lines.
 Otherwise empty `$input` will make powershell to trigger `rg` to search empty **Stdin**
 
+##### Piping non-ASCII content to ripgrep
+
+When piping input into native executables in PowerShell, the encoding of the
+input is controlled by the `$OutputEncoding` variable. By default, this is set
+to US-ASCII, and any characters in the pipeline that don't have encodings in
+US-ASCII are converted to `?` (question mark) characters.
+
+To change this setting, set `$OutputEncoding` to a different encoding, as
+represented by a .NET encoding object. Some common examples are below. The
+value of this variable is reset when PowerShell restarts, so to make this
+change take effect every time PowerShell is started add a line setting the
+variable into your PowerShell profile.
+
+Example `$OutputEncoding` settings:
+* UTF-8 without BOM: `$OutputEncoding = [System.Text.UTF8Encoding]::new()`
+* The console's output encoding:
+`$OutputEncoding = [System.Console]::OutputEncoding`
+
+If you continue to have encoding problems, you can also force the encoding
+that the console will use for printing to UTF-8 with 
+`[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8`. This
+will also reset when PowerShell is restarted, so you can add that line
+to your profile as well if you want to make the setting permanent.
+
 ### Known issues
 
 #### I just hit Ctrl+C in the middle of ripgrep's output and now my terminal's foreground color is wrong!
 
-Type in `color` on Windows and `echo -ne "\033[0m"` on Unix to restore your
-original foreground color.
+Type in `color` in cmd.exe (Command Prompt) and `echo -ne "\033[0m"` on Unix
+to restore your original foreground color.
+
+In PowerShell, you can add the following code to your profile which will
+restore the original foreground color when `Reset-ForegroundColor` is called.
+Including the `Set-Alias` line will allow you to call it with simply `color`.
+
+```powershell
+$OrigFgColor = $Host.UI.RawUI.ForegroundColor
+function Reset-ForegroundColor {
+	$Host.UI.RawUI.ForegroundColor = $OrigFgColor
+}
+Set-Alias -Name color -Value Reset-ForegroundColor
+```
 
 PR [#187](https://github.com/BurntSushi/ripgrep/pull/187) fixed this, and it
 was later deprecated in
