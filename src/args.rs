@@ -384,6 +384,16 @@ impl<'a> ArgMatches<'a> {
         if paths.is_empty() {
             paths.push(self.default_path());
         }
+
+        for path in &mut paths {
+            use std::fs::canonicalize;
+            use std::mem::replace;
+
+            if let Ok(canon) = canonicalize(&path) {
+                replace(path, canon);
+            }
+        }
+
         paths
     }
 
