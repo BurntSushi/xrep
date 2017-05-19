@@ -192,7 +192,9 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
         let mut printer = print_args.printer(stdout.lock());
         let mut file_count = 0;
         for dent in rx.iter() {
-            printer.path(dent.path());
+            if !print_args.quiet() {
+                printer.path(dent.path());
+            }
             file_count += 1;
         }
         file_count
@@ -227,7 +229,9 @@ fn run_files_one_thread(args: Arc<Args>) -> Result<u64> {
             None => continue,
             Some(dent) => dent,
         };
-        printer.path(dent.path());
+        if !args.quiet() {
+            printer.path(dent.path());
+        }
         file_count += 1;
     }
     Ok(file_count)

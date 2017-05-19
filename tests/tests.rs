@@ -1652,6 +1652,35 @@ fn regression_451_only_matching() {
     assert_eq!(lines, expected);
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/483
+#[test]
+fn regression_483_matching_no_stdout() {
+    let wd = WorkDir::new("regression_483_matching_no_stdout");
+    wd.create("file.py", "");
+
+    let mut cmd = wd.command();
+    cmd.arg("--quiet")
+       .arg("--files")
+       .arg("--glob").arg("*.py");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert!(lines.is_empty());
+}
+
+// See: https://github.com/BurntSushi/ripgrep/issues/483
+#[test]
+fn regression_483_non_matching_exit_code() {
+    let wd = WorkDir::new("regression_483_non_matching_exit_code");
+    wd.create("file.rs", "");
+
+    let mut cmd = wd.command();
+    cmd.arg("--quiet")
+       .arg("--files")
+       .arg("--glob").arg("*.py");
+
+    wd.assert_err(&mut cmd);
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");
