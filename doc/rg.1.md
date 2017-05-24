@@ -185,7 +185,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
 --no-heading
 : Don't group matches by each file. If -H/--with-filename is enabled, then
-  file names will be shown for every line matched. This is the default more
+  file names will be shown for every line matched. This is the default mode
   when not at a tty.
 
 --hidden
