@@ -36,8 +36,8 @@ Project home page: https://github.com/BurntSushi/ripgrep
 : Only show count of line matches for each file.
 
 --color *WHEN*
-: Whether to use coloring in match. Valid values are never, always or auto.
-  [default: auto]
+: Whether to use color in the output. Valid values are never, auto, always or
+  ansi. [default: auto]
 
 -e, --regexp *PATTERN* ...
 : Use PATTERN to search. This option can be provided multiple times, where all

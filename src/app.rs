@@ -228,11 +228,11 @@ lazy_static! {
              "Only show count of matches for each file.");
         doc!(h, "color",
              "When to use color. [default: auto]",
-             "When to use color in the output. The possible values are \
-              never, auto, always or ansi. The default is auto. When always \
-              is used, coloring is attempted based on your environment. When \
-              ansi used, coloring is forcefully done using ANSI escape color \
-              codes.");
+             "When to use color in the output. The possible values are never, \
+             auto, always or ansi. The default is auto. When always is used, \
+             coloring is attempted based on your environment. When ansi is \
+             used, coloring is forcefully done using ANSI escape color \
+             codes.");
         doc!(h, "colors",
              "Configure color settings and styles.",
              "This flag specifies color settings for use in the output. \
