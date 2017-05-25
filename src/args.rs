@@ -35,7 +35,6 @@ pub struct Args {
     paths: Vec<PathBuf>,
     after_context: usize,
     before_context: usize,
-    color: bool,
     color_choice: termcolor::ColorChoice,
     colors: ColorSpecs,
     column: bool,
@@ -317,7 +316,6 @@ impl<'a> ArgMatches<'a> {
             paths: paths,
             after_context: after_context,
             before_context: before_context,
-            color: self.color(),
             color_choice: self.color_choice(),
             colors: try!(self.color_specs()),
             column: self.column(),
@@ -663,23 +661,6 @@ impl<'a> ArgMatches<'a> {
         } else {
             (before, after)
         })
-    }
-
-    /// Returns true if and only if ripgrep should color its output.
-    fn color(&self) -> bool {
-        let preference = match self.0.value_of_lossy("color") {
-            None => "auto".to_string(),
-            Some(v) => v.into_owned(),
-        };
-        if preference == "always" {
-            true
-        } else if self.is_present("vimgrep") {
-            false
-        } else if preference == "auto" {
-            atty::is(atty::Stream::Stdout) || self.is_present("pretty")
-        } else {
-            false
-        }
     }
 
     /// Returns the user's color choice based on command line parameters and
