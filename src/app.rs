@@ -14,10 +14,10 @@ Project home page: https://github.com/BurntSushi/ripgrep
 Use -h for short descriptions and --help for more details.";
 
 const USAGE: &'static str = "
-    rg [OPTIONS] <pattern> [<path> ...]
-    rg [OPTIONS] [-e PATTERN | -f FILE ]... [<path> ...]
-    rg [OPTIONS] --files [<path> ...]
-    rg [OPTIONS] --type-list";
+    rg [options] PATTERN [path ...]
+    rg [options] [-e pattern ...] [-f file ...] [path ...]
+    rg [options] --files [path ...]
+    rg [options] --type-list";
 
 const TEMPLATE: &'static str = "\
 {bin} {version}
@@ -203,12 +203,13 @@ lazy_static! {
 
         doc!(h, "pattern",
              "A regular expression used for searching.",
-             "A regular expression used for searching. Multiple patterns \
-              may be given. To match a pattern beginning with a -, use [-].");
+             "A regular expression used for searching. To match a pattern \
+             beginning with a dash, use the -e/--regexp option.");
         doc!(h, "regexp",
-             "A regular expression used for searching.",
-             "A regular expression used for searching. Multiple patterns \
-              may be given. To match a pattern beginning with a -, use [-].");
+             "Use pattern to search.",
+             "Use pattern to search. This option can be provided multiple \
+             times, where all patterns given are searched. This is also \
+             useful when searching for patterns that start with a dash.");
         doc!(h, "path",
              "A file or directory to search.",
              "A file or directory to search. Directories are searched \
@@ -447,7 +448,7 @@ lazy_static! {
               default when the environment demands it (e.g., cygwin). A path \
               separator is limited to a single byte.");
         doc!(h, "pretty",
-             "Alias for --color always --heading -n.");
+             "Alias for --color always --heading --line-number.");
         doc!(h, "replace",
              "Replace matches with string given.",
              "Replace every match with the string given when printing \

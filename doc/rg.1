@@ -7,12 +7,12 @@
 rg \- recursively search current directory for lines matching a pattern
 .SH SYNOPSIS
 .PP
-rg [\f[I]options\f[]] <\f[I]pattern\f[]> [\f[I]<\f[]path\f[I]> ...\f[]]
+rg [\f[I]options\f[]] \f[I]PATTERN\f[] [\f[I]path\f[] ...]
 .PP
-rg [\f[I]options\f[]] (\-e PATTERN | \-f FILE) ...
-[\f[I]<\f[]path\f[I]> ...\f[]]
+rg [\f[I]options\f[]] [\-e \f[I]pattern\f[] ...] [\-f \f[I]file\f[] ...]
+[\f[I]path\f[] ...]
 .PP
-rg [\f[I]options\f[]] \-\-files [\f[I]<\f[]path\f[I]> ...\f[]]
+rg [\f[I]options\f[]] \-\-files [\f[I]path\f[] ...]
 .PP
 rg [\f[I]options\f[]] \-\-type\-list
 .PP
@@ -71,22 +71,23 @@ Multiple glob flags may be used.
 Globbing rules match .gitignore globs.
 Precede a glob with a \[aq]!\[aq] to exclude it.
 .RS
-.RE
 .PP
 The \-\-glob flag subsumes the functionality of both the \-\-include and
 \-\-exclude flags commonly found in other tools.
+.PP
+Values given to \-g must be quoted or your shell will expand them and
+result in unexpected behavior.
+.PP
+Combine with the \-\-files flag to return matched filenames (i.e., to
+replicate ack/ag\[aq]s \-g flag).
+For example:
 .IP
 .nf
 \f[C]
-Values\ given\ to\ \-g\ must\ be\ quoted\ or\ your\ shell\ will\ expand\ them\ and\ result
-in\ unexpected\ behavior.
-
-Combine\ with\ the\ \-\-files\ flag\ to\ return\ matched\ filenames
-(i.e.,\ to\ replicate\ ack/ag\[aq]s\ \-g\ flag).
-
-For\ example:\ rg\ \-g\ \[aq]\\<glob\\>\[aq]\ \-\-files
+rg\ \-g\ \[aq]*.foo\[aq]\ \-\-files
 \f[]
 .fi
+.RE
 .TP
 .B \-h, \-\-help
 Show this usage message.
@@ -134,14 +135,15 @@ Reduce the level of \[aq]smart\[aq] searching.
 A single \-u doesn\[aq]t respect .gitignore (etc.) files.
 Two \-u flags will search hidden files and directories.
 Three \-u flags will search binary files.
-\-uu is equivalent to grep \-r, and \-uuu is equivalent to grep \-a \-r.
+\-uu is equivalent to \f[C]grep\ \-r\f[], and \-uuu is equivalent to
+\f[C]grep\ \-a\ \-r\f[].
 .RS
 .PP
 Note that the \-u flags are convenient aliases for other combinations of
 flags.
-\-u aliases \[aq]\-\-no\-ignore\[aq].
-\-uu aliases \[aq]\-\-no\-ignore \-\-hidden\[aq].
-\-uuu aliases \[aq]\-\-no\-ignore \-\-hidden \-\-text\[aq].
+\-u aliases \-\-no\-ignore.
+\-uu aliases \-\-no\-ignore \-\-hidden.
+\-uuu aliases \-\-no\-ignore \-\-hidden \-\-text.
 .RE
 .TP
 .B \-v, \-\-invert\-match
@@ -188,9 +190,12 @@ A special format, {type}:none, will clear all color settings for {type}.
 .PP
 For example, the following command will change the match color to
 magenta and the background color for line numbers to yellow:
-.PP
-rg \-\-colors \[aq]match:fg:magenta\[aq] \-\-colors
-\[aq]line:bg:yellow\[aq] foo.
+.IP
+.nf
+\f[C]
+rg\ \-\-colors\ \[aq]match:fg:magenta\[aq]\ \-\-colors\ \[aq]line:bg:yellow\[aq]\ foo.
+\f[]
+.fi
 .RE
 .TP
 .B \-\-column
@@ -223,7 +228,7 @@ https://encoding.spec.whatwg.org/#concept\-encoding\-get
 .RS
 .RE
 .TP
-.B \-f, \-\-file FILE ...
+.B \-f, \-\-file \f[I]FILE\f[] ...
 Search for patterns from the given file, with one pattern per line.
 When this flag is used or multiple times or in combination with the
 \-e/\-\-regexp flag, then all patterns provided are searched.
@@ -237,8 +242,12 @@ Print each file that would be searched (but don\[aq]t search).
 .RS
 .PP
 Combine with the \-g flag to return matched paths, for example:
-.PP
-rg \-g \[aq]<glob>\[aq] \-\-files
+.IP
+.nf
+\f[C]
+rg\ \-g\ \[aq]*.foo\[aq]\ \-\-files
+\f[]
+.fi
 .RE
 .TP
 .B \-l, \-\-files\-with\-matches
@@ -284,7 +293,7 @@ Search hidden directories and files.
 .RS
 .RE
 .TP
-.B \-\-ignore\-file FILE ...
+.B \-\-ignore\-file \f[I]FILE\f[] ...
 Specify additional ignore files for filtering file paths.
 Ignore files should be in the gitignore format and are matched relative
 to the current working directory.
@@ -387,7 +396,7 @@ A path separator is limited to a single byte.
 .RE
 .TP
 .B \-p, \-\-pretty
-Alias for \-\-color=always \-\-heading \-n.
+Alias for \-\-color=always \-\-heading \-\-line\-number.
 .RS
 .RE
 .TP
@@ -446,9 +455,21 @@ Show the version number of ripgrep and exit.
 .B \-\-vimgrep
 Show results with every match on its own line, including line numbers
 and column numbers.
-(With this option, a line with more than one match of the regex will be
-printed more than once.)
+With this option, a line with more than one match will be printed more
+than once.
 .RS
+.PP
+Recommended .vimrc configuration:
+.IP
+.nf
+\f[C]
+\ \ set\ grepprg=rg\\\ \-\-vimgrep
+\ \ set\ grepformat^=%f:%l:%c:%m
+\f[]
+.fi
+.PP
+Use :grep to grep for something, then :cn and :cp to navigate through
+the matches.
 .RE
 .SH FILE TYPE MANAGEMENT OPTIONS
 .TP
@@ -465,11 +486,12 @@ Unless \-\-type\-clear is used, globs are added to any existing globs
 inside of ripgrep.
 Note that this must be passed to every invocation of rg.
 Type settings are NOT persisted.
+Example:
 .RS
 .IP
 .nf
 \f[C]
-\ \ Example:\ `rg\ \-\-type\-add\ \[aq]foo:*.foo\[aq]\ \-tfoo\ PATTERN`
+\ \ rg\ \-\-type\-add\ \[aq]foo:*.foo\[aq]\ \-tfoo\ PATTERN
 \f[]
 .fi
 .PP
@@ -483,7 +505,7 @@ Markdown files, one can use:
 .IP
 .nf
 \f[C]
-\ \ `\-\-type\-add\ \[aq]src:include:cpp,py,md\[aq]`
+\ \ \-\-type\-add\ \[aq]src:include:cpp,py,md\[aq]
 \f[]
 .fi
 .PP
@@ -492,7 +514,7 @@ Additional glob rules can still be added to the src type by using the
 .IP
 .nf
 \f[C]
-\ \ `\-\-type\-add\ \[aq]src:include:cpp,py,md\[aq]\ \-\-type\-add\ \[aq]src:*.foo\[aq]`
+\ \ \-\-type\-add\ \[aq]src:include:cpp,py,md\[aq]\ \-\-type\-add\ \[aq]src:*.foo\[aq]
 \f[]
 .fi
 .PP

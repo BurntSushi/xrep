@@ -4,11 +4,11 @@ rg - recursively search current directory for lines matching a pattern
 
 # SYNOPSIS
 
-rg [*options*] <*pattern*> [*<*path*> ...*]
+rg [*options*] *PATTERN* [*path* ...]
 
-rg [*options*] (-e PATTERN | -f FILE) ... [*<*path*> ...*]
+rg [*options*] [-e *pattern* ...] [-f *file* ...] [*path* ...]
 
-rg [*options*] --files [*<*path*> ...*]
+rg [*options*] --files [*path* ...]
 
 rg [*options*] --type-list
 
@@ -54,16 +54,16 @@ Project home page: https://github.com/BurntSushi/ripgrep
   glob flags may be used. Globbing rules match .gitignore globs. Precede a
   glob with a '!' to exclude it.
 
-  The --glob flag subsumes the functionality of both the --include and
-  --exclude flags commonly found in other tools.
+    The --glob flag subsumes the functionality of both the --include and
+    --exclude flags commonly found in other tools.
 
     Values given to -g must be quoted or your shell will expand them and result
     in unexpected behavior.
 
     Combine with the --files flag to return matched filenames
-    (i.e., to replicate ack/ag's -g flag).
+    (i.e., to replicate ack/ag's -g flag). For example:
 
-    For example: rg -g '\<glob\>' --files
+        rg -g '*.foo' --files
 
 -h, --help
 : Show this usage message.
@@ -91,12 +91,12 @@ Project home page: https://github.com/BurntSushi/ripgrep
 -u, --unrestricted ...
 : Reduce the level of 'smart' searching. A single -u doesn't respect .gitignore
   (etc.) files. Two -u flags will search hidden files and directories. Three
-  -u flags will search binary files. -uu is equivalent to grep -r, and -uuu is
-  equivalent to grep -a -r.
+  -u flags will search binary files. -uu is equivalent to `grep -r`, and -uuu
+  is equivalent to `grep -a -r`.
 
     Note that the -u flags are convenient aliases for other combinations of
-    flags. -u aliases '--no-ignore'. -uu aliases '--no-ignore --hidden'.
-    -uuu aliases '--no-ignore --hidden --text'.
+    flags. -u aliases --no-ignore. -uu aliases --no-ignore --hidden.
+    -uuu aliases --no-ignore --hidden --text.
 
 -v, --invert-match
 : Invert matching.
@@ -130,7 +130,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
     For example, the following command will change the match color to magenta
     and the background color for line numbers to yellow:
 
-    rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.
+        rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.
 
 --column
 : Show column numbers (1 based) in output. This only shows the column
@@ -152,7 +152,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
   Other supported values can be found in the list of labels here:
   https://encoding.spec.whatwg.org/#concept-encoding-get
 
--f, --file FILE ...
+-f, --file *FILE* ...
 : Search for patterns from the given file, with one pattern per line. When this
   flag is used or multiple times or in combination with the -e/--regexp flag,
   then all patterns provided are searched. Empty pattern lines will match all
@@ -163,7 +163,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
     Combine with the -g flag to return matched paths, for example:
 
-    rg -g '\<glob\>' --files
+        rg -g '*.foo' --files
 
 -l, --files-with-matches
 : Only show path of each file with matches.
@@ -192,7 +192,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
 : Search hidden directories and files. (Hidden directories and files are
   skipped by default.)
 
---ignore-file FILE ...
+--ignore-file *FILE* ...
 : Specify additional ignore files for filtering file paths.
   Ignore files should be in the gitignore format and are matched
   relative to the current working directory. These ignore files
@@ -260,7 +260,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
   cygwin). A path separator is limited to a single byte.
 
 -p, --pretty
-: Alias for --color=always --heading -n.
+: Alias for --color=always --heading --line-number.
 
 -r, --replace *ARG*
 : Replace every match with the string given when printing search results.
@@ -295,9 +295,17 @@ Project home page: https://github.com/BurntSushi/ripgrep
 : Show the version number of ripgrep and exit.
 
 --vimgrep
-: Show results with every match on its own line, including line
-  numbers and column numbers. (With this option, a line with more
-  than one match of the regex will be printed more than once.)
+: Show results with every match on its own line, including
+  line numbers and column numbers. With this option, a line with
+  more than one match will be printed more than once.
+
+      Recommended .vimrc configuration:
+
+          set grepprg=rg\ --vimgrep
+          set grepformat^=%f:%l:%c:%m
+
+      Use :grep to grep for something, then :cn and :cp to navigate through the
+      matches.
 
 # FILE TYPE MANAGEMENT OPTIONS
 
@@ -309,9 +317,9 @@ Project home page: https://github.com/BurntSushi/ripgrep
   at a time. Multiple --type-add flags can be provided. Unless --type-clear
   is used, globs are added to any existing globs inside of ripgrep. Note that
   this must be passed to every invocation of rg. Type settings are NOT
-  persisted.
+  persisted. Example:
 
-          Example: `rg --type-add 'foo:*.foo' -tfoo PATTERN`
+          rg --type-add 'foo:*.foo' -tfoo PATTERN
 
       --type-add can also be used to include rules from other types
       with the special include directive. The include directive
@@ -321,12 +329,12 @@ Project home page: https://github.com/BurntSushi/ripgrep
       type called src that matches C++, Python and Markdown files, one
       can use:
 
-          `--type-add 'src:include:cpp,py,md'`
+          --type-add 'src:include:cpp,py,md'
 
       Additional glob rules can still be added to the src type by
       using the --type-add flag again:
 
-          `--type-add 'src:include:cpp,py,md' --type-add 'src:*.foo'`
+          --type-add 'src:include:cpp,py,md' --type-add 'src:*.foo'
 
       Note that type names must consist only of Unicode letters or
       numbers. Punctuation characters are not allowed.
