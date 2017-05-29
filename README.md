@@ -338,15 +338,17 @@ The syntax supported is
 Shell completion files are included in the release tarball for Bash, Fish, Zsh
 and PowerShell.
 
-For **bash**, move `rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
+For **bash**, move `complete/rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
 or `/etc/bash_completion.d/`.
 
-For **fish**, move `rg.fish` to `$HOME/.config/fish/completions`.
+For **fish**, move `complete/rg.fish` to `$HOME/.config/fish/completions/`.
 
 For **PowerShell**, add `. _rg.ps1` to your PowerShell
 [profile](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx)
 (note the leading period). If the `_rg.ps1` file is not on your `PATH`, do
 `. /path/to/_rg.ps1` instead. 
+
+For **zsh**, move `complete/_rg` to one of your `$fpath` directories.
 
 ### Building
 

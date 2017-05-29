@@ -1,0 +1,142 @@
+#compdef rg
+# ------------------------------------------------------------------------------
+# Copyright (c) 2011 Github zsh-users - http://github.com/zsh-users
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the zsh-users nor the
+#       names of its contributors may be used to endorse or promote products
+#       derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL ZSH-USERS BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+#  Completion script for ripgrep
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+#  * arcizan <ghostrevery@gmail.com>
+#  * MaskRay <i@maskray.me>
+#
+# ------------------------------------------------------------------------------
+
+local context state state_descr line
+local -A opt_args
+local -i ret=1
+
+local -a common_options
+common_options=(
+  '(-a --text)'{-a,--text}'[search binary files as if they were text]'
+  '(-c, --count)'{-c,--count}'[only show count of matches for each file]'
+  '--color=[whether to use coloring in match]::when:( always never auto )'
+  '(1)*'{-e,--regexp=}'[specify pattern]:pattern'
+  '(-E --encoding)'{-E,--encoding=}'[specify the text encoding of files to search.]:encoding'
+  '(-F --fixed-strings)'{-F,--fixed-strings}'[treat the pattern as a literal string instead of a regular expression]'
+  '*'{-g,--glob=}'[include or exclude files for searching that match the given glob]:glob'
+  '(-h --help)'{-h,--help}'[prints help information]'
+  '(-i -s -S --ignore-case --case-sensitive --smart-case)'{-i,--ignore-case}'[case insensitive search]'
+  '(-n -N --line-number --no-line-number)'{-n,--line-number}'[show line numbers]'
+  '(-n -N --line-number --no-line-number)'{-N,--no-line-number}'[suppress line numbers]'
+  '(-q --quiet)'{-q,--quiet}'[do not print anything to stdout]'
+  '(-T --type-not)*'{-t,--type=}'[only search files matching specified type]: :->type'
+  '(-t --type)*'{-T,--type-not=}'[do not search files matching type]: :->type'
+  '*'{-u,--unrestricted}'[reduce the level of "smart" searching]'
+  '(-v --invert-match)'{-v,--invert-match}'[invert matching]'
+  '(-w --word-regexp)'{-w,--word-regexp}'[only show matches surrounded by word boundaries]'
+)
+
+local -a less_common_options
+less_common_options=(
+  '(-A -C --after-context --context)'{-A,--after-context=}'[specify number of lines to show after each match]:number of lines'
+  '(-B -C --before-context --context)'{-B,--before-context=}'[specify number of lines to show before each match]:number of lines'
+  '(-A -B -C --after-context --before-context --context)'{-C,--context=}'[specify number of lines to show before and after each match]:number of lines'
+  '*--colors=[configure color settings and styles]:spec'
+  '--column[show column numbers in output]'
+  '--context-separator=[the string used to separate non-continuous context lines in the output]:separator string'
+  '--debug[show debug message]'
+  '--dfa-size-limit=[the upper size limit of the generated dfa]:size'
+  "--file=[search for patterns from the given file]:file:_files"
+  "--ignore-file=[search additional ignore files]:file:_files"
+  "--files[print each file that would be searched (but don't search)]"
+  '(-l --files-with-matches)'{-l,--files-with-matches}'[only show path of each file with matches]'
+  '(-H --with-filename --no-filename)'{-H,--with-filename}'[prefix each match with the file name that contains it]'
+  '(-H --with-filename)--no-filename[never show the file name for a match]'
+  '(-p --no-heading --pretty --vimgrep)--heading[show the file name above clusters of matches from each file]'
+  "(-p --heading --pretty --vimgrep)--no-heading[don't show any file name heading]"
+  '--hidden[search hidden directories and files]'
+  '(-L --follow)'{-L,--follow}'[follow symlinks]'
+  '(-M --max-columns)'{-M,--max-columns=}"[don't print lines longer than this limit in bytes]:number"
+  '(-m --max-count)'{-m,--max-count=}'[only show count of matches for each file]:number'
+  '--max-filesize=[ignore files larger than NUM in size]:size'
+  '--maxdepth[descend at most N directories below the command line arguments]:depth'
+  '(--no-mmap)--mmap[search using memory maps when possible]'
+  '--no-messages[suppress all error messages]'
+  '(--mmap)--no-mmap[never use memory maps, even when they might be faster]'
+  "(--no-ignore-parent)--no-ignore[don't respect ignore files]"
+  "--no-ignore-parent[don't respect ignore files in parent directories]"
+  "--no-ignore-vcs[don't respect version control ignore files]"
+  '(-0 --null)'{-0,--null}'[print NUL byte after file names]'
+  '--path-separator=[path separator to use when printing file paths]'
+  '(-p --heading --no-heading --pretty --vimgrep)'{-p,--pretty}'[alias for --color=always --heading -n]'
+  '--regex-size-limit=[the upper size limit of the compiled regex]:size'
+  '(-r --replace)'{-r,--replace=}'[replace matches with string given]:replace string'
+  '(-i -s -S --ignore-case --case-sensitive --smart-case)'{-s,--case-sensitive}'[search case sensitively]'
+  '(-i -s -S --ignore-case --case-sensitive --smart-case)'{-S,--smart-case}'[search case insensitively if the pattern is all lowercase]'
+  '(-j --threads)'{-j,--threads=}'[the approximate number of threads to use]:number of threads'
+  '(-v --version)'{-V,--version}'[print version information]'
+  '(-p --heading --no-heading --pretty)--vimgrep[show results with every match on its own line, including line numbers and column numbers]'
+)
+
+local -a file_type_management_options
+file_type_management_options=(
+  '--type-list[show all supported file types and their associated globs]'
+  '*--type-add=[add a new glob for a particular file type]:type'
+  '*--type-clear=[clear the file type globs previously defined for specified type]: :->type'
+)
+
+_arguments -S -s : \
+  $common_options \
+  $less_common_options \
+  $file_type_management_options \
+  '(-e --regexp)1: :_guard "^--*" pattern' \
+  '*:file:_files' \
+  && ret=0
+
+case "$state" in
+  type)
+    local -U types
+    types=( ${${(f)"$(_call_program types rg --type-list)"}%%:*} )
+
+    _describe -t types "type" types && ret=0
+    ;;
+esac
+
+return ret
+
+# Local Variables:
+# mode: shell-script
+# coding: utf-8-unix
+# indent-tabs-mode: nil
+# sh-indentation: 2
+# sh-basic-offset: 2
+# End:
+# vim: ft=zsh sw=2 ts=2 et
