@@ -142,6 +142,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ]),
     ("json", &["*.json"]),
     ("jsonl", &["*.jsonl"]),
+    ("julia", &["*.jl"]),
     ("kotlin", &["*.kt", "*.kts"]),
     ("less", &["*.less"]),
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
