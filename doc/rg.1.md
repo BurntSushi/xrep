@@ -6,7 +6,7 @@ rg - recursively search current directory for lines matching a pattern
 
 rg [*options*] *PATTERN* [*path* ...]
 
-rg [*options*] [-e *pattern* ...] [-f *file* ...] [*path* ...]
+rg [*options*] [-e *PATTERN* ...] [-f *FILE* ...] [*path* ...]
 
 rg [*options*] --files [*path* ...]
 

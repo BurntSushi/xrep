@@ -15,7 +15,7 @@ Use -h for short descriptions and --help for more details.";
 
 const USAGE: &'static str = "
     rg [options] PATTERN [path ...]
-    rg [options] [-e pattern ...] [-f file ...] [path ...]
+    rg [options] [-e PATTERN ...] [-f FILE ...] [path ...]
     rg [options] --files [path ...]
     rg [options] --type-list";
 
@@ -57,7 +57,7 @@ pub fn app() -> App<'static, 'static> {
         .template(TEMPLATE)
         .help_message("Prints help information. Use --help for more details.")
         // First, set up primary positional/flag arguments.
-        .arg(arg("pattern")
+        .arg(arg("PATTERN")
              .required_unless_one(&[
                 "file", "files", "help-short", "help", "regexp", "type-list",
                 "ripgrep-version",
@@ -66,13 +66,13 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("regexp").short("e")
              .takes_value(true).multiple(true).number_of_values(1)
              .set(ArgSettings::AllowLeadingHyphen)
-             .value_name("pattern"))
+             .value_name("PATTERN"))
         .arg(flag("files")
-             // This should also conflict with `pattern`, but the first file
-             // path will actually be in `pattern`.
+             // This should also conflict with `PATTERN`, but the first file
+             // path will actually be in `PATTERN`.
              .conflicts_with_all(&["file", "regexp", "type-list"]))
         .arg(flag("type-list")
-             .conflicts_with_all(&["file", "files", "pattern", "regexp"]))
+             .conflicts_with_all(&["file", "files", "PATTERN", "regexp"]))
         // Second, set up common flags.
         .arg(flag("text").short("a"))
         .arg(flag("count").short("c"))
@@ -201,7 +201,7 @@ lazy_static! {
         doc!(h, "ripgrep-version",
              "Prints version information.");
 
-        doc!(h, "pattern",
+        doc!(h, "PATTERN",
              "A regular expression used for searching.",
              "A regular expression used for searching. To match a pattern \
              beginning with a dash, use the -e/--regexp option.");

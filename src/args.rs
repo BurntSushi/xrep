@@ -375,7 +375,7 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("file")
             || self.is_present("files")
             || self.is_present("regexp") {
-            if let Some(path) = self.value_of_os("pattern") {
+            if let Some(path) = self.value_of_os("PATTERN") {
                 paths.insert(0, Path::new(path).to_path_buf());
             }
         }
@@ -438,7 +438,7 @@ impl<'a> ArgMatches<'a> {
         match self.values_of_os("regexp") {
             None => {
                 if self.values_of_os("file").is_none() {
-                    if let Some(os_pat) = self.value_of_os("pattern") {
+                    if let Some(os_pat) = self.value_of_os("PATTERN") {
                         pats.push(try!(self.os_str_pattern(os_pat)));
                     }
                 }
