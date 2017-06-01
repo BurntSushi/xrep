@@ -589,9 +589,9 @@ impl<'a> ArgMatches<'a> {
             false
         } else {
             let only_stdin = paths == &[Path::new("-")];
-            self.is_present("line-number")
+            (atty::is(atty::Stream::Stdout) && !only_stdin)
+            || self.is_present("line-number")
             || self.is_present("column")
-            || (atty::is(atty::Stream::Stdout) && !only_stdin)
             || self.is_present("pretty")
             || self.is_present("vimgrep")
         }
@@ -605,11 +605,11 @@ impl<'a> ArgMatches<'a> {
     /// Returns true if and only if matches should be grouped with file name
     /// headings.
     fn heading(&self) -> bool {
-        if self.is_present("no-heading") {
+        if self.is_present("no-heading") || self.is_present("vimgrep") {
             false
         } else {
-            self.is_present("heading")
-            || atty::is(atty::Stream::Stdout)
+            atty::is(atty::Stream::Stdout)
+            || self.is_present("heading")
             || self.is_present("pretty")
         }
     }
@@ -674,8 +674,6 @@ impl<'a> ArgMatches<'a> {
             termcolor::ColorChoice::Always
         } else if preference == "ansi" {
             termcolor::ColorChoice::AlwaysAnsi
-        } else if self.is_present("vimgrep") {
-            termcolor::ColorChoice::Never
         } else if preference == "auto" {
             if atty::is(atty::Stream::Stdout) || self.is_present("pretty") {
                 termcolor::ColorChoice::Auto
