@@ -24,7 +24,7 @@ const TEMPLATE: &'static str = "\
 {author}
 {about}
 
-USAGE:{usage}
+USAGE: {usage}
 
 ARGS:
 {positionals}
@@ -47,7 +47,8 @@ pub fn app() -> App<'static, 'static> {
     };
     let flag = |name| arg(name).long(name);
 
-    App::new("ripgrep")
+    App::new(crate_name!())
+        .bin_name("rg")
         .author(crate_authors!())
         .version(crate_version!())
         .about(ABOUT)
