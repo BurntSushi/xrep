@@ -155,6 +155,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("matlab", &["*.m"]),
     ("mk", &["mkfile"]),
     ("ml", &["*.ml"]),
+    ("msbuild", &["*.csproj", "*.fsproj", "*.vcxproj", "*.proj", "*.props", "*.targets"]),
     ("nim", &["*.nim"]),
     ("nix", &["*.nix"]),
     ("objc", &["*.h", "*.m"]),
