@@ -202,6 +202,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("xml", &["*.xml"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
+    ("yocto", &["*.bb", "*.bbappend", "*.bbclass"]),
     ("zsh", &["zshenv", ".zshenv", "zprofile", ".zprofile", "zshrc", ".zshrc", "zlogin", ".zlogin", "zlogout", ".zlogout", "*.zsh"]),
 ];
 
