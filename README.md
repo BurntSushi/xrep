@@ -392,7 +392,7 @@ from the repository root.
 ##### Powershell Profile
 
 To customize powershell on start-up there is a special powershell script that has to be created.
-In order to find its location run command `Get-Command $profile | Select-Object -ExpandProperty Definition`
+In order to find its location type `$profile`
 See [more](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx) for profile details.
 
 Any powershell code in this file gets evaluated at the start of console.
