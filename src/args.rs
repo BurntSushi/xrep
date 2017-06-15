@@ -505,7 +505,7 @@ impl<'a> ArgMatches<'a> {
     /// flag is set. Otherwise, the pattern is returned unchanged.
     fn word_pattern(&self, pat: String) -> String {
         if self.is_present("word-regexp") {
-            format!(r"\b{}\b", pat)
+            format!(r"\b(?:{})\b", pat)
         } else {
             pat
         }

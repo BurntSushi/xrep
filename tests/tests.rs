@@ -1690,6 +1690,23 @@ fn regression_483_non_matching_exit_code() {
 
     wd.assert_err(&mut cmd);
 }
+// See: https://github.com/BurntSushi/ripgrep/issues/506
+#[test]
+fn regression_506_word_boundaries_not_parenthesized() {
+    let wd = WorkDir::new("regression_506_word_boundaries_not_parenthesized");
+    let path = "wb.txt";
+    wd.create(path, "min minimum amin\n\
+              max maximum amax");
+
+    let mut cmd = wd.command();
+    cmd.arg("-w").arg("min|max").arg(path).arg("--only-matching");
+    let lines: String = wd.stdout(&mut cmd);
+
+    let expected = "min\nmax\n";
+
+    assert_eq!(lines, expected);
+
+}
 
 #[test]
 fn type_list() {
