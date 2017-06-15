@@ -26,10 +26,10 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu
     # Minimum Rust supported channel.
     - os: linux
-      rust: 1.12.0
+      rust: 1.16.0
       env: TARGET=x86_64-unknown-linux-gnu
     - os: linux
-      rust: 1.12.0
+      rust: 1.16.0
       env: TARGET=x86_64-unknown-linux-musl
 
 before_install:
