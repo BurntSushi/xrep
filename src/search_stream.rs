@@ -254,7 +254,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
 
     /// Execute the search. Results are written to the printer and the total
     /// number of matches is returned.
-    #[inline(never)]
     pub fn run(mut self) -> Result<u64, Error> {
         self.inp.reset();
         self.match_count = 0;
@@ -311,12 +310,10 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         Ok(self.match_count)
     }
 
-    #[inline(always)]
     fn terminate(&self) -> bool {
         self.opts.terminate(self.match_count)
     }
 
-    #[inline(always)]
     fn fill(&mut self) -> Result<bool, Error> {
         let mut keep = self.inp.lastnl;
         if self.opts.before_context > 0 || self.opts.after_context > 0 {
@@ -345,7 +342,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         Ok(ok)
     }
 
-    #[inline(always)]
     fn print_inverted_matches(&mut self, upto: usize) {
         debug_assert!(self.opts.invert_match);
         let mut it = IterLines::new(self.opts.eol, self.inp.pos);
@@ -358,7 +354,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
     }
 
-    #[inline(always)]
     fn print_before_context(&mut self, upto: usize) {
         if self.opts.skip_matches() || self.opts.before_context == 0 {
             return;
@@ -381,7 +376,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
     }
 
-    #[inline(always)]
     fn print_after_context(&mut self, upto: usize) {
         if self.opts.skip_matches() || self.after_context_remaining == 0 {
             return;
@@ -398,7 +392,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
     }
 
-    #[inline(always)]
     fn print_match(&mut self, start: usize, end: usize) {
         self.match_count += 1;
         if self.opts.skip_matches() {
@@ -414,7 +407,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         self.after_context_remaining = self.opts.after_context;
     }
 
-    #[inline(always)]
     fn print_context(&mut self, start: usize, end: usize) {
         self.count_lines(start);
         self.add_line(end);
@@ -423,7 +415,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         self.last_printed = end;
     }
 
-    #[inline(always)]
     fn print_separator(&mut self, before: usize) {
         if self.opts.before_context == 0 && self.opts.after_context == 0 {
             return;
@@ -437,7 +428,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
     }
 
-    #[inline(always)]
     fn count_lines(&mut self, upto: usize) {
         if let Some(ref mut line_count) = self.line_count {
             *line_count += count_lines(
@@ -446,7 +436,6 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
     }
 
-    #[inline(always)]
     fn add_line(&mut self, line_end: usize) {
         if let Some(ref mut line_count) = self.line_count {
             *line_count += 1;
@@ -619,7 +608,6 @@ impl InputBuffer {
 /// or otherwise not contain text data that is usefully searchable.
 ///
 /// Note that this may return both false positives and false negatives.
-#[inline(always)]
 pub fn is_binary(buf: &[u8], first: bool) -> bool {
     if first && buf.len() >= 4 && &buf[0..4] == b"%PDF" {
         return true;
@@ -628,7 +616,6 @@ pub fn is_binary(buf: &[u8], first: bool) -> bool {
 }
 
 /// Count the number of lines in the given buffer.
-#[inline(never)]
 pub fn count_lines(buf: &[u8], eol: u8) -> u64 {
     bytecount::count(buf, eol) as u64
 }
@@ -665,7 +652,6 @@ impl IterLines {
     /// Creates a new iterator over lines starting at the position given.
     ///
     /// The buffer is passed to the `next` method.
-    #[inline(always)]
     pub fn new(eol: u8, start: usize) -> IterLines {
         IterLines {
             eol: eol,
@@ -677,7 +663,6 @@ impl IterLines {
     /// buffer given should be the same on every call.
     ///
     /// The range returned includes the new line.
-    #[inline(always)]
     pub fn next(&mut self, buf: &[u8]) -> Option<(usize, usize)> {
         match memchr(self.eol, &buf[self.pos..]) {
             None => {
@@ -708,7 +693,6 @@ impl IterLines {
 /// pointed immediately before the new line.
 ///
 /// The position returned corresponds to the first byte in the given line.
-#[inline(always)]
 fn start_of_previous_lines(
     eol: u8,
     buf: &[u8],
