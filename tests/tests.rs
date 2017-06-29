@@ -336,6 +336,21 @@ sherlock!(glob_negate, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "file.py:Sherlock\n");
 });
 
+sherlock!(iglob, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("file.HTML", "Sherlock");
+    cmd.arg("--iglob").arg("*.html");
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "file.HTML:Sherlock\n");
+});
+
+sherlock!(csglob, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create("file1.HTML", "Sherlock");
+    wd.create("file2.html", "Sherlock");
+    cmd.arg("--glob").arg("*.html");
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "file2.html:Sherlock\n");
+});
+
 sherlock!(count, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--count");
     let lines: String = wd.stdout(&mut cmd);

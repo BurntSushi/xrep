@@ -771,6 +771,14 @@ impl<'a> ArgMatches<'a> {
         for glob in self.values_of_lossy_vec("glob") {
             try!(ovr.add(&glob));
         }
+        // this is smelly. In the long run it might make sense
+        // to change overridebuilder to be like globsetbuilder
+        // but this would be a breaking change to the ignore crate
+        // so it is being shelved for now...
+        try!(ovr.case_insensitive(true));
+        for glob in self.values_of_lossy_vec("iglob") {
+            try!(ovr.add(&glob));
+        }
         ovr.build().map_err(From::from)
     }
 

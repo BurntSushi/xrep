@@ -90,6 +90,9 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("glob").short("g")
              .takes_value(true).multiple(true).number_of_values(1)
              .value_name("GLOB"))
+        .arg(flag("iglob")
+             .takes_value(true).multiple(true).number_of_values(1)
+             .value_name("GLOB"))
         .arg(flag("ignore-case").short("i"))
         .arg(flag("line-number").short("n"))
         .arg(flag("no-line-number").short("N").overrides_with("line-number"))
@@ -270,6 +273,13 @@ lazy_static! {
               ignore logic. Multiple glob flags may be used. Globbing \
               rules match .gitignore globs. Precede a glob with a ! \
               to exclude it.");
+        doc!(h, "iglob",
+             "Include or exclude files/directories case insensitively.",
+             "Include or exclude files/directories for searching that \
+              match the given glob. This always overrides any other \
+              ignore logic. Multiple glob flags may be used. Globbing \
+              rules match .gitignore globs. Precede a glob with a ! \
+              to exclude it. Globs are matched case insensitively.");
         doc!(h, "ignore-case",
              "Case insensitive search.",
              "Case insensitive search. This is overridden by \

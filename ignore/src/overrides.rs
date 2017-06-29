@@ -137,6 +137,16 @@ impl OverrideBuilder {
         try!(self.builder.add_line(None, glob));
         Ok(self)
     }
+
+    /// Toggle whether the globs should be matched case insensitively or not.
+    /// 
+    /// This is disabled by default.
+    pub fn case_insensitive(
+        &mut self, yes: bool
+    ) -> Result<&mut OverrideBuilder, Error> {
+        try!(self.builder.case_insensitive(yes));
+        Ok(self)
+    }
 }
 
 #[cfg(test)]
@@ -219,5 +229,28 @@ mod tests {
     fn absolute_path() {
         let ov = ov(&["!/bar"]);
         assert!(ov.matched("./foo/bar", false).is_none());
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let ov = OverrideBuilder::new(ROOT)
+            .case_insensitive(true).unwrap()
+            .add("*.html").unwrap()
+            .build().unwrap();
+        assert!(ov.matched("foo.html", false).is_whitelist());
+        assert!(ov.matched("foo.HTML", false).is_whitelist());
+        assert!(ov.matched("foo.htm", false).is_ignore());
+        assert!(ov.matched("foo.HTM", false).is_ignore());
+    }
+
+    #[test]
+    fn default_case_sensitive() {
+        let ov = OverrideBuilder::new(ROOT)
+            .add("*.html").unwrap()
+            .build().unwrap();
+        assert!(ov.matched("foo.html", false).is_whitelist());
+        assert!(ov.matched("foo.HTML", false).is_ignore());
+        assert!(ov.matched("foo.htm", false).is_ignore());
+        assert!(ov.matched("foo.HTM", false).is_ignore());
     }
 }

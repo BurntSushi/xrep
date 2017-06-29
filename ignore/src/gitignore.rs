@@ -254,6 +254,7 @@ pub struct GitignoreBuilder {
     builder: GlobSetBuilder,
     root: PathBuf,
     globs: Vec<Glob>,
+    case_insensitive: bool,
 }
 
 impl GitignoreBuilder {
@@ -269,6 +270,7 @@ impl GitignoreBuilder {
             builder: GlobSetBuilder::new(),
             root: strip_prefix("./", root).unwrap_or(root).to_path_buf(),
             globs: vec![],
+            case_insensitive: false,
         }
     }
 
@@ -424,6 +426,7 @@ impl GitignoreBuilder {
         let parsed = try!(
             GlobBuilder::new(&glob.actual)
                 .literal_separator(literal_separator)
+                .case_insensitive(self.case_insensitive)
                 .build()
                 .map_err(|err| {
                     Error::Glob {
@@ -433,6 +436,16 @@ impl GitignoreBuilder {
                 }));
         self.builder.add(parsed);
         self.globs.push(glob);
+        Ok(self)
+    }
+
+    /// Toggle whether the globs should be matched case insensitively or not.
+    /// 
+    /// This is disabled by default.
+    pub fn case_insensitive(
+        &mut self, yes: bool
+    ) -> Result<&mut GitignoreBuilder, Error> {
+        self.case_insensitive = yes;
         Ok(self)
     }
 }
@@ -617,4 +630,21 @@ mod tests {
     fn regression_106() {
         gi_from_str("/", " ");
     }
+
+    #[test]
+    fn case_insensitive() {
+        let gi = GitignoreBuilder::new(ROOT)
+            .case_insensitive(true).unwrap()
+            .add_str(None, "*.html").unwrap()
+            .build().unwrap();
+        assert!(gi.matched("foo.html", false).is_ignore());
+        assert!(gi.matched("foo.HTML", false).is_ignore());
+        assert!(!gi.matched("foo.htm", false).is_ignore());
+        assert!(!gi.matched("foo.HTM", false).is_ignore());
+    }
+
+    ignored!(cs1, ROOT, "*.html", "foo.html");
+    not_ignored!(cs2, ROOT, "*.html", "foo.HTML");
+    not_ignored!(cs3, ROOT, "*.html", "foo.htm");
+    not_ignored!(cs4, ROOT, "*.html", "foo.HTM");
 }
