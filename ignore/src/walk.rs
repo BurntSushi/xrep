@@ -380,16 +380,16 @@ impl DirEntryRaw {
 /// is: `.ignore`, `.gitignore`, `.git/info/exclude`, global gitignore and
 /// finally explicitly added ignore files. Note that precedence between
 /// different types of ignore files is not impacted by the directory hierarchy;
-/// any `.ignore` file overrides all `.gitignore` files. Within each
-/// precedence level, more nested ignore files have a higher precedence over
-/// less nested ignore files.
-/// * Third, if the previous step yields an ignore match, than all matching
-/// is stopped and the path is skipped.. If it yields a whitelist match, then
-/// process continues. A whitelist match can be overridden by a later matcher.
+/// any `.ignore` file overrides all `.gitignore` files. Within each precedence
+/// level, more nested ignore files have a higher precedence than less nested
+/// ignore files.
+/// * Third, if the previous step yields an ignore match, then all matching
+/// is stopped and the path is skipped. If it yields a whitelist match, then
+/// matching continues. A whitelist match can be overridden by a later matcher.
 /// * Fourth, unless the path is a directory, the file type matcher is run on
-/// the path. As above, if it's an ignore match, then all matching is stopped
-/// and the path is skipped. If it's a whitelist match, then matching
-/// continues.
+/// the path. As above, if it yields an ignore match, then all matching is
+/// stopped and the path is skipped. If it yields a whitelist match, then
+/// matching continues.
 /// * Fifth, if the path hasn't been whitelisted and it is hidden, then the
 /// path is skipped.
 /// * Sixth, unless the path is a directory, the size of the file is compared
