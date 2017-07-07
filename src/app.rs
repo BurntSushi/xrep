@@ -199,18 +199,18 @@ lazy_static! {
         let mut features: Vec<&str> = vec![];
 
         if cfg!(feature = "avx-accel") {
-            features.push("+avx-accel");
+            features.push("+AVX");
         } else {
-            features.push("-avx-accel");
+            features.push("-AVX");
         }
 
         if cfg!(feature = "simd-accel") {
-            features.push("+simd-accel");
+            features.push("+SIMD");
         } else {
-            features.push("-simd-accel");
+            features.push("-SIMD");
         }
 
-        format!("{}, with features (+/-): {}", crate_version!(), features.join(" "))
+        format!("{}\n{}", crate_version!(), features.join(" "))
     };
 
     static ref USAGES: HashMap<&'static str, Usage> = {
