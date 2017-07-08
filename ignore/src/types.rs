@@ -101,6 +101,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
     ("awk", &["*.awk"]),
+    ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
     ("c", &["*.c", "*.h", "*.H"]),
     ("cabal", &["*.cabal"]),
     ("cbor", &["*.cbor"]),
@@ -152,7 +153,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
     ("m4", &["*.ac", "*.m4"]),
-    ("make", &["gnumakefile", "Gnumakefile", "makefile", "Makefile", "*.mk", "*.mak"]),
+    ("make", &["gnumakefile", "Gnumakefile", "GNUmakefile", "makefile", "Makefile", "*.mk", "*.mak"]),
     ("markdown", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
     ("md", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
     ("matlab", &["*.m"]),
@@ -171,7 +172,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("pod", &["*.pod"]),
     ("ps", &["*.cdxml", "*.ps1", "*.ps1xml", "*.psd1", "*.psm1"]),
     ("py", &["*.py"]),
-    ("qmake", &["*.pro", "*.pri"]),
+    ("qmake", &["*.pro", "*.pri", "*.prf"]),
     ("readme", &["README*", "*README"]),
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
     ("rdoc", &["*.rdoc"]),
@@ -204,7 +205,6 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("xml", &["*.xml"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
-    ("yocto", &["*.bb", "*.bbappend", "*.bbclass"]),
     ("zsh", &["zshenv", ".zshenv", "zprofile", ".zprofile", "zshrc", ".zshrc", "zlogin", ".zlogin", "zlogout", ".zlogout", "*.zsh"]),
 ];
 
