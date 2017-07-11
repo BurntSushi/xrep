@@ -169,8 +169,8 @@ impl Gitignore {
         self.num_whitelists
     }
 
-    /// Returns whether the given file path matched a pattern in this gitignore
-    /// matcher.
+    /// Returns whether the given path (file or directory) matched a pattern in
+    /// this gitignore matcher.
     ///
     /// `is_dir` should be true if the path refers to a directory and false
     /// otherwise.
@@ -189,6 +189,40 @@ impl Gitignore {
             return Match::None;
         }
         self.matched_stripped(self.strip(path.as_ref()), is_dir)
+    }
+
+    /// Returns whether the given path (file or directory) or any of its parent
+    /// directories matched a pattern in this gitignore matcher.
+    ///
+    /// NOTE: This method is more expensive than walking the directory hierarchy
+    /// top-to-bottom and matching the entries. But, it is useful in cases when
+    /// a list of paths are available without a hierarchy.
+    ///
+    /// `is_dir` should be true if the path refers to a directory and false
+    /// otherwise.
+    ///
+    /// The given path is matched relative to the path given when building
+    /// the matcher. Specifically, before matching `path`, its prefix (as
+    /// determined by a common suffix of the directory containing this
+    /// gitignore) is stripped. If there is no common suffix/prefix overlap,
+    /// then `path` is assumed to be relative to this matcher.
+    pub fn matched_recursive<P: AsRef<Path>>(&self, path: P, is_dir: bool) -> Match<&Glob> {
+        if self.is_empty() {
+            return Match::None;
+        }
+        let mut current_path = self.strip(path.as_ref());
+        match self.matched_stripped(current_path, is_dir) {
+            Match::None => {
+                while let Some(parent) = current_path.parent() {
+                    match self.matched_stripped(parent, is_dir) {
+                        Match::None => current_path = parent,
+                        a_match => return a_match,
+                    }
+                }
+            }
+            a_match => return a_match,
+        }
+        Match::None
     }
 
     /// Like matched, but takes a path that has already been stripped.
@@ -440,7 +474,7 @@ impl GitignoreBuilder {
     }
 
     /// Toggle whether the globs should be matched case insensitively or not.
-    /// 
+    ///
     /// This is disabled by default.
     pub fn case_insensitive(
         &mut self, yes: bool
