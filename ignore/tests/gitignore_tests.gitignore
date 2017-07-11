@@ -1,0 +1,71 @@
+
+### file in root
+
+# IGNORE /file_root_1
+file_root_1
+
+# IGNORE /file_root_2
+/file_root_2
+
+# NO_MATCH
+file_root_3/
+
+# NO_MATCH
+file_root_4/*
+
+# NO_MATCH
+file_root_5/**
+
+
+### file in sub-dir
+
+# IGNORE /file_parent_dir/file_deep_1
+file_deep_1
+
+# NO_MATCH
+/file_deep_2
+
+# NO_MATCH
+file_deep_3/
+
+# NO_MATCH
+file_deep_4/*
+
+# NO_MATCH
+file_deep_5/**
+
+
+### dir in root
+
+# IGNORE /dir_root_1
+dir_root_1
+
+# IGNORE /dir_root_2
+/dir_root_2
+
+# IGNORE /dir_root_3
+dir_root_3/
+
+# IGNORE everything under /dir_root_4
+dir_root_4/*
+
+# IGNORE everything under /dir_root_5
+dir_root_5/**
+
+
+### dir in sub-dir
+
+# IGNORE /dir_parent_dir/dir_deep_1
+dir_deep_1
+
+# NO_MATCH
+/dir_deep_2
+
+# IGNORE /dir_parent_dir/dir_deep_3
+dir_deep_3/
+
+# NO_MATCH
+dir_deep_4/*
+
+# NO_MATCH
+dir_deep_5/**
