@@ -6,7 +6,7 @@ use std::path::Path;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 
 
-const IGNORE_FILE: &'static str = "tests/gitignore_tests.gitignore";
+const IGNORE_FILE: &'static str = "tests/gitignore_recursive_tests.gitignore";
 
 
 fn get_gitignore() -> Gitignore {
@@ -17,7 +17,7 @@ fn get_gitignore() -> Gitignore {
 
 
 #[test]
-fn test_gitignore_files_in_root() {
+fn test_files_in_root() {
     let gitignore = get_gitignore();
     let m = |path: &str| gitignore.matched_recursive(Path::new(path), false);
 
@@ -48,7 +48,7 @@ fn test_gitignore_files_in_root() {
 
 
 #[test]
-fn test_gitignore_files_in_deep() {
+fn test_files_in_deep() {
     let gitignore = get_gitignore();
     let m = |path: &str| gitignore.matched_recursive(Path::new(path), false);
 
@@ -79,7 +79,7 @@ fn test_gitignore_files_in_deep() {
 
 
 #[test]
-fn test_gitignore_dirs_in_root() {
+fn test_dirs_in_root() {
     let gitignore = get_gitignore();
     let m = |path: &str| gitignore.matched_recursive(Path::new(path), true);
 
@@ -166,7 +166,7 @@ fn test_gitignore_dirs_in_root() {
 
 
 #[test]
-fn test_gitignore_dirs_in_deep() {
+fn test_dirs_in_deep() {
     let gitignore = get_gitignore();
     let m = |path: &str| gitignore.matched_recursive(Path::new(path), true);
 
