@@ -191,12 +191,13 @@ impl Gitignore {
         self.matched_stripped(self.strip(path.as_ref()), is_dir)
     }
 
-    /// Returns whether the given path (file or directory) or any of its parent
-    /// directories matched a pattern in this gitignore matcher.
+    /// Returns whether the given path (file or directory, and expected to be
+    /// under the root) or any of its parent directories (up to the root)
+    /// matched a pattern in this gitignore matcher.
     ///
     /// NOTE: This method is more expensive than walking the directory hierarchy
-    /// top-to-bottom and matching the entries. But, it is useful in cases when
-    /// a list of paths are available without a hierarchy.
+    /// top-to-bottom and matching the entries. But, is easier to use in cases
+    /// when a list of paths are available without a hierarchy.
     ///
     /// `is_dir` should be true if the path refers to a directory and false
     /// otherwise.
@@ -206,23 +207,28 @@ impl Gitignore {
     /// determined by a common suffix of the directory containing this
     /// gitignore) is stripped. If there is no common suffix/prefix overlap,
     /// then `path` is assumed to be relative to this matcher.
-    pub fn matched_recursive<P: AsRef<Path>>(&self, path: P, is_dir: bool) -> Match<&Glob> {
+    pub fn matched_path_or_any_parents<P: AsRef<Path>>(
+        &self,
+        path: P,
+        is_dir: bool,
+    ) -> Match<&Glob> {
         if self.is_empty() {
             return Match::None;
         }
-        let mut current_path = self.strip(path.as_ref());
-        match self.matched_stripped(current_path, is_dir) {
-            Match::None => {
-                while let Some(parent) = current_path.parent() {
-                    match self.matched_stripped(parent, is_dir) {
-                        Match::None => current_path = parent,
-                        a_match => return a_match,
-                    }
-                }
+        let mut path = self.strip(path.as_ref());
+        debug_assert!(
+            !path.has_root(),
+            "path is expect to be under the root"
+        );
+        loop {
+            match self.matched_stripped(path, is_dir) {
+                Match::None => match path.parent() {
+                    Some(parent) => path = parent,
+                    None => return Match::None,
+                },
+                a_match => return a_match,
             }
-            a_match => return a_match,
         }
-        Match::None
     }
 
     /// Like matched, but takes a path that has already been stripped.

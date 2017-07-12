@@ -1,6 +1,7 @@
 environment:
   global:
     PROJECT_NAME: ripgrep
+    RUST_BACKTRACE: full
   matrix:
     - TARGET: i686-pc-windows-gnu
       CHANNEL: stable

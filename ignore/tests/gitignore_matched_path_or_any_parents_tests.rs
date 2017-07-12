@@ -6,20 +6,31 @@ use std::path::Path;
 use ignore::gitignore::{Gitignore, GitignoreBuilder};
 
 
-const IGNORE_FILE: &'static str = "tests/gitignore_recursive_tests.gitignore";
+const IGNORE_FILE: &'static str = "tests/gitignore_matched_path_or_any_parents_tests.gitignore";
 
 
 fn get_gitignore() -> Gitignore {
     let mut builder = GitignoreBuilder::new("ROOT");
-    builder.add(IGNORE_FILE);
+    let error = builder.add(IGNORE_FILE);
+    assert!(error.is_none(), "failed to open gitignore file");
     builder.build().unwrap()
+}
+
+
+#[test]
+#[should_panic(expected = "path is expect to be under the root")]
+fn test_path_should_be_under_root() {
+    let gitignore = get_gitignore();
+    let path = "/tmp/some_file";
+    gitignore.matched_path_or_any_parents(Path::new(path), false);
+    assert!(false);
 }
 
 
 #[test]
 fn test_files_in_root() {
     let gitignore = get_gitignore();
-    let m = |path: &str| gitignore.matched_recursive(Path::new(path), false);
+    let m = |path: &str| gitignore.matched_path_or_any_parents(Path::new(path), false);
 
     // 0x
     assert!(m("ROOT/file_root_00").is_ignore());
@@ -50,7 +61,7 @@ fn test_files_in_root() {
 #[test]
 fn test_files_in_deep() {
     let gitignore = get_gitignore();
-    let m = |path: &str| gitignore.matched_recursive(Path::new(path), false);
+    let m = |path: &str| gitignore.matched_path_or_any_parents(Path::new(path), false);
 
     // 0x
     assert!(m("ROOT/parent_dir/file_deep_00").is_ignore());
@@ -81,7 +92,7 @@ fn test_files_in_deep() {
 #[test]
 fn test_dirs_in_root() {
     let gitignore = get_gitignore();
-    let m = |path: &str| gitignore.matched_recursive(Path::new(path), true);
+    let m = |path: &str| gitignore.matched_path_or_any_parents(Path::new(path), true);
 
     // 00
     assert!(m("ROOT/dir_root_00").is_ignore());
@@ -168,7 +179,7 @@ fn test_dirs_in_root() {
 #[test]
 fn test_dirs_in_deep() {
     let gitignore = get_gitignore();
-    let m = |path: &str| gitignore.matched_recursive(Path::new(path), true);
+    let m = |path: &str| gitignore.matched_path_or_any_parents(Path::new(path), true);
 
     // 00
     assert!(m("ROOT/parent_dir/dir_deep_00").is_ignore());

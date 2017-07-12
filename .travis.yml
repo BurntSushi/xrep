@@ -3,6 +3,7 @@ language: rust
 env:
   global:
     - PROJECT_NAME=ripgrep
+    - RUST_BACKTRACE: full
 matrix:
   include:
     # Nightly channel.
