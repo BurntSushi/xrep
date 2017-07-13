@@ -220,15 +220,17 @@ impl Gitignore {
             !path.has_root(),
             "path is expect to be under the root"
         );
-        loop {
-            match self.matched_stripped(path, is_dir) {
-                Match::None => match path.parent() {
-                    Some(parent) => path = parent,
-                    None => return Match::None,
-                },
+        match self.matched_stripped(path, is_dir) {
+            Match::None => (), // walk up
+            a_match => return a_match,
+        }
+        while let Some(parent) = path.parent() {
+            match self.matched_stripped(parent, /* is_dir */ true) {
+                Match::None => path = parent, // walk up
                 a_match => return a_match,
             }
         }
+        Match::None
     }
 
     /// Like matched, but takes a path that has already been stripped.
