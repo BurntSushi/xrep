@@ -576,7 +576,7 @@ pub struct ColorSpecs {
 /// Valid colors are `black`, `blue`, `green`, `red`, `cyan`, `magenta`,
 /// `yellow`, `white`.
 ///
-/// Valid style instructions are `nobold` and `bold`.
+/// Valid style instructions are `nobold`, `bold`, `intense`, `nointense`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Spec {
     ty: OutType,
