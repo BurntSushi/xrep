@@ -111,7 +111,6 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         self
     }
 
-    #[inline(never)]
     pub fn run(mut self) -> u64 {
         let binary_upto = cmp::min(10240, self.buf.len());
         if !self.opts.text && is_binary(&self.buf[..binary_upto], true) {
@@ -148,7 +147,6 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         self.match_count
     }
 
-    #[inline(always)]
     pub fn print_match(&mut self, start: usize, end: usize) {
         self.match_count += 1;
         if self.opts.skip_matches() {
@@ -161,7 +159,6 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
             start, end, self.line_count);
     }
 
-    #[inline(always)]
     fn print_inverted_matches(&mut self, start: usize, end: usize) {
         debug_assert!(self.opts.invert_match);
         let mut it = IterLines::new(self.opts.eol, start);
@@ -173,7 +170,6 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         }
     }
 
-    #[inline(always)]
     fn count_lines(&mut self, upto: usize) {
         if let Some(ref mut line_count) = self.line_count {
             *line_count += count_lines(
@@ -182,7 +178,6 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         }
     }
 
-    #[inline(always)]
     fn add_line(&mut self, line_end: usize) {
         if let Some(ref mut line_count) = self.line_count {
             *line_count += 1;

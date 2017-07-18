@@ -178,7 +178,6 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
     ///
     /// If the internal buffer is too small to read additional bytes, then an
     /// error is returned.
-    #[inline(always)] // massive perf benefit (???)
     fn fill(&mut self) -> io::Result<()> {
         if self.pos < self.buflen {
             if self.buflen >= self.buf.as_mut().len() {
@@ -249,7 +248,6 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
         Ok(nwrite)
     }
 
-    #[inline(never)] // impacts perf...
     fn detect(&mut self) -> io::Result<()> {
         let bom = try!(self.rdr.peek_bom());
         self.decoder = bom.decoder();
