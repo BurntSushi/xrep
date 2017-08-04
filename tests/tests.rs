@@ -1738,6 +1738,21 @@ fn regression_389_match_words_bounded_by_non_word_characters() {
     assert_eq!(lines, expected);
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/389
+#[test]
+fn regression_389_match_multiple_words_bounded_by_non_word_characters() {
+    let wd = WorkDir::new("regression_389_match_multiple_words_bounded_by_non_word_characters");
+    let path = "file.txt";
+    wd.create(path, "foo-bar-bar-baz\n");
+
+    let mut cmd = wd.command();
+    cmd.arg("-w").arg("-o").arg("bar").arg(path);
+    let lines: String = wd.stdout(&mut cmd);
+
+    let expected = "bar\nbar\n";
+    assert_eq!(lines, expected);
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");
