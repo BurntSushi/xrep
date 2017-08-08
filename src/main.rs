@@ -8,7 +8,6 @@ extern crate grep;
 extern crate ignore;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate memchr;

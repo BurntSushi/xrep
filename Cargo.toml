@@ -34,7 +34,6 @@ env_logger = { version = "0.4", default-features = false }
 grep = { version = "0.1.5", path = "grep" }
 ignore = { version = "0.2.2", path = "ignore" }
 lazy_static = "0.2"
-libc = "0.2"
 log = "0.3"
 memchr = "1"
 memmap = "0.5"
