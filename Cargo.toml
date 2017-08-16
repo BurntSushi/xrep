@@ -49,6 +49,3 @@ lazy_static = "0.2"
 [features]
 avx-accel = ["bytecount/avx-accel"]
 simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
-
-[profile.release]
-debug = true
