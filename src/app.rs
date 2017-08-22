@@ -445,11 +445,11 @@ lazy_static! {
               direct children of dir/.");
         doc!(h, "mmap",
              "Searching using memory maps when possible.",
-             "Search using memory maps when possible. This is enabled by \
-              default when ripgrep thinks it will be faster. Note that memory \
-              map searching doesn't currently support all options, so if an \
-              incompatible option (e.g., --context) is given with --mmap, \
-              then memory maps will not be used.");
+             "Search using memory maps when possible. This is disabled by \
+              default because mmap on files that can be truncated is unsafe. \
+              Note that memory map searching doesn't currently support all \
+              options, so if an incompatible option (e.g., --context) is given \
+              with --mmap, then memory maps will not be used.");
         doc!(h, "no-messages",
              "Suppress all error messages.",
              "Suppress all error messages. This is equivalent to redirecting \
