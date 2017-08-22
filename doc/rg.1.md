@@ -226,15 +226,12 @@ Project home page: https://github.com/BurntSushi/ripgrep
   A value of zero searches only the starting-points themselves.
 
 --mmap
-: Search using memory maps when possible. This is enabled by default
-  when ripgrep thinks it will be faster. (Note that mmap searching
-  doesn't currently support the various context related options.)
+: Search using memory maps when possible. This is disabled by default
+  because mmap on files that can be truncated is unsafe. (Note that mmap
+  searching doesn't currently support the various context related options.)
 
 --no-messages
 : Suppress all error messages.
-
---no-mmap
-: Never use memory maps, even when they might be faster.
 
 --no-ignore
 : Don't respect ignore files (.gitignore, .ignore, etc.)

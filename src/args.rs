@@ -582,17 +582,8 @@ impl<'a> ArgMatches<'a> {
             false
         } else if self.is_present("mmap") {
             true
-        } else if cfg!(target_os = "macos") {
-            // On Mac, memory maps appear to suck. Neat.
-            false
-        } else if enc.is_some() {
-            // There's no practical way to transcode a memory map that isn't
-            // isomorphic to searching over io::Read.
-            false
         } else {
-            // If we're only searching a few paths and all of them are
-            // files, then memory maps are probably faster.
-            paths.len() <= 10 && paths.iter().all(|p| p.is_file())
+            false
         })
     }
 
