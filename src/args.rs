@@ -283,6 +283,8 @@ impl Args {
         wd.git_global(!self.no_ignore && !self.no_ignore_vcs);
         wd.git_ignore(!self.no_ignore && !self.no_ignore_vcs);
         wd.git_exclude(!self.no_ignore && !self.no_ignore_vcs);
+        wd.hg_global(!self.no_ignore && !self.no_ignore_vcs);
+        wd.hg_ignore(!self.no_ignore && !self.no_ignore_vcs);
         wd.ignore(!self.no_ignore);
         wd.parents(!self.no_ignore_parent);
         wd.threads(self.threads());

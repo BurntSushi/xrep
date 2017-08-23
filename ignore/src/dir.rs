@@ -19,6 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
 use gitignore::{self, Gitignore, GitignoreBuilder};
+use hgignore::{self, Hgignore, HgignoreBuilder};
 use pathutil::{is_hidden, strip_prefix};
 use overrides::{self, Override};
 use types::{self, Types};
@@ -35,6 +36,7 @@ pub struct IgnoreMatch<'a>(IgnoreMatchInner<'a>);
 enum IgnoreMatchInner<'a> {
     Override(overrides::Glob<'a>),
     Gitignore(&'a gitignore::Glob),
+    Hgignore(&'a hgignore::Glob),
     Types(types::Glob<'a>),
     Hidden,
 }
@@ -46,6 +48,10 @@ impl<'a> IgnoreMatch<'a> {
 
     fn gitignore(x: &'a gitignore::Glob) -> IgnoreMatch<'a> {
         IgnoreMatch(IgnoreMatchInner::Gitignore(x))
+    }
+
+    fn hgignore(x: &'a hgignore::Glob) -> IgnoreMatch<'a> {
+        IgnoreMatch(IgnoreMatchInner::Hgignore(x))
     }
 
     fn types(x: types::Glob<'a>) -> IgnoreMatch<'a> {
@@ -71,12 +77,17 @@ struct IgnoreOptions {
     git_ignore: bool,
     /// Whether to read .git/info/exclude files.
     git_exclude: bool,
+    /// doc
+    hg_global: bool,
+    /// doc
+    hg_ignore: bool,
 }
 
 impl IgnoreOptions {
     /// Returns true if at least one type of ignore rules should be matched.
     fn has_any_ignore_options(&self) -> bool {
-        self.ignore || self.git_global || self.git_ignore || self.git_exclude
+        self.ignore || self.git_global || self.git_ignore ||
+            self.git_exclude || self.hg_ignore || self.hg_global
     }
 }
 
@@ -119,6 +130,10 @@ struct IgnoreInner {
     git_ignore_matcher: Gitignore,
     /// Special matcher for `.git/info/exclude` files.
     git_exclude_matcher: Gitignore,
+    /// doc
+    hg_global_matcher: Arc<Hgignore>,
+    /// doc
+    hg_ignore_matcher: Hgignore,
     /// Whether this directory contains a .git sub-directory.
     has_git: bool,
     /// Ignore config.
@@ -230,6 +245,14 @@ impl Ignore {
                 errs.maybe_push(err);
                 m
             };
+        let hgi_matcher =
+            if !self.0.opts.hg_ignore || !dir.join(".hg").is_dir() {
+                Hgignore::empty()
+            } else {
+                let (m, err) = create_hgignore(&dir, &[".hgignore"]);
+                errs.maybe_push(err);
+                m
+            };
         let gi_exclude_matcher =
             if !self.0.opts.git_exclude {
                 Gitignore::empty()
@@ -251,6 +274,8 @@ impl Ignore {
             git_global_matcher: self.0.git_global_matcher.clone(),
             git_ignore_matcher: gi_matcher,
             git_exclude_matcher: gi_exclude_matcher,
+            hg_global_matcher: self.0.hg_global_matcher.clone(),
+            hg_ignore_matcher: hgi_matcher,
             has_git: dir.join(".git").is_dir(),
             opts: self.0.opts,
         };
@@ -315,8 +340,9 @@ impl Ignore {
         path: &Path,
         is_dir: bool,
     ) -> Match<IgnoreMatch<'a>> {
-        let (mut m_ignore, mut m_gi, mut m_gi_exclude, mut m_explicit) =
-            (Match::None, Match::None, Match::None, Match::None);
+        let (
+            mut m_ignore, mut m_gi, mut m_gi_exclude, mut m_explicit, mut m_hgi
+        ) = (Match::None, Match::None, Match::None, Match::None, Match::None);
         let mut saw_git = false;
         for ig in self.parents().take_while(|ig| !ig.0.is_absolute_parent) {
             if m_ignore.is_none() {
@@ -333,6 +359,11 @@ impl Ignore {
                 m_gi_exclude =
                     ig.0.git_exclude_matcher.matched(path, is_dir)
                       .map(IgnoreMatch::gitignore);
+            }
+            if m_hgi.is_none() {
+                m_hgi =
+                    ig.0.hg_ignore_matcher.matched(path, is_dir)
+                      .map(IgnoreMatch::hgignore);
             }
             saw_git = saw_git || ig.0.has_git;
         }
@@ -354,6 +385,11 @@ impl Ignore {
                         ig.0.git_exclude_matcher.matched(&path, is_dir)
                           .map(IgnoreMatch::gitignore);
                 }
+                if m_hgi.is_none() {
+                    m_hgi =
+                        ig.0.hg_ignore_matcher.matched(&path, is_dir)
+                        .map(IgnoreMatch::hgignore);
+                }
                 saw_git = saw_git || ig.0.has_git;
             }
         }
@@ -365,8 +401,11 @@ impl Ignore {
         }
         let m_global = self.0.git_global_matcher.matched(&path, is_dir)
                            .map(IgnoreMatch::gitignore);
+        let m_hg_global = self.0.hg_global_matcher.matched(&path, is_dir)
+                           .map(IgnoreMatch::hgignore);
 
         m_ignore.or(m_gi).or(m_gi_exclude).or(m_global).or(m_explicit)
+            .or(m_hgi).or(m_hg_global)
     }
 
     /// Returns an iterator over parent ignore matchers, including this one.
@@ -432,6 +471,8 @@ impl IgnoreBuilder {
                 git_global: true,
                 git_ignore: true,
                 git_exclude: true,
+                hg_global: true,
+                hg_ignore: true,
             },
         }
     }
@@ -451,6 +492,16 @@ impl IgnoreBuilder {
                 }
                 gi
             };
+        let hg_global_matcher =
+            if !self.opts.hg_global {
+                Hgignore::empty()
+            } else {
+                let (gi, err) = Hgignore::global();
+                if let Some(err) = err {
+                    debug!("{}", err);
+                }
+                gi
+            };
         Ignore(Arc::new(IgnoreInner {
             compiled: Arc::new(RwLock::new(HashMap::new())),
             dir: self.dir.clone(),
@@ -464,6 +515,8 @@ impl IgnoreBuilder {
             git_global_matcher: Arc::new(git_global_matcher),
             git_ignore_matcher: Gitignore::empty(),
             git_exclude_matcher: Gitignore::empty(),
+            hg_global_matcher: Arc::new(hg_global_matcher),
+            hg_ignore_matcher: Hgignore::empty(),
             has_git: false,
             opts: self.opts,
         }))
@@ -548,6 +601,18 @@ impl IgnoreBuilder {
         self.opts.git_exclude = yes;
         self
     }
+
+    /// doc
+    pub fn hg_global(&mut self, yes: bool) -> &mut IgnoreBuilder {
+        self.opts.hg_global = yes;
+        self
+    }
+
+    /// doc
+    pub fn hg_ignore(&mut self, yes: bool) -> &mut IgnoreBuilder {
+        self.opts.hg_ignore = yes;
+        self
+    }
 }
 
 /// Creates a new gitignore matcher for the directory given.
@@ -574,6 +639,27 @@ pub fn create_gitignore(
         }
     };
     (gi, errs.into_error_option())
+}
+
+/// doc
+pub fn create_hgignore(
+    dir: &Path,
+    names: &[&str],
+) -> (Hgignore, Option<Error>) {
+    let mut builder = HgignoreBuilder::new(dir);
+    let mut errs = PartialErrorBuilder::default();
+    for name in names {
+        let hgipath = dir.join(name);
+        errs.maybe_push_ignore_io(builder.add(hgipath));
+    }
+    let hgi = match builder.build() {
+        Ok(hgi) => hgi,
+        Err(err) => {
+            errs.push(err);
+            HgignoreBuilder::new(dir).build().unwrap()
+        }
+    };
+    (hgi, errs.into_error_option())
 }
 
 #[cfg(test)]
@@ -796,5 +882,74 @@ mod tests {
         assert!(ig2.matched("src/llvm", true).is_none());
         assert!(ig2.matched("foo", false).is_ignore());
         assert!(ig2.matched("src/foo", false).is_ignore());
+    }
+
+    #[test]
+    fn hgignore() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        mkdirp(td.path().join(".hg"));
+        wfile(td.path().join(".hgignore"), "foo$\nsyntax: glob\nbar");
+
+        let (ig, err) = IgnoreBuilder::new().build().add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_ignore());
+        assert!(ig.matched("bar", false).is_ignore());
+        assert!(ig.matched("food", false).is_none());
+    }
+
+    #[test]
+    fn hgignore_syntax_switch() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        mkdirp(td.path().join(".hg"));
+        wfile(
+            td.path().join(".hgignore"),
+            "foo$\nsyntax: glob\nbar\nsyntax: regexp\nfile.zip"
+        );
+
+        let (ig, err) = IgnoreBuilder::new().build().add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_ignore());
+        assert!(ig.matched("bar", false).is_ignore());
+        assert!(ig.matched("food", false).is_none());
+        assert!(ig.matched("file.zip", false).is_ignore());
+    }
+
+    #[test]
+    fn hgignore_rooted() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        mkdirp(td.path().join(".hg"));
+        mkdirp(td.path().join("src"));
+        wfile(
+            td.path().join(".hgignore"),
+            "^rooted\n.log$\nsyntax: glob\n*.pyc"
+        );
+
+        let ig0 = IgnoreBuilder::new().build();
+        let (ig1, err) = ig0.add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig1.matched("test.log", false).is_ignore());
+        assert!(ig1.matched("src/test.log", false).is_ignore());
+        assert!(ig1.matched("foo.pyc", false).is_ignore());
+        assert!(ig1.matched("src/foo.pyc", false).is_ignore());
+        assert!(ig1.matched("rooted.rs", false).is_ignore());
+        assert!(ig1.matched("src/rooted.rs", false).is_none());
+    }
+
+    #[test]
+    fn hgignore_one_hgignore() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        mkdirp(td.path().join(".hg"));
+        wfile(td.path().join(".hgignore"), "foo");
+        mkdirp(td.path().join("subdir"));
+        wfile(td.path().join("subdir/.hgignore"), "bar");
+
+        let ig0 = IgnoreBuilder::new().build();
+        let (ig1, err) = ig0.add_child(td.path());
+        assert!(err.is_none());
+        let (ig2, err) = ig1.add_child(td.path().join("subdir"));
+        assert!(err.is_none());
+        assert!(ig2.matched("foo.file", false).is_ignore());
+        assert!(ig2.matched("subdir/foo.file", false).is_ignore());
+        assert!(ig2.matched("subdir/bar.file", false).is_none());
     }
 }

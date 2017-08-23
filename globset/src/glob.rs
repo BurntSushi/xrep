@@ -194,6 +194,8 @@ struct GlobOptions {
     /// Whether to require a literal separator to match a separator in a file
     /// path. e.g., when enabled, `*` won't match `/`.
     literal_separator: bool,
+    /// doc
+    from_regex: bool,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -543,32 +545,41 @@ impl<'a> GlobBuilder<'a> {
 
     /// Parses and builds the pattern.
     pub fn build(&self) -> Result<Glob, Error> {
-        let mut p = Parser {
-            glob: &self.glob,
-            stack: vec![Tokens::default()],
-            chars: self.glob.chars().peekable(),
-            prev: None,
-            cur: None,
-        };
-        try!(p.parse());
-        if p.stack.is_empty() {
-            Err(Error {
-                glob: Some(self.glob.to_string()),
-                kind: ErrorKind::UnopenedAlternates,
-            })
-        } else if p.stack.len() > 1 {
-            Err(Error {
-                glob: Some(self.glob.to_string()),
-                kind: ErrorKind::UnclosedAlternates,
-            })
-        } else {
-            let tokens = p.stack.pop().unwrap();
+        if self.opts.from_regex {
             Ok(Glob {
                 glob: self.glob.to_string(),
-                re: tokens.to_regex_with(&self.opts),
+                re: self.glob.to_string(),
                 opts: self.opts,
-                tokens: tokens,
+                tokens: Tokens::default(),
             })
+        } else {
+            let mut p = Parser {
+                glob: &self.glob,
+                stack: vec![Tokens::default()],
+                chars: self.glob.chars().peekable(),
+                prev: None,
+                cur: None,
+            };
+            try!(p.parse());
+            if p.stack.is_empty() {
+                Err(Error {
+                    glob: Some(self.glob.to_string()),
+                    kind: ErrorKind::UnopenedAlternates,
+                })
+            } else if p.stack.len() > 1 {
+                Err(Error {
+                    glob: Some(self.glob.to_string()),
+                    kind: ErrorKind::UnclosedAlternates,
+                })
+            } else {
+                let tokens = p.stack.pop().unwrap();
+                Ok(Glob {
+                    glob: self.glob.to_string(),
+                    re: tokens.to_regex_with(&self.opts),
+                    opts: self.opts,
+                    tokens: tokens,
+                })
+            }
         }
     }
 
@@ -583,6 +594,12 @@ impl<'a> GlobBuilder<'a> {
     /// Toggle whether a literal `/` is required to match a path separator.
     pub fn literal_separator(&mut self, yes: bool) -> &mut GlobBuilder<'a> {
         self.opts.literal_separator = yes;
+        self
+    }
+
+    /// doc
+    pub fn from_regex(&mut self, yes: bool) -> &mut GlobBuilder<'a> {
+        self.opts.from_regex = yes;
         self
     }
 }
