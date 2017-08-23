@@ -10,7 +10,7 @@ use std::thread;
 use std::time::Duration;
 use std::vec;
 
-use crossbeam::sync::MsQueue;
+use crossbeam::sync::TreiberStack;
 use walkdir::{self, WalkDir, WalkDirIterator, is_same_file};
 
 use dir::{Ignore, IgnoreBuilder};
@@ -864,7 +864,7 @@ impl WalkParallel {
     ) where F: FnMut() -> Box<FnMut(Result<DirEntry, Error>) -> WalkState + Send + 'static> {
         let mut f = mkf();
         let threads = self.threads();
-        let queue = Arc::new(MsQueue::new());
+        let stack = Arc::new(TreiberStack::new());
         let mut any_work = false;
         // Send the initial set of root paths to the pool of workers.
         // Note that we only send directories. For files, we send to them the
@@ -884,7 +884,7 @@ impl WalkParallel {
                         }
                     }
                 };
-            queue.push(Message::Work(Work {
+            stack.push(Message::Work(Work {
                 dent: dent,
                 ignore: self.ig_root.clone(),
             }));
@@ -902,7 +902,7 @@ impl WalkParallel {
         for _ in 0..threads {
             let worker = Worker {
                 f: mkf(),
-                queue: queue.clone(),
+                stack: stack.clone(),
                 quit_now: quit_now.clone(),
                 is_waiting: false,
                 is_quitting: false,
@@ -1003,8 +1003,8 @@ impl Work {
 struct Worker {
     /// The caller's callback.
     f: Box<FnMut(Result<DirEntry, Error>) -> WalkState + Send + 'static>,
-    /// A queue of work items. This is multi-producer and multi-consumer.
-    queue: Arc<MsQueue<Message>>,
+    /// A stack of work items. This is multi-producer and multi-consumer.
+    stack: Arc<TreiberStack<Message>>,
     /// Whether all workers should quit at the next opportunity. Note that
     /// this is distinct from quitting because of exhausting the contents of
     /// a directory. Instead, this is used when the caller's callback indicates
@@ -1092,7 +1092,7 @@ impl Worker {
     /// Runs the worker on a single entry from a directory iterator.
     ///
     /// If the entry is a path that should be ignored, then this is a no-op.
-    /// Otherwise, the entry is pushed on to the queue. (The actual execution
+    /// Otherwise, the entry is pushed on to the stack. (The actual execution
     /// of the callback happens in `run`.)
     ///
     /// If an error occurs while reading the entry, then it is sent to the
@@ -1144,7 +1144,7 @@ impl Worker {
         };
 
         if !should_skip_path && !should_skip_filesize {
-            self.queue.push(Message::Work(Work {
+            self.stack.push(Message::Work(Work {
                 dent: dent,
                 ignore: ig.clone(),
             }));
@@ -1161,7 +1161,7 @@ impl Worker {
             if self.is_quit_now() {
                 return None;
             }
-            match self.queue.try_pop() {
+            match self.stack.pop() {
                 Some(Message::Work(work)) => {
                     self.waiting(false);
                     self.quitting(false);
@@ -1203,7 +1203,7 @@ impl Worker {
                     self.quitting(false);
                     if self.num_waiting() == self.threads {
                         for _ in 0..self.threads {
-                            self.queue.push(Message::Quit);
+                            self.stack.push(Message::Quit);
                         }
                     } else {
                         // You're right to consider this suspicious, but it's
