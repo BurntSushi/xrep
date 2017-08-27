@@ -265,7 +265,7 @@ impl<'a> io::Write for IoStandardStreamLock<'a> {
 /// Satisfies `io::Write` and `WriteColor`, and supports optional coloring
 /// to either of the standard output streams, stdout and stderr.
 pub struct StandardStream {
-    wtr: LossyStandardStream<WriterInner<'static, IoStandardStream>>,
+    wtr: LossyStandardStream<WriterInner<IoStandardStream>>,
 }
 
 /// `StandardStreamLock` is a locked reference to a `StandardStream`.
@@ -276,12 +276,21 @@ pub struct StandardStream {
 /// The lifetime `'a` refers to the lifetime of the corresponding
 /// `StandardStream`.
 pub struct StandardStreamLock<'a> {
-    wtr: LossyStandardStream<WriterInner<'a, IoStandardStreamLock<'a>>>,
+    wtr: LossyStandardStream<WriterInnerLock<'a, IoStandardStreamLock<'a>>>,
 }
 
 /// WriterInner is a (limited) generic representation of a writer. It is
 /// limited because W should only ever be stdout/stderr on Windows.
-enum WriterInner<'a, W> {
+enum WriterInner<W> {
+    NoColor(NoColor<W>),
+    Ansi(Ansi<W>),
+    #[cfg(windows)]
+    Windows { wtr: W, console: Mutex<wincolor::Console> },
+}
+
+/// WriterInnerLock is a (limited) generic representation of a writer. It is
+/// limited because W should only ever be stdout/stderr on Windows.
+enum WriterInnerLock<'a, W> {
     NoColor(NoColor<W>),
     Ansi(Ansi<W>),
     /// What a gross hack. On Windows, we need to specify a lifetime for the
@@ -291,9 +300,7 @@ enum WriterInner<'a, W> {
     #[allow(dead_code)]
     Unreachable(::std::marker::PhantomData<&'a ()>),
     #[cfg(windows)]
-    Windows { wtr: W, console: Mutex<wincolor::Console> },
-    #[cfg(windows)]
-    WindowsLocked { wtr: W, console: MutexGuard<'a, wincolor::Console> },
+    Windows { wtr: W, console: MutexGuard<'a, wincolor::Console> },
 }
 
 impl StandardStream {
@@ -386,12 +393,11 @@ impl<'a> StandardStreamLock<'a> {
     #[cfg(not(windows))]
     fn from_stream(stream: &StandardStream) -> StandardStreamLock {
         let locked = match *stream.wtr.get_ref() {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref w) => {
-                WriterInner::NoColor(NoColor(w.0.lock()))
+                WriterInnerLock::NoColor(NoColor(w.0.lock()))
             }
             WriterInner::Ansi(ref w) => {
-                WriterInner::Ansi(Ansi(w.0.lock()))
+                WriterInnerLock::Ansi(Ansi(w.0.lock()))
             }
         };
         StandardStreamLock { wtr: stream.wtr.wrap(locked) }
@@ -400,24 +406,18 @@ impl<'a> StandardStreamLock<'a> {
     #[cfg(windows)]
     fn from_stream(stream: &StandardStream) -> StandardStreamLock {
         let locked = match *stream.wtr.get_ref() {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref w) => {
-                WriterInner::NoColor(NoColor(w.0.lock()))
+                WriterInnerLock::NoColor(NoColor(w.0.lock()))
             }
             WriterInner::Ansi(ref w) => {
-                WriterInner::Ansi(Ansi(w.0.lock()))
+                WriterInnerLock::Ansi(Ansi(w.0.lock()))
             }
             #[cfg(windows)]
             WriterInner::Windows { ref wtr, ref console } => {
-                WriterInner::WindowsLocked {
+                WriterInnerLock::Windows {
                     wtr: wtr.lock(),
                     console: console.lock().unwrap(),
                 }
-            }
-            #[cfg(windows)]
-            WriterInner::WindowsLocked{..} => {
-                panic!("cannot call StandardStream.lock while a \
-                        StandardStreamLock is alive");
             }
         };
         StandardStreamLock { wtr: stream.wtr.wrap(locked) }
@@ -450,48 +450,38 @@ impl<'a> WriteColor for StandardStreamLock<'a> {
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
 }
 
-impl<'a, W: io::Write> io::Write for WriterInner<'a, W> {
+impl<W: io::Write> io::Write for WriterInner<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match *self {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref mut wtr) => wtr.write(buf),
             WriterInner::Ansi(ref mut wtr) => wtr.write(buf),
             #[cfg(windows)]
             WriterInner::Windows { ref mut wtr, .. } => wtr.write(buf),
-            #[cfg(windows)]
-            WriterInner::WindowsLocked { ref mut wtr, .. } => wtr.write(buf),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match *self {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref mut wtr) => wtr.flush(),
             WriterInner::Ansi(ref mut wtr) => wtr.flush(),
             #[cfg(windows)]
             WriterInner::Windows { ref mut wtr, .. } => wtr.flush(),
-            #[cfg(windows)]
-            WriterInner::WindowsLocked { ref mut wtr, .. } => wtr.flush(),
         }
     }
 }
 
-impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
+impl<W: io::Write> WriteColor for WriterInner<W> {
     fn supports_color(&self) -> bool {
         match *self {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(_) => false,
             WriterInner::Ansi(_) => true,
             #[cfg(windows)]
             WriterInner::Windows { .. } => true,
-            #[cfg(windows)]
-            WriterInner::WindowsLocked { .. } => true,
         }
     }
 
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         match *self {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref mut wtr) => wtr.set_color(spec),
             WriterInner::Ansi(ref mut wtr) => wtr.set_color(spec),
             #[cfg(windows)]
@@ -500,17 +490,11 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
                 let mut console = console.lock().unwrap();
                 spec.write_console(&mut *console)
             }
-            #[cfg(windows)]
-            WriterInner::WindowsLocked { ref mut wtr, ref mut console } => {
-                try!(wtr.flush());
-                spec.write_console(console)
-            }
         }
     }
 
     fn reset(&mut self) -> io::Result<()> {
         match *self {
-            WriterInner::Unreachable(_) => unreachable!(),
             WriterInner::NoColor(ref mut wtr) => wtr.reset(),
             WriterInner::Ansi(ref mut wtr) => wtr.reset(),
             #[cfg(windows)]
@@ -519,8 +503,63 @@ impl<'a, W: io::Write> WriteColor for WriterInner<'a, W> {
                 try!(console.lock().unwrap().reset());
                 Ok(())
             }
+        }
+    }
+}
+
+impl<'a, W: io::Write> io::Write for WriterInnerLock<'a, W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(ref mut wtr) => wtr.write(buf),
+            WriterInnerLock::Ansi(ref mut wtr) => wtr.write(buf),
             #[cfg(windows)]
-            WriterInner::WindowsLocked { ref mut wtr, ref mut console } => {
+            WriterInnerLock::Windows { ref mut wtr, .. } => wtr.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(ref mut wtr) => wtr.flush(),
+            WriterInnerLock::Ansi(ref mut wtr) => wtr.flush(),
+            #[cfg(windows)]
+            WriterInnerLock::Windows { ref mut wtr, .. } => wtr.flush(),
+        }
+    }
+}
+
+impl<'a, W: io::Write> WriteColor for WriterInnerLock<'a, W> {
+    fn supports_color(&self) -> bool {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(_) => false,
+            WriterInnerLock::Ansi(_) => true,
+            #[cfg(windows)]
+            WriterInnerLock::Windows { .. } => true,
+        }
+    }
+
+    fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(ref mut wtr) => wtr.set_color(spec),
+            WriterInnerLock::Ansi(ref mut wtr) => wtr.set_color(spec),
+            #[cfg(windows)]
+            WriterInnerLock::Windows { ref mut wtr, ref mut console } => {
+                try!(wtr.flush());
+                spec.write_console(console)
+            }
+        }
+    }
+
+    fn reset(&mut self) -> io::Result<()> {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(ref mut wtr) => wtr.reset(),
+            WriterInnerLock::Ansi(ref mut wtr) => wtr.reset(),
+            #[cfg(windows)]
+            WriterInnerLock::Windows { ref mut wtr, ref mut console } => {
                 try!(wtr.flush());
                 try!(console.reset());
                 Ok(())
@@ -1333,5 +1372,17 @@ fn write_lossy_utf8<W: io::Write>(mut w: W, buf: &[u8]) -> io::Result<usize> {
             Ok(1)
         }
         Err(e) => w.write(&buf[..e.valid_up_to()]),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::StandardStream;
+
+    fn assert_is_send<T: Send>() {}
+
+    #[test]
+    fn standard_stream_is_send() {
+        assert_is_send::<StandardStream>();
     }
 }
