@@ -202,15 +202,23 @@ enum IoStandardStream {
 impl IoStandardStream {
     fn new(sty: StandardStreamType) -> IoStandardStream {
         match sty {
-            StandardStreamType::Stdout => IoStandardStream::Stdout(io::stdout()),
-            StandardStreamType::Stderr => IoStandardStream::Stderr(io::stderr()),
+            StandardStreamType::Stdout => {
+                IoStandardStream::Stdout(io::stdout())
+            }
+            StandardStreamType::Stderr => {
+                IoStandardStream::Stderr(io::stderr())
+            }
         }
     }
 
     fn lock(&self) -> IoStandardStreamLock {
         match *self {
-            IoStandardStream::Stdout(ref s) => IoStandardStreamLock::StdoutLock(s.lock()),
-            IoStandardStream::Stderr(ref s) => IoStandardStreamLock::StderrLock(s.lock()),
+            IoStandardStream::Stdout(ref s) => {
+                IoStandardStreamLock::StdoutLock(s.lock())
+            }
+            IoStandardStream::Stderr(ref s) => {
+                IoStandardStreamLock::StderrLock(s.lock())
+            }
         }
     }
 }
@@ -265,7 +273,8 @@ pub struct StandardStream {
 /// This implements the `io::Write` and `WriteColor` traits, and is constructed
 /// via the `Write::lock` method.
 ///
-/// The lifetime `'a` refers to the lifetime of the corresponding `StandardStream`.
+/// The lifetime `'a` refers to the lifetime of the corresponding
+/// `StandardStream`.
 pub struct StandardStreamLock<'a> {
     wtr: LossyStandardStream<WriterInner<'a, IoStandardStreamLock<'a>>>,
 }
@@ -332,7 +341,9 @@ impl StandardStream {
             } else {
                 WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
             };
-        StandardStream { wtr: LossyStandardStream::new(wtr).is_console(is_win_console) }
+        StandardStream {
+            wtr: LossyStandardStream::new(wtr).is_console(is_win_console),
+        }
     }
 
     /// Create a new `StandardStream` with the given color preferences that
@@ -405,7 +416,8 @@ impl<'a> StandardStreamLock<'a> {
             }
             #[cfg(windows)]
             WriterInner::WindowsLocked{..} => {
-                panic!("cannot call StandardStream.lock while a StandardStreamLock is alive");
+                panic!("cannot call StandardStream.lock while a \
+                        StandardStreamLock is alive");
             }
         };
         StandardStreamLock { wtr: stream.wtr.wrap(locked) }
@@ -565,7 +577,8 @@ impl BufferWriter {
             StandardStreamType::Stdout => wincolor::Console::stdout(),
             StandardStreamType::Stderr => wincolor::Console::stderr(),
         }.ok().map(Mutex::new);
-        let stream = LossyStandardStream::new(IoStandardStream::new(sty)).is_console(con.is_some());
+        let stream = LossyStandardStream::new(IoStandardStream::new(sty))
+            .is_console(con.is_some());
         BufferWriter {
             stream: stream,
             printed: AtomicBool::new(false),
@@ -1253,7 +1266,9 @@ struct LossyStandardStream<W> {
 
 impl<W: io::Write> LossyStandardStream<W> {
     #[cfg(not(windows))]
-    fn new(wtr: W) -> LossyStandardStream<W> { LossyStandardStream { wtr: wtr } }
+    fn new(wtr: W) -> LossyStandardStream<W> {
+        LossyStandardStream { wtr: wtr }
+    }
 
     #[cfg(windows)]
     fn new(wtr: W) -> LossyStandardStream<W> {
