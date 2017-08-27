@@ -54,6 +54,7 @@ mod worker;
 pub type Result<T> = result::Result<T, Box<Error + Send + Sync>>;
 
 fn main() {
+    reset_sigpipe();
     match Args::parse().map(Arc::new).and_then(run) {
         Ok(0) => process::exit(1),
         Ok(_) => process::exit(0),
@@ -328,4 +329,23 @@ fn eprint_nothing_searched() {
     eprintln!("No files were searched, which means ripgrep probably \
                applied a filter you didn't expect. \
                Try running again with --debug.");
+}
+
+// The Rust standard library suppresses the default SIGPIPE behavior, so that
+// writing to a closed pipe doesn't kill the process. The goal is to instead
+// handle errors through the normal result mechanism. Ripgrep needs some
+// refactoring before it will be able to do that, however, so we re-enable the
+// standard SIGPIPE behavior as a workaround. See
+// https://github.com/BurntSushi/ripgrep/issues/200.
+#[cfg(unix)]
+fn reset_sigpipe() {
+    extern crate libc;
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn reset_sigpipe() {
+    // no-op
 }
