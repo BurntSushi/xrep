@@ -33,7 +33,7 @@ path = "tests/tests.rs"
 atty = "0.2.2"
 bytecount = "0.1.4"
 clap = "2.26"
-encoding_rs = "0.6"
+encoding_rs = "0.7"
 env_logger = { version = "0.4", default-features = false }
 grep = { version = "0.1.5", path = "grep" }
 ignore = { version = "0.2.2", path = "ignore" }
