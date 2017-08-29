@@ -571,6 +571,29 @@ impl WalkBuilder {
         self
     }
 
+    /// Enables all the standard ignore filters.
+    /// 
+    /// This toggles, as a group, all the filters that are enabled by default:
+    /// 
+    /// - [hidden()](#method.hidden)
+    /// - [parents()](#method.parents)
+    /// - [ignore()](#method.ignore)
+    /// - [git_ignore()](#method.git_ignore)
+    /// - [git_global()](#method.git_global)
+    /// - [git_exclude()](#method.git_exclude)
+    /// 
+    /// They may still be toggled individually after calling this function.
+    ///
+    /// This is (by definition) enabled by default.
+    pub fn standard_filters(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.hidden(yes)
+            .parents(yes)
+            .ignore(yes)
+            .git_ignore(yes)
+            .git_global(yes)
+            .git_exclude(yes)
+    }
+
     /// Enables ignoring hidden files.
     ///
     /// This is enabled by default.
