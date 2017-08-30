@@ -30,7 +30,7 @@ pub type Result<T> = result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     /// An error from parsing or compiling a regex.
-    Regex(regex::Error),
+    Regex(GrepError),
     /// This error occurs when an illegal literal was found in the regex
     /// pattern. For example, if the line terminator is `\n` and the regex
     /// pattern is `\w+\n\w+`, then the presence of `\n` will cause this error.
@@ -72,12 +72,49 @@ impl fmt::Display for Error {
 
 impl From<regex::Error> for Error {
     fn from(err: regex::Error) -> Error {
-        Error::Regex(err)
+        let message = GrepError::format_regex_error(String::from("Regex error"), err);
+        Error::Regex(GrepError { description: message })
     }
 }
 
 impl From<syntax::Error> for Error {
     fn from(err: syntax::Error) -> Error {
-        Error::Regex(regex::Error::Syntax(err.to_string()))
+        let message = GrepError::format_syntax_error(String::from("Regex syntax error"), err);
+        Error::Regex(GrepError { description: message })
+    }
+}
+
+/// GrepError wraps an error from parsing or compiling a regex
+/// to provide a custom error message.
+#[derive(Debug)]
+pub struct GrepError {
+    description: String
+}
+
+impl GrepError {
+    fn truncate_regex_error(err: String) -> String {
+        let mut error_message = err;
+        let offset = error_message.find("at character").unwrap_or(error_message.len());
+        return error_message.drain(..offset).collect();
+    }
+
+    fn format_regex_error(err_type: String, err: regex::Error) -> String {
+        format!("{} caused by: {}", err_type, GrepError::truncate_regex_error(err.to_string()))
+    }
+
+    fn format_syntax_error(err_type: String, err: syntax::Error) -> String {
+        format!("{} caused by: {}", err_type, GrepError::truncate_regex_error(err.to_string()))
+    }
+}
+
+impl fmt::Display for GrepError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description)
+    }
+}
+
+impl error::Error for GrepError {
+    fn description(&self) -> &str {
+        &self.description
     }
 }
