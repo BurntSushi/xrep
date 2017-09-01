@@ -162,7 +162,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("no-ignore-parent"))
         .arg(flag("no-ignore-vcs"))
         .arg(flag("null").short("0"))
-        .arg(flag("only-matching").short("o").conflicts_with("replace"))
+        .arg(flag("only-matching").short("o"))
         .arg(flag("path-separator").value_name("SEPARATOR").takes_value(true))
         .arg(flag("pretty").short("p"))
         .arg(flag("replace").short("r")

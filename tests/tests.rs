@@ -266,6 +266,20 @@ but Watson, Doctor has to have it taken out for him and dusted,
     assert_eq!(lines, expected);
 });
 
+sherlock!(replace_with_only_matching, "of (\\w+)",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-o").arg("-r").arg("$1");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+this
+detective
+luck
+straw
+cigar
+";
+    assert_eq!(lines, expected);
+});
+
 sherlock!(file_types, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     wd.create("file.py", "Sherlock");
     wd.create("file.rs", "Sherlock");
