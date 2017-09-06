@@ -80,7 +80,7 @@ _rg() {
     '*'{-u,--unrestricted}'[reduce level of "smart" searching]'
     '(: -)'{-V,--version}'[display version information]'
     '(-p --heading --no-heading --pretty)--vimgrep[show results in vim-compatible format]'
-    '(-H --no-filename --with-filename)'{-H,--with-filename}'[prefix each match with name of file that contains it]'
+    '(-H --no-filename --with-filename)'{-H,--with-filename}'[display the file name for matches]'
     '(-w -x --line-regexp --word-regexp)'{-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     '(-e -f --file --files --regexp --type-list)1: :_rg_pattern'
     '(--type-list)*:file:_files'

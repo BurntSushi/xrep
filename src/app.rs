@@ -398,8 +398,10 @@ lazy_static! {
              "Only show the paths that contains zero matches.");
         doc!(h, "with-filename",
              "Show file name for each match.",
-             "Prefix each match with the file name that contains it. This is \
-              the default when more than one file is searched.");
+             "Display the file name for matches. This is the default when \
+             more than one file is searched. If --heading is enabled, the \
+             file name will be shown above clusters of matches from each \
+             file; otherwise, the file name will be shown on each match.");
         doc!(h, "no-filename",
              "Never show the file name for a match.",
              "Never show the file name for a match. This is the default when \

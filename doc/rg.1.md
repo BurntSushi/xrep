@@ -182,8 +182,10 @@ Project home page: https://github.com/BurntSushi/ripgrep
 : Only show path of each file with no matches.
 
 -H, --with-filename
-: Prefix each match with the file name that contains it. This is the
-  default when more than one file is searched.
+: Display the file name for matches. This is the default when
+  more than one file is searched. If --heading is enabled, the
+  file name will be shown above clusters of matches from each
+  file; otherwise, the file name will be shown on each match.
 
 --no-filename
 : Never show the filename for a match. This is the default when
