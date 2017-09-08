@@ -108,6 +108,7 @@ fn run_parallel(args: Arc<Args>) -> Result<u64> {
             let dent = match get_or_log_dir_entry(
                 result,
                 args.stdout_handle(),
+                args.files(),
                 args.no_messages(),
             ) {
                 None => return Continue,
@@ -154,6 +155,7 @@ fn run_one_thread(args: Arc<Args>) -> Result<u64> {
         let dent = match get_or_log_dir_entry(
             result,
             args.stdout_handle(),
+            args.files(),
             args.no_messages(),
         ) {
             None => continue,
@@ -206,6 +208,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
             if let Some(dent) = get_or_log_dir_entry(
                 result,
                 args.stdout_handle(),
+                args.files(),
                 args.no_messages(),
             ) {
                 tx.send(dent).unwrap();
@@ -224,6 +227,7 @@ fn run_files_one_thread(args: Arc<Args>) -> Result<u64> {
         let dent = match get_or_log_dir_entry(
             result,
             args.stdout_handle(),
+            args.files(),
             args.no_messages(),
         ) {
             None => continue,
@@ -251,6 +255,7 @@ fn run_types(args: Arc<Args>) -> Result<u64> {
 fn get_or_log_dir_entry(
     result: result::Result<ignore::DirEntry, ignore::Error>,
     stdout_handle: Option<&same_file::Handle>,
+    files_only: bool,
     no_messages: bool,
 ) -> Option<ignore::DirEntry> {
     match result {
@@ -279,7 +284,7 @@ fn get_or_log_dir_entry(
             }
             // If we are redirecting stdout to a file, then don't search that
             // file.
-            if is_stdout_file(&dent, stdout_handle, no_messages) {
+            if !files_only && is_stdout_file(&dent, stdout_handle, no_messages) {
                 return None;
             }
             Some(dent)
