@@ -154,7 +154,8 @@ but you'll need to have the
 [Microsoft VC++ 2015 redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 installed.
 
-If you're a **Mac OS X Homebrew** or a **Linuxbrew`` user, then you can install ripgrep either
+If you're a **Mac OS X Homebrew** or a **Linuxbrew** user,
+then you can install ripgrep either
 from homebrew-core, (compiled with rust stable, no SIMD):
 
 ```
