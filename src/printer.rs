@@ -286,7 +286,12 @@ impl<W: WriteColor> Printer<W> {
             let line = {
                 let replacer = CountingReplacer::new(
                     self.replace.as_ref().unwrap(), &mut count);
-                re.replace_all(&buf[start..end], replacer)
+                if self.only_matching {
+                    re.replace_all(
+                        &buf[start + match_start..start + match_end], replacer)
+                } else {
+                    re.replace_all(&buf[start..end], replacer)
+                }
             };
             if self.max_columns.map_or(false, |m| line.len() > m) {
                 let msg = format!(
