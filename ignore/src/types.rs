@@ -123,6 +123,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("cython", &["*.pyx"]),
     ("dart", &["*.dart"]),
     ("d", &["*.d"]),
+    ("docker", &["*Dockerfile*"]),
     ("elisp", &["*.el"]),
     ("elixir", &["*.ex", "*.eex", "*.exs"]),
     ("elm", &["*.elm"]),
