@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-globset = "0.1"
+globset = "0.2"
 ```
 
 and this to your crate root:
