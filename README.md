@@ -209,9 +209,9 @@ $ nix-env --install ripgrep
 $ # (Or using the attribute name, which is also `ripgrep`.)
 ```
 
-If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`. Note
-that the minimum supported version of Rust for ripgrep is **1.17**, although
-ripgrep may work with older versions.
+If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`.
+* Note that the minimum supported version of Rust for ripgrep is **1.17**, although ripgrep may work with older versions.
+* Note that the binary will include debug symbols. Use `strip $(which rg)` to remove them (and save Mbs).
 
 ```
 $ cargo install ripgrep
