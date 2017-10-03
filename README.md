@@ -210,8 +210,11 @@ $ # (Or using the attribute name, which is also `ripgrep`.)
 ```
 
 If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`.
-* Note that the minimum supported version of Rust for ripgrep is **1.17**, although ripgrep may work with older versions.
-* Note that the binary will include debug symbols. Use `strip $(which rg)` to remove them (and save Mbs).
+* Note that the minimum supported version of Rust for ripgrep is **1.17**,
+  although ripgrep may work with older versions.
+* Note that the binary may be bigger than expected because it contains debug
+  symbols. This is intentional. To remove debug symbols and therefore reduce
+  the file size, run `strip` on the binary.
 
 ```
 $ cargo install ripgrep
