@@ -3,29 +3,58 @@ use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
 
-use regex::bytes::{Captures, Regex, Replacer};
+use regex::bytes::{Captures, Match, Regex, Replacer};
 use termcolor::{Color, ColorSpec, ParseColorError, WriteColor};
 
 use pathutil::strip_prefix;
 use ignore::types::FileTypeDef;
+
+/// Track the start and end of replacements to allow coloring them on output.
+#[derive(Debug)]
+struct Offset {
+    start: usize,
+    end: usize,
+}
+
+impl Offset {
+    fn new(start: usize, end: usize) -> Offset {
+        Offset { start: start, end: end }
+    }
+}
+
+impl<'m, 'r> From<&'m Match<'r>> for Offset {
+    fn from(m: &'m Match<'r>) -> Self {
+        Offset{ start: m.start(), end: m.end() }
+    }
+}
 
 /// CountingReplacer implements the Replacer interface for Regex,
 /// and counts how often replacement is being performed.
 struct CountingReplacer<'r> {
     replace: &'r [u8],
     count: &'r mut usize,
+    offsets: &'r mut Vec<Offset>,
 }
 
 impl<'r> CountingReplacer<'r> {
-    fn new(replace: &'r [u8], count: &'r mut usize) -> CountingReplacer<'r> {
-        CountingReplacer { replace: replace, count: count }
+    fn new(
+        replace: &'r [u8],
+        count: &'r mut usize,
+        offsets: &'r mut Vec<Offset>,
+    ) -> CountingReplacer<'r> {
+        CountingReplacer { replace: replace, count: count, offsets: offsets, }
     }
 }
 
 impl<'r> Replacer for CountingReplacer<'r> {
     fn replace_append(&mut self, caps: &Captures, dst: &mut Vec<u8>) {
         *self.count += 1;
+        let start = dst.len();
         caps.expand(self.replace, dst);
+        let end = dst.len();
+        if start != end {
+            self.offsets.push(Offset::new(start, end));
+        }
     }
 }
 
@@ -283,9 +312,10 @@ impl<W: WriteColor> Printer<W> {
         }
         if self.replace.is_some() {
             let mut count = 0;
+            let mut offsets = Vec::new();
             let line = {
                 let replacer = CountingReplacer::new(
-                    self.replace.as_ref().unwrap(), &mut count);
+                    self.replace.as_ref().unwrap(), &mut count, &mut offsets);
                 re.replace_all(&buf[start..end], replacer)
             };
             if self.max_columns.map_or(false, |m| line.len() > m) {
@@ -295,44 +325,40 @@ impl<W: WriteColor> Printer<W> {
                 self.write_eol();
                 return;
             }
-            self.write(&line);
-            if line.last() != Some(&self.eol) {
-                self.write_eol();
-            }
+            self.write_matched_line(offsets, &*line, false);
         } else {
-            if self.only_matching {
-                let buf = &buf[start + match_start..start + match_end];
-                self.write_matched_line(re, buf, true);
+            let buf = if self.only_matching {
+                &buf[start + match_start..start + match_end]
             } else {
-                self.write_matched_line(re, &buf[start..end], false);
+                &buf[start..end]
+            };
+            if self.max_columns.map_or(false, |m| buf.len() > m) {
+                let count = re.find_iter(buf).count();
+                let msg = format!("[Omitted long line with {} matches]", count);
+                self.write_colored(msg.as_bytes(), |colors| colors.matched());
+                self.write_eol();
+                return;
             }
+            let only_match = self.only_matching;
+            self.write_matched_line(
+                re.find_iter(buf).map(|x| Offset::from(&x)), buf, only_match);
         }
     }
 
-    fn write_matched_line(
-        &mut self,
-        re: &Regex,
-        buf: &[u8],
-        only_match: bool,
-    ) {
-        if self.max_columns.map_or(false, |m| buf.len() > m) {
-            let count = re.find_iter(buf).count();
-            let msg = format!("[Omitted long line with {} matches]", count);
-            self.write_colored(msg.as_bytes(), |colors| colors.matched());
-            self.write_eol();
-            return;
-        }
+    fn write_matched_line<I>(&mut self, offsets: I, buf: &[u8], only_match: bool)
+        where I: IntoIterator<Item=Offset>,
+    {
         if !self.wtr.supports_color() || self.colors.matched().is_none() {
             self.write(buf);
         } else if only_match {
             self.write_colored(buf, |colors| colors.matched());
         } else {
             let mut last_written = 0;
-            for m in re.find_iter(buf) {
-                self.write(&buf[last_written..m.start()]);
+            for o in offsets {
+                self.write(&buf[last_written..o.start]);
                 self.write_colored(
-                    &buf[m.start()..m.end()], |colors| colors.matched());
-                last_written = m.end();
+                    &buf[o.start..o.end], |colors| colors.matched());
+                last_written = o.end;
             }
             self.write(&buf[last_written..]);
         }
