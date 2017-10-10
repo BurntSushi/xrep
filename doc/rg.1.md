@@ -295,7 +295,7 @@ Project home page: https://github.com/BurntSushi/ripgrep
         rg '^.*([0-9]{3}-[0-9]{3}-[0-9]{4}).*$' --replace '$1'
 
 -s, --case-sensitive
-: Search case sensitively. This overrides --ignore-case and --smart-case.
+: Search case sensitively (default). Overrides --ignore-case and --smart-case.
 
 -S, --smart-case
 : Search case insensitively if the pattern is all lowercase.

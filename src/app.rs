@@ -511,7 +511,7 @@ lazy_static! {
               is 10M. \n\nThe argument accepts the same size suffixes as \
               allowed in the 'max-filesize' argument.");
         doc!(h, "case-sensitive",
-             "Search case sensitively.",
+             "Search case sensitively (default).",
              "Search case sensitively. This overrides -i/--ignore-case and \
               -S/--smart-case.");
         doc!(h, "smart-case",
