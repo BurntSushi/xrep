@@ -239,7 +239,7 @@ impl io::Write for IoStandardStream {
     }
 }
 
-/// Same rigamorale for the locked variants of the standard streams.
+/// Same rigmarole for the locked variants of the standard streams.
 
 enum IoStandardStreamLock<'a> {
     StdoutLock(io::StdoutLock<'a>),
@@ -295,7 +295,7 @@ enum WriterInnerLock<'a, W> {
     Ansi(Ansi<W>),
     /// What a gross hack. On Windows, we need to specify a lifetime for the
     /// console when in a locked state, but obviously don't need to do that
-    /// on Unix, which make the `'a` unused. To satisfy the compiler, we need
+    /// on Unix, which makes the `'a` unused. To satisfy the compiler, we need
     /// a PhantomData.
     #[allow(dead_code)]
     Unreachable(::std::marker::PhantomData<&'a ()>),
