@@ -188,7 +188,7 @@ $ pacman -S ripgrep
 If you're a **Gentoo** user, you can install `ripgrep` from the [official repo](https://packages.gentoo.org/packages/sys-apps/ripgrep):
 
 ```
-$ emerge ripgrep
+$ emerge sys-apps/ripgrep
 ```
 
 If you're a **Fedora 24+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
