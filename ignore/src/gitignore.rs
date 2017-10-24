@@ -455,7 +455,7 @@ impl GitignoreBuilder {
         // anywhere, so use a **/ prefix.
         if !is_absolute {
             // ... but only if we don't already have a **/ prefix.
-            if !glob.actual.starts_with("**/") {
+            if !(glob.actual.starts_with("**/") || (glob.actual == "**" && glob.is_only_dir)) {
                 glob.actual = format!("**/{}", glob.actual);
             }
         }
@@ -620,6 +620,7 @@ mod tests {
     ignored!(ig28, ROOT, "src/*.rs", "src/grep/src/main.rs");
     ignored!(ig29, "./src", "/llvm/", "./src/llvm", true);
     ignored!(ig30, ROOT, "node_modules/ ", "node_modules", true);
+    ignored!(ig31, ROOT, "**/", "foo/bar", true);
 
     not_ignored!(ignot1, ROOT, "amonths", "months");
     not_ignored!(ignot2, ROOT, "monthsa", "months");
@@ -638,6 +639,7 @@ mod tests {
         ignot14, "./third_party/protobuf", "m4/ltoptions.m4",
         "./third_party/protobuf/csharp/src/packages/repositories.config");
     not_ignored!(ignot15, ROOT, "!/bar", "foo/bar");
+    not_ignored!(ignot16, ROOT, "*\n!**/", "foo", true);
 
     fn bytes(s: &str) -> Vec<u8> {
         s.to_string().into_bytes()
