@@ -5,7 +5,7 @@ use std::path::Path;
 use encoding_rs::Encoding;
 use grep::Grep;
 use ignore::DirEntry;
-use memmap::{Mmap, Protection};
+use memmap::Mmap;
 use termcolor::WriteColor;
 
 use decoder::DecodeReader;
@@ -290,8 +290,8 @@ impl Worker {
             // regular read calls.
             return self.search(printer, path, file);
         }
-        let mmap = try!(Mmap::open(file, Protection::Read));
-        let buf = unsafe { mmap.as_slice() };
+        let mmap = unsafe { try!(Mmap::map(file)) };
+        let buf = &*mmap;
         if buf.len() >= 3 && Encoding::for_bom(buf).is_some() {
             // If we have a UTF-16 bom in our memory map, then we need to fall
             // back to the stream reader, which will do transcoding.
