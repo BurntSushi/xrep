@@ -116,7 +116,7 @@ pub enum Error {
     Glob {
         /// The original glob that caused this error. This glob, when
         /// available, always corresponds to the glob provided by an end user.
-        /// e.g., It is the glob as writtein in a `.gitignore` file.
+        /// e.g., It is the glob as written in a `.gitignore` file.
         ///
         /// (This glob may be distinct from the glob that is actually
         /// compiled, after accounting for `gitignore` semantics.)

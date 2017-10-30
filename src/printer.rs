@@ -545,7 +545,7 @@ impl fmt::Display for Error {
             Error::InvalidFormat(ref original) => {
                 write!(
                     f,
-                    "Invalid color speci format: '{}'. Valid format \
+                    "Invalid color spec format: '{}'. Valid format \
                      is '(path|line|column|match):(fg|bg|style):(value)'.",
                     original)
             }

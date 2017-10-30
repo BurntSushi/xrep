@@ -509,7 +509,7 @@ impl Glob {
         Some(&self.tokens[start..])
     }
 
-    /// Returns the pattern as a literal if and only if the pattern exclusiely
+    /// Returns the pattern as a literal if and only if the pattern exclusively
     /// matches the basename of a file path *and* is a literal.
     ///
     /// The basic format of these patterns is `**/{literal}`, where `{literal}`

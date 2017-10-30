@@ -125,7 +125,7 @@ sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
 
 sherlock!(with_heading, |wd: WorkDir, mut cmd: Command| {
     // This forces the issue since --with-filename is disabled by default
-    // when searching one fil.e
+    // when searching one file.
     cmd.arg("--with-filename").arg("--heading");
     let lines: String = wd.stdout(&mut cmd);
     let expected = "\

@@ -112,12 +112,12 @@ fn read_full<R: io::Read>(
 
 /// A reader that transcodes to UTF-8. The source encoding is determined by
 /// inspecting the BOM from the stream read from `R`, if one exists. If a
-/// UTF-16 BOM exists, then the source stream is trancoded to UTF-8 with
+/// UTF-16 BOM exists, then the source stream is transcoded to UTF-8 with
 /// invalid UTF-16 sequences translated to the Unicode replacement character.
 /// In all other cases, the underlying reader is passed through unchanged.
 ///
 /// `R` is the type of the underlying reader and `B` is the type of an internal
-/// buffer used to store the results of trancoding.
+/// buffer used to store the results of transcoding.
 ///
 /// Note that not all methods on `io::Read` work with this implementation.
 /// For example, the `bytes` adapter method attempts to read a single byte at
