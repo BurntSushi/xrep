@@ -142,17 +142,6 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
         rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.
 
-    Similarly, the following flags can be used to replicate ag's defaults:
-
-        rg --colors line:fg:yellow      \
-           --colors line:style:bold     \
-           --colors path:fg:green       \
-           --colors path:style:bold     \
-           --colors match:fg:black      \
-           --colors match:bg:yellow     \
-           --colors match:style:nobold  \
-           foo
-
 --column
 : Show column numbers (1 based) in output. This only shows the column
   numbers for the first match on each line. Note that this doesn't try

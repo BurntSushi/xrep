@@ -462,6 +462,19 @@ that the console will use for printing to UTF-8 with
 will also reset when PowerShell is restarted, so you can add that line
 to your profile as well if you want to make the setting permanent.
 
+#### How do I make the output look like ag's?
+
+Use the `--colors` flag, like so:
+
+    rg --colors line:fg:yellow      \
+       --colors line:style:bold     \
+       --colors path:fg:green       \
+       --colors path:style:bold     \
+       --colors match:fg:black      \
+       --colors match:bg:yellow     \
+       --colors match:style:nobold  \
+       foo
+
 ### Known issues
 
 #### I just hit Ctrl+C in the middle of ripgrep's output and now my terminal's foreground color is wrong!
