@@ -148,6 +148,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("json", &["*.json", "composer.lock"]),
     ("jsonl", &["*.jsonl"]),
     ("julia", &["*.jl"]),
+    ("jupyter", &["*.ipynb", "*.jpynb"]),
     ("jl", &["*.jl"]),
     ("kotlin", &["*.kt", "*.kts"]),
     ("less", &["*.less"]),
@@ -195,7 +196,6 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("msbuild", &[
         "*.csproj", "*.fsproj", "*.vcxproj", "*.proj", "*.props", "*.targets"
     ]),
-    ("nb", &["*.ipynb", "*.jpynb"]),
     ("nim", &["*.nim"]),
     ("nix", &["*.nix"]),
     ("objc", &["*.h", "*.m"]),
