@@ -31,7 +31,7 @@ path = "tests/tests.rs"
 
 [dependencies]
 atty = "0.2.2"
-bytecount = "0.1.4"
+bytecount = "0.2"
 clap = "2.26"
 encoding_rs = "0.7"
 env_logger = { version = "0.4", default-features = false }
