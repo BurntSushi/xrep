@@ -242,6 +242,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "*.bash", "*.csh", "*.ksh", "*.sh", "*.tcsh", "*.zsh",
     ]),
     ("sml", &["*.sml", "*.sig"]),
+    ("soy", &["*.soy"]),
     ("spark", &["*.spark"]),
     ("sql", &["*.sql", "*.psql"]),
     ("stylus", &["*.styl"]),
