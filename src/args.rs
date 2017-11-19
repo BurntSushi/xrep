@@ -601,7 +601,7 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("no-line-number") || self.is_present("count") {
             false
         } else {
-            let only_stdin = paths == &[Path::new("-")];
+            let only_stdin = paths == [Path::new("-")];
             (atty::is(atty::Stream::Stdout) && !only_stdin)
             || self.is_present("line-number")
             || self.is_present("column")
