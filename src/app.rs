@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use clap::{App, AppSettings, Arg, ArgSettings};
 
-const ABOUT: &'static str = "
+const ABOUT: &str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.
 
 ripgrep's regex engine uses finite automata and guarantees linear time
@@ -17,13 +17,13 @@ Project home page: https://github.com/BurntSushi/ripgrep
 
 Use -h for short descriptions and --help for more details.";
 
-const USAGE: &'static str = "
+const USAGE: &str = "
     rg [options] PATTERN [path ...]
     rg [options] [-e PATTERN ...] [-f FILE ...] [path ...]
     rg [options] --files [path ...]
     rg [options] --type-list";
 
-const TEMPLATE: &'static str = "\
+const TEMPLATE: &str = "\
 {bin} {version}
 {author}
 {about}
