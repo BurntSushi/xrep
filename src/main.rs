@@ -72,31 +72,31 @@ fn run(args: Arc<Args>) -> Result<u64> {
     let threads = args.threads();
     if args.files() {
         if threads == 1 || args.is_one_path() {
-            run_files_one_thread(args)
+            run_files_one_thread(&args)
         } else {
             run_files_parallel(args)
         }
     } else if args.type_list() {
-        run_types(args)
+        run_types(&args)
     } else if threads == 1 || args.is_one_path() {
-        run_one_thread(args)
+        run_one_thread(&args)
     } else {
-        run_parallel(args)
+        run_parallel(&args)
     }
 }
 
-fn run_parallel(args: Arc<Args>) -> Result<u64> {
+fn run_parallel(args: &Arc<Args>) -> Result<u64> {
     let bufwtr = Arc::new(args.buffer_writer());
     let quiet_matched = args.quiet_matched();
     let paths_searched = Arc::new(AtomicUsize::new(0));
     let match_count = Arc::new(AtomicUsize::new(0));
 
     args.walker_parallel().run(|| {
-        let args = args.clone();
+        let args = Arc::clone(args);
         let quiet_matched = quiet_matched.clone();
         let paths_searched = paths_searched.clone();
         let match_count = match_count.clone();
-        let bufwtr = bufwtr.clone();
+        let bufwtr = Arc::clone(&bufwtr);
         let mut buf = bufwtr.buffer();
         let mut worker = args.worker();
         Box::new(move |result| {
@@ -145,7 +145,7 @@ fn run_parallel(args: Arc<Args>) -> Result<u64> {
     Ok(match_count.load(Ordering::SeqCst) as u64)
 }
 
-fn run_one_thread(args: Arc<Args>) -> Result<u64> {
+fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
     let stdout = args.stdout();
     let mut stdout = stdout.lock();
     let mut worker = args.worker();
@@ -187,7 +187,7 @@ fn run_one_thread(args: Arc<Args>) -> Result<u64> {
 }
 
 fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
-    let print_args = args.clone();
+    let print_args = Arc::clone(&args);
     let (tx, rx) = mpsc::channel::<ignore::DirEntry>();
     let print_thread = thread::spawn(move || {
         let stdout = print_args.stdout();
@@ -202,7 +202,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
         file_count
     });
     args.walker_parallel().run(move || {
-        let args = args.clone();
+        let args = Arc::clone(&args);
         let tx = tx.clone();
         Box::new(move |result| {
             if let Some(dent) = get_or_log_dir_entry(
@@ -219,7 +219,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
     Ok(print_thread.join().unwrap())
 }
 
-fn run_files_one_thread(args: Arc<Args>) -> Result<u64> {
+fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
     let stdout = args.stdout();
     let mut printer = args.printer(stdout.lock());
     let mut file_count = 0;
@@ -241,7 +241,7 @@ fn run_files_one_thread(args: Arc<Args>) -> Result<u64> {
     Ok(file_count)
 }
 
-fn run_types(args: Arc<Args>) -> Result<u64> {
+fn run_types(args: &Arc<Args>) -> Result<u64> {
     let stdout = args.stdout();
     let mut printer = args.printer(stdout.lock());
     let mut ty_count = 0;
