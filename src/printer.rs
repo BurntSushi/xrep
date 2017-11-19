@@ -28,7 +28,7 @@ impl<'m, 'r> From<&'m Match<'r>> for Offset {
     }
 }
 
-/// CountingReplacer implements the Replacer interface for Regex,
+/// `CountingReplacer` implements the Replacer interface for Regex,
 /// and counts how often replacement is being performed.
 struct CountingReplacer<'r> {
     replace: &'r [u8],

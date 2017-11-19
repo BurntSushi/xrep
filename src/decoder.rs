@@ -32,7 +32,7 @@ impl Bom {
     }
 }
 
-/// BomPeeker wraps `R` and satisfies the `io::Read` interface while also
+/// `BomPeeker` wraps `R` and satisfies the `io::Read` interface while also
 /// providing a peek at the BOM if one exists. Peeking at the BOM does not
 /// advance the reader.
 struct BomPeeker<R> {
@@ -87,7 +87,7 @@ impl<R: io::Read> io::Read for BomPeeker<R> {
     }
 }
 
-/// Like io::Read::read_exact, except it never returns UnexpectedEof and
+/// Like `io::Read::read_exact`, except it never returns `UnexpectedEof` and
 /// instead returns the number of bytes read if EOF is seen before filling
 /// `buf`.
 fn read_full<R: io::Read>(
