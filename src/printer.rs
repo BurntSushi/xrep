@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 use std::path::Path;
 use std::str::FromStr;
+use std::io::BufRead;
 
 use regex::bytes::{Captures, Match, Regex, Replacer};
 use termcolor::{Color, ColorSpec, ParseColorError, WriteColor};
@@ -305,6 +306,9 @@ impl<W: WriteColor> Printer<W> {
             self.write_path_sep(b':');
         }
         if let Some(line_number) = line_number {
+            if line_number > buf.lines().count() as u64 {
+                return;
+            }
             self.line_number(line_number, b':');
         }
         if self.column {
