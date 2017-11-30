@@ -40,7 +40,7 @@ encoding_rs = "0.7"
 env_logger = { version = "0.4", default-features = false }
 grep = { version = "0.1.7", path = "grep" }
 ignore = { version = "0.3.1", path = "ignore" }
-lazy_static = "0.2"
+lazy_static = "1"
 libc = "0.2"
 log = "0.3"
 memchr = "2"
@@ -52,7 +52,7 @@ termcolor = { version = "0.3.3", path = "termcolor" }
 
 [build-dependencies]
 clap = "2.26"
-lazy_static = "0.2"
+lazy_static = "1"
 
 [features]
 avx-accel = ["bytecount/avx-accel"]
