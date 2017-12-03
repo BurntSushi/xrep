@@ -327,16 +327,17 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
 
     #[inline(always)]
     fn fill(&mut self) -> Result<bool, Error> {
-        let mut keep = self.inp.lastnl;
-        if self.opts.before_context > 0 || self.opts.after_context > 0 {
+        let keep = if self.opts.before_context > 0 || self.opts.after_context > 0 {
             let lines = 1 + cmp::max(
                 self.opts.before_context, self.opts.after_context);
-            keep = start_of_previous_lines(
+            start_of_previous_lines(
                 self.opts.eol,
                 &self.inp.buf,
                 self.inp.lastnl.saturating_sub(1),
-                lines);
-        }
+                lines)
+        } else {
+            self.inp.lastnl
+        };
         if keep < self.last_printed {
             self.last_printed -= keep;
         } else {
