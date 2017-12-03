@@ -62,7 +62,7 @@ fn paths(unix: &[&str]) -> Vec<String> {
 
 fn paths_from_stdout(stdout: String) -> Vec<String> {
     let mut paths: Vec<_> = stdout.lines().map(|s| {
-        s.split(":").next().unwrap().to_string()
+        s.split(':').next().unwrap().to_string()
     }).collect();
     paths.sort();
     paths
