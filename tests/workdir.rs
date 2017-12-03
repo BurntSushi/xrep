@@ -13,7 +13,7 @@ use std::time::Duration;
 static TEST_DIR: &'static str = "ripgrep-tests";
 static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// WorkDir represents a directory in which tests are run.
+/// `WorkDir` represents a directory in which tests are run.
 ///
 /// Directories are created from a global atomic counter to avoid duplicates.
 #[derive(Debug)]
