@@ -538,7 +538,7 @@ impl WalkBuilder {
         self
     }
 
-    /// Add an ignore file to the matcher.
+    /// Add a global ignore file to the matcher.
     ///
     /// This has lower precedence than all other sources of ignore rules.
     ///
@@ -629,6 +629,12 @@ impl WalkBuilder {
     /// This is enabled by default.
     pub fn ignore(&mut self, yes: bool) -> &mut WalkBuilder {
         self.ig_builder.ignore(yes);
+        self
+    }
+
+    /// Enables reading of ignore files with custom names
+    pub fn ignorefile(&mut self, filename: String) -> &mut WalkBuilder {
+        self.ig_builder.ignorefile(String::from(filename));
         self
     }
 

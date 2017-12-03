@@ -109,8 +109,10 @@ struct IgnoreInner {
     /// The absolute base path of this matcher. Populated only if parent
     /// directories are added.
     absolute_base: Option<Arc<PathBuf>>,
-    /// Explicit ignore matchers specified by the caller.
+    /// Explicit global ignore matchers specified by the caller.
     explicit_ignores: Arc<Vec<Gitignore>>,
+    /// Ignore files used in addition to `.ignore`
+    ignorefiles: Vec<String>,
     /// The matcher for .ignore files.
     ignore_matcher: Gitignore,
     /// A global gitignore matcher, usually from $XDG_CONFIG_HOME/git/ignore.
@@ -210,14 +212,12 @@ impl Ignore {
 
     /// Like add_child, but takes a full path and returns an IgnoreInner.
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
-        static IG_NAMES: &'static [&'static str] = &[".rgignore", ".ignore"];
-
         let mut errs = PartialErrorBuilder::default();
         let ig_matcher =
             if !self.0.opts.ignore {
                 Gitignore::empty()
             } else {
-                let (m, err) = create_gitignore(&dir, IG_NAMES);
+                let (m, err) = create_gitignore(&dir, &self.0.ignorefiles);
                 errs.maybe_push(err);
                 m
             };
@@ -246,6 +246,7 @@ impl Ignore {
             is_absolute_parent: false,
             absolute_base: self.0.absolute_base.clone(),
             explicit_ignores: self.0.explicit_ignores.clone(),
+            ignorefiles: self.0.ignorefiles.clone(),
             ignore_matcher: ig_matcher,
             git_global_matcher: self.0.git_global_matcher.clone(),
             git_ignore_matcher: gi_matcher,
@@ -408,8 +409,10 @@ pub struct IgnoreBuilder {
     overrides: Arc<Override>,
     /// A type matcher (default is empty).
     types: Arc<Types>,
-    /// Explicit ignore matchers.
+    /// Explicit global ignore matchers.
     explicit_ignores: Vec<Gitignore>,
+    /// Ignore files in addition to .ignore.
+    explicit_ignorefiles: Vec<String>,
     /// Ignore config.
     opts: IgnoreOptions,
 }
@@ -425,6 +428,7 @@ impl IgnoreBuilder {
             overrides: Arc::new(Override::empty()),
             types: Arc::new(Types::empty()),
             explicit_ignores: vec![],
+            explicit_ignorefiles: vec![],
             opts: IgnoreOptions {
                 hidden: true,
                 ignore: true,
@@ -450,6 +454,13 @@ impl IgnoreBuilder {
                 }
                 gi
             };
+
+        let ignorefiles = {
+            let mut ignorefiles = self.explicit_ignorefiles.clone();
+            ignorefiles.push(String::from(".ignore"));
+            ignorefiles
+        };
+
         Ignore(Arc::new(IgnoreInner {
             compiled: Arc::new(RwLock::new(HashMap::new())),
             dir: self.dir.clone(),
@@ -459,6 +470,7 @@ impl IgnoreBuilder {
             is_absolute_parent: true,
             absolute_base: None,
             explicit_ignores: Arc::new(self.explicit_ignores.clone()),
+            ignorefiles: ignorefiles,
             ignore_matcher: Gitignore::empty(),
             git_global_matcher: Arc::new(git_global_matcher),
             git_ignore_matcher: Gitignore::empty(),
@@ -513,6 +525,14 @@ impl IgnoreBuilder {
         self
     }
 
+    /// Enables reading of ignore files in addition to `.ignore`
+    ///
+    /// Earlier names have lower precedence
+    pub fn ignorefile(&mut self, filename: String) -> &mut IgnoreBuilder {
+        self.explicit_ignorefiles.push(String::from(filename));
+        self
+    }
+
     /// Add a global gitignore matcher.
     ///
     /// Its precedence is lower than both normal `.gitignore` files and
@@ -555,14 +575,14 @@ impl IgnoreBuilder {
 /// order given (earlier names have lower precedence than later names).
 ///
 /// I/O errors are ignored.
-pub fn create_gitignore(
+pub fn create_gitignore<T: AsRef<str>>(
     dir: &Path,
-    names: &[&str],
+    names: &[T],
 ) -> (Gitignore, Option<Error>) {
     let mut builder = GitignoreBuilder::new(dir);
     let mut errs = PartialErrorBuilder::default();
     for name in names {
-        let gipath = dir.join(name);
+        let gipath = dir.join(name.as_ref());
         errs.maybe_push_ignore_io(builder.add(gipath));
     }
     let gi = match builder.build() {
