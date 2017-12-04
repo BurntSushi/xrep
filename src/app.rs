@@ -422,12 +422,15 @@ lazy_static! {
               and directories are skipped.");
         doc!(h, "ignore-file",
              "Specify additional ignore files.",
-             "Specify additional ignore files for filtering file paths. \
-              Ignore files should be in the gitignore format and are matched \
-              relative to the current working directory. These ignore files \
-              have lower precedence than all other ignore files. When \
-              specifying multiple ignore files, earlier files have lower \
-              precedence than later files.");
+             "Specify one or more files which contain ignore patterns. \
+              These pattern are applied after the patterns found in \
+              .gitignore and .rgignore are applied. Ignore patterns should \
+              be in the gitignore format and are matched relative to the \
+              current working directory. Multiple additional ignore files \
+              can be specified by using the --ignore-file flag several times. \
+              When specifying multiple ignore files, earlier files have lower \
+              precendance than later files. If you are looking for a way to \
+              include or exclude files and directories directly used -g instead.");
         doc!(h, "follow",
              "Follow symbolic links.");
         doc!(h, "max-count",
