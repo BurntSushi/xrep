@@ -429,7 +429,7 @@ lazy_static! {
               current working directory. Multiple additional ignore files \
               can be specified by using the --ignore-file flag several times. \
               When specifying multiple ignore files, earlier files have lower \
-              precendance than later files. If you are looking for a way to \
+              precedence than later files. If you are looking for a way to \
               include or exclude files and directories directly used -g instead.");
         doc!(h, "follow",
              "Follow symbolic links.");
