@@ -423,8 +423,8 @@ lazy_static! {
         doc!(h, "ignore-file",
              "Specify additional ignore files.",
              "Specify one or more files which contain ignore patterns. \
-              These pattern are applied after the patterns found in \
-              .gitignore and .rgignore are applied. Ignore patterns should \
+              These patterns are applied after the patterns found in \
+              .gitignore and .ignore are applied. Ignore patterns should \
               be in the gitignore format and are matched relative to the \
               current working directory. Multiple additional ignore files \
               can be specified by using the --ignore-file flag several times. \
