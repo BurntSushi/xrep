@@ -633,8 +633,8 @@ impl WalkBuilder {
     }
 
     /// Enables reading of ignore files with custom names
-    pub fn ignorefile(&mut self, filename: String) -> &mut WalkBuilder {
-        self.ig_builder.ignorefile(String::from(filename));
+    pub fn ignorefile<S: AsRef<OsStr>>(&mut self, filename: S) -> &mut WalkBuilder {
+        self.ig_builder.ignorefile(filename);
         self
     }
 

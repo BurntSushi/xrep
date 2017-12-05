@@ -14,7 +14,7 @@
 // well.
 
 use std::collections::HashMap;
-use std::ffi::OsString;
+use std::ffi::{OsString, OsStr};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -112,7 +112,8 @@ struct IgnoreInner {
     /// Explicit global ignore matchers specified by the caller.
     explicit_ignores: Arc<Vec<Gitignore>>,
     /// Ignore files used in addition to `.ignore`
-    ignorefiles: Vec<String>,
+    custom_ignore_filenames: Vec<OsString>,
+    custom_ignore_matcher: Gitignore,
     /// The matcher for .ignore files.
     ignore_matcher: Gitignore,
     /// A global gitignore matcher, usually from $XDG_CONFIG_HOME/git/ignore.
@@ -213,11 +214,21 @@ impl Ignore {
     /// Like add_child, but takes a full path and returns an IgnoreInner.
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
         let mut errs = PartialErrorBuilder::default();
+        let custom_ig_matcher =
+            if !self.0.opts.ignore {
+                Gitignore::empty()
+            } else {
+                let custom_ignores : Vec<String> = 
+                    self.0.custom_ignore_filenames.iter().map(|x| x.clone().into_string().unwrap()).collect();
+                let (m, err) = create_gitignore(&dir, &custom_ignores);
+                errs.maybe_push(err);
+                m
+            };
         let ig_matcher =
             if !self.0.opts.ignore {
                 Gitignore::empty()
             } else {
-                let (m, err) = create_gitignore(&dir, &self.0.ignorefiles);
+                let (m, err) = create_gitignore(&dir, &[".ignore"]);
                 errs.maybe_push(err);
                 m
             };
@@ -246,7 +257,8 @@ impl Ignore {
             is_absolute_parent: false,
             absolute_base: self.0.absolute_base.clone(),
             explicit_ignores: self.0.explicit_ignores.clone(),
-            ignorefiles: self.0.ignorefiles.clone(),
+            custom_ignore_filenames: self.0.custom_ignore_filenames.clone(),
+            custom_ignore_matcher: custom_ig_matcher,
             ignore_matcher: ig_matcher,
             git_global_matcher: self.0.git_global_matcher.clone(),
             git_ignore_matcher: gi_matcher,
@@ -315,10 +327,15 @@ impl Ignore {
         path: &Path,
         is_dir: bool,
     ) -> Match<IgnoreMatch<'a>> {
-        let (mut m_ignore, mut m_gi, mut m_gi_exclude, mut m_explicit) =
-            (Match::None, Match::None, Match::None, Match::None);
+        let (mut m_custom_ignore, mut m_ignore, mut m_gi, mut m_gi_exclude, mut m_explicit) =
+            (Match::None, Match::None, Match::None, Match::None, Match::None);
         let mut saw_git = false;
         for ig in self.parents().take_while(|ig| !ig.0.is_absolute_parent) {
+            if m_custom_ignore.is_none() {
+                m_custom_ignore =
+                    ig.0.custom_ignore_matcher.matched(path, is_dir)
+                      .map(IgnoreMatch::gitignore);
+            }
             if m_ignore.is_none() {
                 m_ignore =
                     ig.0.ignore_matcher.matched(path, is_dir)
@@ -339,6 +356,11 @@ impl Ignore {
         if let Some(abs_parent_path) = self.absolute_base() {
             let path = abs_parent_path.join(path);
             for ig in self.parents().skip_while(|ig|!ig.0.is_absolute_parent) {
+                if m_custom_ignore.is_none() {
+                    m_custom_ignore =
+                        ig.0.custom_ignore_matcher.matched(&path, is_dir)
+                          .map(IgnoreMatch::gitignore);
+                }
                 if m_ignore.is_none() {
                     m_ignore =
                         ig.0.ignore_matcher.matched(&path, is_dir)
@@ -366,7 +388,7 @@ impl Ignore {
         let m_global = self.0.git_global_matcher.matched(&path, is_dir)
                            .map(IgnoreMatch::gitignore);
 
-        m_ignore.or(m_gi).or(m_gi_exclude).or(m_global).or(m_explicit)
+        m_custom_ignore.or(m_ignore).or(m_gi).or(m_gi_exclude).or(m_global).or(m_explicit)
     }
 
     /// Returns an iterator over parent ignore matchers, including this one.
@@ -412,7 +434,7 @@ pub struct IgnoreBuilder {
     /// Explicit global ignore matchers.
     explicit_ignores: Vec<Gitignore>,
     /// Ignore files in addition to .ignore.
-    explicit_ignorefiles: Vec<String>,
+    custom_ignore_filenames: Vec<OsString>,
     /// Ignore config.
     opts: IgnoreOptions,
 }
@@ -428,7 +450,7 @@ impl IgnoreBuilder {
             overrides: Arc::new(Override::empty()),
             types: Arc::new(Types::empty()),
             explicit_ignores: vec![],
-            explicit_ignorefiles: vec![],
+            custom_ignore_filenames: vec![],
             opts: IgnoreOptions {
                 hidden: true,
                 ignore: true,
@@ -455,12 +477,6 @@ impl IgnoreBuilder {
                 gi
             };
 
-        let ignorefiles = {
-            let mut ignorefiles = self.explicit_ignorefiles.clone();
-            ignorefiles.push(String::from(".ignore"));
-            ignorefiles
-        };
-
         Ignore(Arc::new(IgnoreInner {
             compiled: Arc::new(RwLock::new(HashMap::new())),
             dir: self.dir.clone(),
@@ -470,7 +486,8 @@ impl IgnoreBuilder {
             is_absolute_parent: true,
             absolute_base: None,
             explicit_ignores: Arc::new(self.explicit_ignores.clone()),
-            ignorefiles: ignorefiles,
+            custom_ignore_filenames: self.custom_ignore_filenames.clone(),
+            custom_ignore_matcher: Gitignore::empty(),
             ignore_matcher: Gitignore::empty(),
             git_global_matcher: Arc::new(git_global_matcher),
             git_ignore_matcher: Gitignore::empty(),
@@ -528,8 +545,8 @@ impl IgnoreBuilder {
     /// Enables reading of ignore files in addition to `.ignore`
     ///
     /// Earlier names have lower precedence
-    pub fn ignorefile(&mut self, filename: String) -> &mut IgnoreBuilder {
-        self.explicit_ignorefiles.push(String::from(filename));
+    pub fn ignorefile<S: AsRef<OsStr>>(&mut self, filename: S) -> &mut IgnoreBuilder {
+        self.custom_ignore_filenames.push(filename.as_ref().to_os_string());
         self
     }
 

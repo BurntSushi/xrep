@@ -287,7 +287,7 @@ impl Args {
         wd.git_exclude(!self.no_ignore && !self.no_ignore_vcs);
         wd.ignore(!self.no_ignore);
         if !self.no_ignore {
-            wd.ignorefile(String::from(".rgignore"));
+            wd.ignorefile(".rgignore");
         }
         wd.parents(!self.no_ignore_parent);
         wd.threads(self.threads());
