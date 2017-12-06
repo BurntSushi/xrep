@@ -218,9 +218,8 @@ impl Ignore {
             if !self.0.opts.ignore {
                 Gitignore::empty()
             } else {
-                let custom_ignores : Vec<String> = 
-                    self.0.custom_ignore_filenames.iter().map(|x| x.clone().into_string().unwrap()).collect();
-                let (m, err) = create_gitignore(&dir, &custom_ignores);
+                let (m, err) =
+                    create_gitignore(&dir, &self.0.custom_ignore_filenames);
                 errs.maybe_push(err);
                 m
             };
@@ -523,6 +522,20 @@ impl IgnoreBuilder {
         self
     }
 
+    /// Add a custom ignore file name
+    ///
+    /// These ignore files have higher precedence than all other ignore files.
+    ///
+    /// When specifying multiple names, earlier names have lower precedence than
+    /// later names.
+    pub fn add_custom_ignore_filename<S: AsRef<OsStr>>(
+        &mut self,
+        file_name: S
+    ) -> &mut IgnoreBuilder {
+        self.custom_ignore_filenames.push(file_name.as_ref().to_os_string());
+        self
+    }
+
     /// Enables ignoring hidden files.
     ///
     /// This is enabled by default.
@@ -539,14 +552,6 @@ impl IgnoreBuilder {
     /// This is enabled by default.
     pub fn ignore(&mut self, yes: bool) -> &mut IgnoreBuilder {
         self.opts.ignore = yes;
-        self
-    }
-
-    /// Enables reading of ignore files in addition to `.ignore`
-    ///
-    /// Earlier names have lower precedence
-    pub fn ignorefile<S: AsRef<OsStr>>(&mut self, filename: S) -> &mut IgnoreBuilder {
-        self.custom_ignore_filenames.push(filename.as_ref().to_os_string());
         self
     }
 
@@ -592,7 +597,7 @@ impl IgnoreBuilder {
 /// order given (earlier names have lower precedence than later names).
 ///
 /// I/O errors are ignored.
-pub fn create_gitignore<T: AsRef<str>>(
+pub fn create_gitignore<T: AsRef<OsStr>>(
     dir: &Path,
     names: &[T],
 ) -> (Gitignore, Option<Error>) {

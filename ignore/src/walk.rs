@@ -557,6 +557,20 @@ impl WalkBuilder {
         errs.into_error_option()
     }
 
+    /// Add a custom ignore file name
+    ///
+    /// These ignore files have higher precedence than all other ignore files.
+    ///
+    /// When specifying multiple names, earlier names have lower precedence than
+    /// later names.
+    pub fn add_custom_ignore_filename<S: AsRef<OsStr>>(
+        &mut self,
+        file_name: S
+    ) -> &mut WalkBuilder {
+        self.ig_builder.add_custom_ignore_filename(file_name);
+        self
+    }
+
     /// Add an override matcher.
     ///
     /// By default, no override matcher is used.
@@ -629,12 +643,6 @@ impl WalkBuilder {
     /// This is enabled by default.
     pub fn ignore(&mut self, yes: bool) -> &mut WalkBuilder {
         self.ig_builder.ignore(yes);
-        self
-    }
-
-    /// Enables reading of ignore files with custom names
-    pub fn ignorefile<S: AsRef<OsStr>>(&mut self, filename: S) -> &mut WalkBuilder {
-        self.ig_builder.ignorefile(filename);
         self
     }
 
