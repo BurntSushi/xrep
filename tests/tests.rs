@@ -1828,3 +1828,21 @@ fn type_list() {
     // This can change over time, so just make sure we print something.
     assert!(!lines.is_empty());
 }
+
+#[test]
+fn only_capture() {
+    let wd = WorkDir::new("only_capture");
+    let path = "prices.csv";
+    wd.create(path, "banana,10\nstrawberry,5");
+
+    let mut cmd = wd.command();
+    cmd.arg("([^,]*),(\\d+)").arg(path).arg("--only-capture").arg("2");
+    let lines: String = wd.stdout(&mut cmd);
+
+    let expected = "\
+10
+5
+";
+
+    assert_eq!(lines, expected);
+}
