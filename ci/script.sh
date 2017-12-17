@@ -4,6 +4,9 @@ set -ex
 
 . $(dirname $0)/utils.sh
 
+# "." - dot is for the current directory(ripgrep itself)
+components=( . grep globset ignore termcolor )
+
 # NOTE Workaround for rust-lang/rust#31907 - disable doc tests when cross compiling
 # This has been fixed in the nightly channel but it would take a while to reach the other channels
 disable_cross_doctests() {
@@ -15,28 +18,23 @@ disable_cross_doctests() {
     fi
 }
 
-run_test_suite() {
-    cargo clean --target $TARGET --verbose
-    cargo build --target $TARGET --verbose
-    cargo test --target $TARGET --verbose
-    cargo build --target $TARGET --verbose --manifest-path grep/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path grep/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path globset/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path globset/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path ignore/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path ignore/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path termcolor/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path termcolor/Cargo.toml
-
-    "$( dirname "${0}" )/test_complete.sh"
-
-    # sanity check the file type
-    file target/$TARGET/debug/rg
+run_cargo() {
+    for component in "${components[@]}"; do
+        cargo "${1:?}" --target $TARGET --verbose --manifest-path "${component}/Cargo.toml"
+    done
 }
 
 main() {
     # disable_cross_doctests
-    run_test_suite
+    run_cargo clean
+    run_cargo build
+    if [ "$(architecture)" = "amd64" ] || [ "$(architecture)" = "i386" ]; then
+        run_cargo test
+        "$( dirname "${0}" )/test_complete.sh"
+    fi
+
+    # sanity check the file type
+    file target/$TARGET/debug/rg
 }
 
 main

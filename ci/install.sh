@@ -31,16 +31,19 @@ install_standard_crates() {
 
 configure_cargo() {
     local prefix=$(gcc_prefix)
+    if [ -n "${prefix}" ]; then
+        local gcc_suffix=
+        test -n "${GCC_VERSION}" && gcc_suffix="-${GCC_VERSION}" || :
+        local gcc="${prefix}gcc${gcc_suffix}"
 
-    if [ ! -z $prefix ]; then
         # information about the cross compiler
-        ${prefix}gcc -v
+        ${gcc} -v
 
         # tell cargo which linker to use for cross compilation
         mkdir -p .cargo
         cat >>.cargo/config <<EOF
 [target.$TARGET]
-linker = "${prefix}gcc"
+linker = "${gcc}"
 EOF
     fi
 }

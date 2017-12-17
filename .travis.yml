@@ -25,6 +25,16 @@ matrix:
     - os: osx
       rust: nightly
       env: TARGET=x86_64-apple-darwin
+    - os: linux
+      rust: nightly
+      env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
+      addons:
+        apt:
+          packages:
+          - gcc-4.8-arm-linux-gnueabihf
+          - binutils-arm-linux-gnueabihf
+          - libc6-armhf-cross
+          - libc6-dev-armhf-cross
     # Beta channel.
     - os: linux
       rust: beta
@@ -39,6 +49,16 @@ matrix:
     - os: linux
       rust: 1.17.0
       env: TARGET=x86_64-unknown-linux-musl
+    - os: linux
+      rust: 1.17.0
+      env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
+      addons:
+        apt:
+          packages:
+          - gcc-4.8-arm-linux-gnueabihf
+          - binutils-arm-linux-gnueabihf
+          - libc6-armhf-cross
+          - libc6-dev-armhf-cross
 
 before_install:
   - export PATH="$PATH:$HOME/.cargo/bin"
