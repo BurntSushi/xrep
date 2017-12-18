@@ -33,6 +33,3 @@ tempdir = "0.3.5"
 
 [features]
 simd-accel = ["globset/simd-accel"]
-
-[profile.release]
-debug = true

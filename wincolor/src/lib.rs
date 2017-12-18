@@ -8,6 +8,8 @@ Note that on non-Windows platforms, this crate is empty but will compile.
 # Example
 
 ```no_run
+# #[cfg(windows)]
+# {
 use wincolor::{Console, Color, Intense};
 
 let mut con = Console::stdout().unwrap();
@@ -15,6 +17,7 @@ con.fg(Intense::Yes, Color::Cyan).unwrap();
 println!("This text will be intense cyan.");
 con.reset().unwrap();
 println!("This text will be normal.");
+# }
 ```
 */
 

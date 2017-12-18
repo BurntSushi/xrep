@@ -4,9 +4,6 @@ set -ex
 
 . $(dirname $0)/utils.sh
 
-# "." - dot is for the current directory(ripgrep itself)
-components=( . grep globset ignore termcolor )
-
 # NOTE Workaround for rust-lang/rust#31907 - disable doc tests when cross compiling
 # This has been fixed in the nightly channel but it would take a while to reach the other channels
 disable_cross_doctests() {
@@ -18,18 +15,11 @@ disable_cross_doctests() {
     fi
 }
 
-run_cargo() {
-    for component in "${components[@]}"; do
-        cargo "${1:?}" --target $TARGET --verbose --manifest-path "${component}/Cargo.toml"
-    done
-}
-
 main() {
     # disable_cross_doctests
-    run_cargo clean
-    run_cargo build
+    cargo build --target "${TARGET}" --verbose --all
     if [ "$(architecture)" = "amd64" ] || [ "$(architecture)" = "i386" ]; then
-        run_cargo test
+        cargo test --target "${TARGET}" --verbose --all
         "$( dirname "${0}" )/test_complete.sh"
     fi
 

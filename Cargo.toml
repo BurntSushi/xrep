@@ -29,6 +29,9 @@ name = "rg"
 name = "integration"
 path = "tests/tests.rs"
 
+[workspace]
+members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
+
 [dependencies]
 atty = "0.2.2"
 bytecount = "0.2"
