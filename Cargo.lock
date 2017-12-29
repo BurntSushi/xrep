@@ -395,8 +395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "wincolor"
 version = "0.1.4"
 dependencies = [
- "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
