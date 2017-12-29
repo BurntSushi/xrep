@@ -17,5 +17,4 @@ name = "wincolor"
 bench = false
 
 [dependencies]
-kernel32-sys = "0.2.2"
-winapi = "0.2.8"
+winapi = { version = "0.3", features = ["minwindef", "processenv", "winbase", "wincon"] }
