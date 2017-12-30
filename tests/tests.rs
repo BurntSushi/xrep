@@ -103,6 +103,22 @@ sherlock!(line_numbers, |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, expected);
 });
 
+sherlock!(line_number_width, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-n");
+    cmd.arg("--line-number-width").arg("2");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = " 1:For the Doctor Watsons of this world, as opposed to the Sherlock
+ 3:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(line_number_width_padding_character_error, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-n");
+    cmd.arg("--line-number-width").arg("02");
+    wd.assert_non_empty_stderr(&mut cmd);
+});
+
 sherlock!(columns, |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--column");
     let lines: String = wd.stdout(&mut cmd);

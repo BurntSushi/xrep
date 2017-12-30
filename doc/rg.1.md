@@ -222,6 +222,12 @@ Project home page: https://github.com/BurntSushi/ripgrep
 -L, --follow
 : Follow symlinks.
 
+--line-number-width *NUM*
+: Specify a width for the displayed line number. If number of digits
+  in the line number is less than this number, it is left padded with
+  spaces. Note: This setting has no effect if --no-line-number is
+  enabled.
+
 -M, --max-columns *NUM*
 : Don't print lines longer than this limit in bytes. Longer lines are omitted,
   and only the number of matches in that line is printed.

@@ -98,7 +98,11 @@ pub struct Printer<W> {
     /// The separator to use for file paths. If empty, this is ignored.
     path_separator: Option<u8>,
     /// Restrict lines to this many columns.
-    max_columns: Option<usize>
+    max_columns: Option<usize>,
+    /// Width of line number displayed. If the number of digits in the
+    /// line number is less than this, it is left padded with
+    /// spaces.
+    line_number_width: Option<usize>
 }
 
 impl<W: WriteColor> Printer<W> {
@@ -120,6 +124,7 @@ impl<W: WriteColor> Printer<W> {
             colors: ColorSpecs::default(),
             path_separator: None,
             max_columns: None,
+            line_number_width: None
         }
     }
 
@@ -205,6 +210,12 @@ impl<W: WriteColor> Printer<W> {
     /// Configure the max. number of columns used for printing matching lines.
     pub fn max_columns(mut self, max_columns: Option<usize>) -> Printer<W> {
         self.max_columns = max_columns;
+        self
+    }
+
+    /// Configure the width of the displayed line number
+    pub fn line_number_width(mut self, line_number_width: Option<usize>) -> Printer<W> {
+        self.line_number_width = line_number_width;
         self
     }
 
@@ -457,7 +468,11 @@ impl<W: WriteColor> Printer<W> {
     }
 
     fn line_number(&mut self, n: u64, sep: u8) {
-        self.write_colored(n.to_string().as_bytes(), |colors| colors.line());
+        let mut line_number = n.to_string();
+        if let Some(width) = self.line_number_width {
+            line_number = format!("{:>width$}", line_number, width = width);
+        }
+        self.write_colored(line_number.as_bytes(), |colors| colors.line());
         self.separator(&[sep]);
     }
 

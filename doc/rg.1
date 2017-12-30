@@ -335,6 +335,14 @@ Follow symlinks.
 .RS
 .RE
 .TP
+.B \-\-line\-number\-width \f[I]NUM\f[]
+Specify a width for the displayed line number.
+If number of digits in the line number is less than this number, it is
+left padded with spaces.
+Note: This setting has no effect if \-\-no\-line\-number is enabled.
+.RS
+.RE
+.TP
 .B \-M, \-\-max\-columns \f[I]NUM\f[]
 Don\[aq]t print lines longer than this limit in bytes.
 Longer lines are omitted, and only the number of matches in that line is
