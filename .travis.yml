@@ -46,13 +46,13 @@ matrix:
       env: TARGET=x86_64-unknown-linux-gnu
     # Minimum Rust supported channel.
     - os: linux
-      rust: 1.17.0
+      rust: 1.20.0
       env: TARGET=x86_64-unknown-linux-gnu
     - os: linux
-      rust: 1.17.0
+      rust: 1.20.0
       env: TARGET=x86_64-unknown-linux-musl
     - os: linux
-      rust: 1.17.0
+      rust: 1.20.0
       env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
       addons:
         apt:
