@@ -1491,6 +1491,22 @@ mod tests {
     }
 
     #[test]
+    fn custom_ignore() {
+        let td = TempDir::new("walk-test-").unwrap();
+        let custom_ignore = ".customignore";
+        mkdirp(td.path().join("a"));
+        wfile(td.path().join(custom_ignore), "foo");
+        wfile(td.path().join("foo"), "");
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("bar"), "");
+        wfile(td.path().join("a/bar"), "");
+
+        let mut builder = WalkBuilder::new(td.path());
+        builder.add_custom_ignore_filename(&custom_ignore);
+        assert_paths(td.path(), &builder, &["bar", "a", "a/bar"]);
+    }
+
+    #[test]
     fn gitignore() {
         let td = TempDir::new("walk-test-").unwrap();
         mkdirp(td.path().join("a"));

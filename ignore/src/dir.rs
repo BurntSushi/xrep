@@ -112,7 +112,8 @@ struct IgnoreInner {
     /// Explicit global ignore matchers specified by the caller.
     explicit_ignores: Arc<Vec<Gitignore>>,
     /// Ignore files used in addition to `.ignore`
-    custom_ignore_filenames: Vec<OsString>,
+    custom_ignore_filenames: Arc<Vec<OsString>>,
+    /// The matcher for custom ignore files
     custom_ignore_matcher: Gitignore,
     /// The matcher for .ignore files.
     ignore_matcher: Gitignore,
@@ -215,9 +216,7 @@ impl Ignore {
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
         let mut errs = PartialErrorBuilder::default();
         let custom_ig_matcher =
-            if !self.0.opts.ignore {
-                Gitignore::empty()
-            } else {
+            {
                 let (m, err) =
                     create_gitignore(&dir, &self.0.custom_ignore_filenames);
                 errs.maybe_push(err);
@@ -485,7 +484,7 @@ impl IgnoreBuilder {
             is_absolute_parent: true,
             absolute_base: None,
             explicit_ignores: Arc::new(self.explicit_ignores.clone()),
-            custom_ignore_filenames: self.custom_ignore_filenames.clone(),
+            custom_ignore_filenames: Arc::new(self.custom_ignore_filenames.clone()),
             custom_ignore_matcher: Gitignore::empty(),
             ignore_matcher: Gitignore::empty(),
             git_global_matcher: Arc::new(git_global_matcher),
@@ -695,6 +694,53 @@ mod tests {
         assert!(ig.matched("foo", false).is_ignore());
         assert!(ig.matched("bar", false).is_whitelist());
         assert!(ig.matched("baz", false).is_none());
+    }
+
+    #[test]
+    fn custom_ignore() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        let custom_ignore = ".customignore";
+        wfile(td.path().join(custom_ignore), "foo\n!bar");
+
+        let (ig, err) = IgnoreBuilder::new()
+            .add_custom_ignore_filename(custom_ignore)
+            .build().add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_ignore());
+        assert!(ig.matched("bar", false).is_whitelist());
+        assert!(ig.matched("baz", false).is_none());
+    }
+
+    // Tests that a custom ignore file will override an .ignore.
+    #[test]
+    fn custom_ignore_over_ignore() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        let custom_ignore = ".customignore";
+        wfile(td.path().join(".ignore"), "foo");
+        wfile(td.path().join(custom_ignore), "!foo");
+
+        let (ig, err) = IgnoreBuilder::new()
+            .add_custom_ignore_filename(custom_ignore)
+            .build().add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_whitelist());
+    }
+
+    // Tests that earlier custom ignore files have lower precedence than later.
+    #[test]
+    fn custom_ignore_precedence() {
+        let td = TempDir::new("ignore-test-").unwrap();
+        let custom_ignore1 = ".customignore1";
+        let custom_ignore2 = ".customignore2";
+        wfile(td.path().join(custom_ignore1), "foo");
+        wfile(td.path().join(custom_ignore2), "!foo");
+
+        let (ig, err) = IgnoreBuilder::new()
+            .add_custom_ignore_filename(custom_ignore1)
+            .add_custom_ignore_filename(custom_ignore2)
+            .build().add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_whitelist());
     }
 
     // Tests that an .ignore will override a .gitignore.
