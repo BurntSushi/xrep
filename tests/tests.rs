@@ -1599,6 +1599,16 @@ sherlock!(feature_419_zero_as_shortcut_for_null, "Sherlock", ".",
     assert_eq!(lines, "sherlock\x002\n");
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/709
+clean!(suggest_fixed_strings_for_invalid_regex, "foo(", ".",
+|wd: WorkDir, mut cmd: Command| {
+    wd.assert_non_empty_stderr(&mut cmd);
+
+    let output = cmd.output().unwrap();
+    let err = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(err.contains("--fixed-strings"), true);
+});
+
 #[test]
 fn binary_nosearch() {
     let wd = WorkDir::new("binary_nosearch");
