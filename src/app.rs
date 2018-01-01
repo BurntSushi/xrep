@@ -163,6 +163,11 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("no-ignore-vcs"))
         .arg(flag("null").short("0"))
         .arg(flag("only-matching").short("o"))
+        .arg(flag("only-capture")
+             .short("O")
+             .value_name("NUM")
+             .takes_value(true)
+             .validator(validate_number))
         .arg(flag("path-separator").value_name("SEPARATOR").takes_value(true))
         .arg(flag("pretty").short("p"))
         .arg(flag("replace").short("r")
@@ -490,6 +495,8 @@ lazy_static! {
              "Print only matched parts of a line.",
              "Print only the matched (non-empty) parts of a matching line, \
               with each such part on a separate output line.");
+        doc!(h, "only-capture",
+             "Print only capture group NUM.  Implies --only-matching.");
         doc!(h, "path-separator",
              "Path separator to use when printing file paths.",
              "The path separator to use when printing file paths. This \

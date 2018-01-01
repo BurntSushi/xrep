@@ -89,6 +89,8 @@ pub struct Printer<W> {
     null: bool,
     /// Print only the matched (non-empty) parts of a matching line
     only_matching: bool,
+    /// If only_matching is true, print only the given capture number.
+    only_capture: usize,
     /// A string to use as a replacement of each match in a matching line.
     replace: Option<Vec<u8>>,
     /// Whether to prefix each match with the corresponding file name.
@@ -115,6 +117,7 @@ impl<W: WriteColor> Printer<W> {
             line_per_match: false,
             null: false,
             only_matching: false,
+            only_capture: 0,
             replace: None,
             with_filename: false,
             colors: ColorSpecs::default(),
@@ -179,6 +182,12 @@ impl<W: WriteColor> Printer<W> {
     /// Print only the matched (non-empty) parts of a matching line
     pub fn only_matching(mut self, yes: bool) -> Printer<W> {
         self.only_matching = yes;
+        self
+    }
+
+    /// If only_matching is true, print only the given capture group.
+    pub fn only_capture(mut self, number: usize) -> Printer<W> {
+        self.only_capture = number;
         self
     }
 
@@ -278,7 +287,9 @@ impl<W: WriteColor> Printer<W> {
             return self.write_match(
                 re, path, buf, start, end, line_number, mat.0, mat.1);
         }
-        for m in re.find_iter(&buf[start..end]) {
+        for caps in re.captures_iter(&buf[start..end]) {
+            let m = caps.get(self.only_capture).map_or(caps.get(0).unwrap(), |m| m);
+
             self.write_match(
                 re, path.as_ref(), buf, start, end,
                 line_number, m.start(), m.end());
