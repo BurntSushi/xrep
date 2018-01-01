@@ -310,37 +310,37 @@ impl<'a> ArgMatches<'a> {
     fn to_args(&self) -> Result<Args> {
         let paths = self.paths();
         let line_number = self.line_number(&paths);
-        let mmap = try!(self.mmap(&paths));
+        let mmap = self.mmap(&paths)?;
         let with_filename = self.with_filename(&paths);
-        let (before_context, after_context) = try!(self.contexts());
+        let (before_context, after_context) = self.contexts()?;
         let quiet = self.is_present("quiet");
         let args = Args {
             paths: paths,
             after_context: after_context,
             before_context: before_context,
             color_choice: self.color_choice(),
-            colors: try!(self.color_specs()),
+            colors: self.color_specs()?,
             column: self.column(),
             context_separator: self.context_separator(),
             count: self.is_present("count"),
-            encoding: try!(self.encoding()),
+            encoding: self.encoding()?,
             files_with_matches: self.is_present("files-with-matches"),
             files_without_matches: self.is_present("files-without-match"),
             eol: b'\n',
             files: self.is_present("files"),
             follow: self.is_present("follow"),
-            glob_overrides: try!(self.overrides()),
-            grep: try!(self.grep()),
+            glob_overrides: self.overrides()?,
+            grep: self.grep()?,
             heading: self.heading(),
             hidden: self.hidden(),
             ignore_files: self.ignore_files(),
             invert_match: self.is_present("invert-match"),
             line_number: line_number,
             line_per_match: self.is_present("vimgrep"),
-            max_columns: try!(self.usize_of("max-columns")),
-            max_count: try!(self.usize_of("max-count")).map(|max| max as u64),
-            max_filesize: try!(self.max_filesize()),
-            maxdepth: try!(self.usize_of("maxdepth")),
+            max_columns: self.usize_of("max-columns")?,
+            max_count: self.usize_of("max-count")?.map(|max| max as u64),
+            max_filesize: self.max_filesize()?,
+            maxdepth: self.usize_of("maxdepth")?,
             mmap: mmap,
             no_ignore: self.no_ignore(),
             no_ignore_parent: self.no_ignore_parent(),
@@ -348,16 +348,16 @@ impl<'a> ArgMatches<'a> {
             no_messages: self.is_present("no-messages"),
             null: self.is_present("null"),
             only_matching: self.is_present("only-matching"),
-            path_separator: try!(self.path_separator()),
+            path_separator: self.path_separator()?,
             quiet: quiet,
             quiet_matched: QuietMatched::new(quiet),
             replace: self.replace(),
             sort_files: self.is_present("sort-files"),
             stdout_handle: self.stdout_handle(),
             text: self.text(),
-            threads: try!(self.threads()),
+            threads: self.threads()?,
             type_list: self.is_present("type-list"),
-            types: try!(self.types()),
+            types: self.types()?,
             with_filename: with_filename,
         };
         if args.mmap {
@@ -421,7 +421,7 @@ impl<'a> ArgMatches<'a> {
     /// If any part of the pattern isn't valid UTF-8, then an error is
     /// returned.
     fn pattern(&self) -> Result<String> {
-        Ok(try!(self.patterns()).join("|"))
+        Ok(self.patterns()?.join("|"))
     }
 
     /// Get a sequence of all available patterns from the command line.
@@ -442,13 +442,13 @@ impl<'a> ArgMatches<'a> {
             None => {
                 if self.values_of_os("file").is_none() {
                     if let Some(os_pat) = self.value_of_os("PATTERN") {
-                        pats.push(try!(self.os_str_pattern(os_pat)));
+                        pats.push(self.os_str_pattern(os_pat)?);
                     }
                 }
             }
             Some(os_pats) => {
                 for os_pat in os_pats {
-                    pats.push(try!(self.os_str_pattern(os_pat)));
+                    pats.push(self.os_str_pattern(os_pat)?);
                 }
             }
         }
@@ -457,12 +457,12 @@ impl<'a> ArgMatches<'a> {
                 if file == "-" {
                     let stdin = io::stdin();
                     for line in stdin.lock().lines() {
-                        pats.push(self.str_pattern(&try!(line)));
+                        pats.push(self.str_pattern(&line?));
                     }
                 } else {
-                    let f = try!(fs::File::open(file));
+                    let f = fs::File::open(file)?;
                     for line in io::BufReader::new(f).lines() {
-                        pats.push(self.str_pattern(&try!(line)));
+                        pats.push(self.str_pattern(&line?));
                     }
                 }
             }
@@ -478,7 +478,7 @@ impl<'a> ArgMatches<'a> {
     ///
     /// If the pattern is not valid UTF-8, then an error is returned.
     fn os_str_pattern(&self, pat: &OsStr) -> Result<String> {
-        let s = try!(pattern_to_str(pat));
+        let s = pattern_to_str(pat)?;
         Ok(self.str_pattern(s))
     }
 
@@ -578,8 +578,8 @@ impl<'a> ArgMatches<'a> {
     /// `paths` should be a slice of all top-level file paths that ripgrep
     /// will need to search.
     fn mmap(&self, paths: &[PathBuf]) -> Result<bool> {
-        let (before, after) = try!(self.contexts());
-        let enc = try!(self.encoding());
+        let (before, after) = self.contexts()?;
+        let enc = self.encoding()?;
         Ok(if before > 0 || after > 0 || self.is_present("no-mmap") {
             false
         } else if self.is_present("mmap") {
@@ -668,9 +668,9 @@ impl<'a> ArgMatches<'a> {
     /// If there was a problem parsing the values from the user as an integer,
     /// then an error is returned.
     fn contexts(&self) -> Result<(usize, usize)> {
-        let after = try!(self.usize_of("after-context")).unwrap_or(0);
-        let before = try!(self.usize_of("before-context")).unwrap_or(0);
-        let both = try!(self.usize_of("context")).unwrap_or(0);
+        let after = self.usize_of("after-context")?.unwrap_or(0);
+        let before = self.usize_of("before-context")?.unwrap_or(0);
+        let both = self.usize_of("context")?.unwrap_or(0);
         Ok(if both > 0 {
             (both, both)
         } else {
@@ -716,7 +716,7 @@ impl<'a> ArgMatches<'a> {
             "match:style:bold".parse().unwrap(),
         ];
         for spec_str in self.values_of_lossy_vec("colors") {
-            specs.push(try!(spec_str.parse()));
+            specs.push(spec_str.parse()?);
         }
         Ok(ColorSpecs::new(&specs))
     }
@@ -749,7 +749,7 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("sort-files") {
             return Ok(1);
         }
-        let threads = try!(self.usize_of("threads")).unwrap_or(0);
+        let threads = self.usize_of("threads")?.unwrap_or(0);
         Ok(if threads == 0 {
             cmp::min(12, num_cpus::get())
         } else {
@@ -769,15 +769,15 @@ impl<'a> ArgMatches<'a> {
         let casei =
             self.is_present("ignore-case")
             && !self.is_present("case-sensitive");
-        let mut gb = GrepBuilder::new(&try!(self.pattern()))
+        let mut gb = GrepBuilder::new(&self.pattern()?)
             .case_smart(smart)
             .case_insensitive(casei)
             .line_terminator(b'\n');
 
-        if let Some(limit) = try!(self.dfa_size_limit()) {
+        if let Some(limit) = self.dfa_size_limit()? {
             gb = gb.dfa_size_limit(limit);
         }
-        if let Some(limit) = try!(self.regex_size_limit()) {
+        if let Some(limit) = self.regex_size_limit()? {
             gb = gb.size_limit(limit);
         }
         gb.build().map_err(From::from)
@@ -785,17 +785,17 @@ impl<'a> ArgMatches<'a> {
 
     /// Builds the set of glob overrides from the command line flags.
     fn overrides(&self) -> Result<Override> {
-        let mut ovr = OverrideBuilder::new(try!(env::current_dir()));
+        let mut ovr = OverrideBuilder::new(env::current_dir()?);
         for glob in self.values_of_lossy_vec("glob") {
-            try!(ovr.add(&glob));
+            ovr.add(&glob)?;
         }
         // this is smelly. In the long run it might make sense
         // to change overridebuilder to be like globsetbuilder
         // but this would be a breaking change to the ignore crate
         // so it is being shelved for now...
-        try!(ovr.case_insensitive(true));
+        ovr.case_insensitive(true)?;
         for glob in self.values_of_lossy_vec("iglob") {
-            try!(ovr.add(&glob));
+            ovr.add(&glob)?;
         }
         ovr.build().map_err(From::from)
     }
@@ -808,7 +808,7 @@ impl<'a> ArgMatches<'a> {
             btypes.clear(&ty);
         }
         for def in self.values_of_lossy_vec("type-add") {
-            try!(btypes.add_def(&def));
+            btypes.add_def(&def)?;
         }
         for ty in self.values_of_lossy_vec("type") {
             btypes.select(&ty);
@@ -832,12 +832,12 @@ impl<'a> ArgMatches<'a> {
             None => return Ok(None)
         };
         let re = regex::Regex::new("^([0-9]+)([KMG])?$").unwrap();
-        let caps = try!(
+        let caps =
             re.captures(&arg_value).ok_or_else(|| {
                 format!("invalid format for {}", arg_name)
-            }));
+            })?;
 
-        let value = try!(caps[1].parse::<u64>());
+        let value = caps[1].parse::<u64>()?;
         let suffix = caps.get(2).map(|x| x.as_str());
 
         let v_10 = value.checked_mul(1024);
@@ -862,13 +862,13 @@ impl<'a> ArgMatches<'a> {
 
     /// Parse the dfa-size-limit argument option into a byte count.
     fn dfa_size_limit(&self) -> Result<Option<usize>> {
-        let r = try!(self.parse_human_readable_size_arg("dfa-size-limit"));
+        let r = self.parse_human_readable_size_arg("dfa-size-limit")?;
         human_readable_to_usize("dfa-size-limit", r)
     }
 
     /// Parse the regex-size-limit argument option into a byte count.
     fn regex_size_limit(&self) -> Result<Option<usize>> {
-        let r = try!(self.parse_human_readable_size_arg("regex-size-limit"));
+        let r = self.parse_human_readable_size_arg("regex-size-limit")?;
         human_readable_to_usize("regex-size-limit", r)
     }
 

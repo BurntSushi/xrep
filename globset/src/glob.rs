@@ -550,7 +550,7 @@ impl<'a> GlobBuilder<'a> {
             prev: None,
             cur: None,
         };
-        try!(p.parse());
+        p.parse()?;
         if p.stack.is_empty() {
             Err(Error {
                 glob: Some(self.glob.to_string()),
@@ -720,18 +720,18 @@ impl<'a> Parser<'a> {
     fn parse(&mut self) -> Result<(), Error> {
         while let Some(c) = self.bump() {
             match c {
-                '?' => try!(self.push_token(Token::Any)),
-                '*' => try!(self.parse_star()),
-                '[' => try!(self.parse_class()),
-                '{' => try!(self.push_alternate()),
-                '}' => try!(self.pop_alternate()),
-                ',' => try!(self.parse_comma()),
+                '?' => self.push_token(Token::Any)?,
+                '*' => self.parse_star()?,
+                '[' => self.parse_class()?,
+                '{' => self.push_alternate()?,
+                '}' => self.pop_alternate()?,
+                ',' => self.parse_comma()?,
                 c => {
                     if is_separator(c) {
                         // Normalize all patterns to use / as a separator.
-                        try!(self.push_token(Token::Literal('/')))
+                        self.push_token(Token::Literal('/'))?
                     } else {
-                        try!(self.push_token(Token::Literal(c)))
+                        self.push_token(Token::Literal(c))?
                     }
                 }
             }
@@ -789,19 +789,19 @@ impl<'a> Parser<'a> {
     fn parse_star(&mut self) -> Result<(), Error> {
         let prev = self.prev;
         if self.chars.peek() != Some(&'*') {
-            try!(self.push_token(Token::ZeroOrMore));
+            self.push_token(Token::ZeroOrMore)?;
             return Ok(());
         }
         assert!(self.bump() == Some('*'));
-        if !try!(self.have_tokens()) {
-            try!(self.push_token(Token::RecursivePrefix));
+        if !self.have_tokens()? {
+            self.push_token(Token::RecursivePrefix)?;
             let next = self.bump();
             if !next.map(is_separator).unwrap_or(true) {
                 return Err(self.error(ErrorKind::InvalidRecursive));
             }
             return Ok(());
         }
-        try!(self.pop_token());
+        self.pop_token()?;
         if !prev.map(is_separator).unwrap_or(false) {
             if self.stack.len() <= 1
                 || (prev != Some(',') && prev != Some('{')) {
@@ -873,7 +873,7 @@ impl<'a> Parser<'a> {
                         // invariant: in_range is only set when there is
                         // already at least one character seen.
                         let r = ranges.last_mut().unwrap();
-                        try!(add_to_last_range(&self.glob, r, '-'));
+                        add_to_last_range(&self.glob, r, '-')?;
                         in_range = false;
                     } else {
                         assert!(!ranges.is_empty());
@@ -884,8 +884,8 @@ impl<'a> Parser<'a> {
                     if in_range {
                         // invariant: in_range is only set when there is
                         // already at least one character seen.
-                        try!(add_to_last_range(
-                            &self.glob, ranges.last_mut().unwrap(), c));
+                        add_to_last_range(
+                            &self.glob, ranges.last_mut().unwrap(), c)?;
                     } else {
                         ranges.push((c, c));
                     }

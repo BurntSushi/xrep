@@ -44,25 +44,23 @@ pub fn remove(expr: Expr, byte: u8) -> Result<Expr> {
         }
         Group { e, i, name } => {
             Group {
-                e: Box::new(try!(remove(*e, byte))),
+                e: Box::new(remove(*e, byte)?),
                 i: i,
                 name: name,
             }
         }
         Repeat { e, r, greedy } => {
             Repeat {
-                e: Box::new(try!(remove(*e, byte))),
+                e: Box::new(remove(*e, byte)?),
                 r: r,
                 greedy: greedy,
             }
         }
         Concat(exprs) => {
-            Concat(try!(
-                exprs.into_iter().map(|e| remove(e, byte)).collect()))
+            Concat(exprs.into_iter().map(|e| remove(e, byte)).collect::<Result<Vec<Expr>>>()?)
         }
         Alternate(exprs) => {
-            Alternate(try!(
-                exprs.into_iter().map(|e| remove(e, byte)).collect()))
+            Alternate(exprs.into_iter().map(|e| remove(e, byte)).collect::<Result<Vec<Expr>>>()?)
         }
         e => e,
     })

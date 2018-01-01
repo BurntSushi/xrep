@@ -526,7 +526,7 @@ impl TypesBuilder {
                 }
             };
             for (iglob, glob) in def.globs.iter().enumerate() {
-                build_set.add(try!(
+                build_set.add(
                     GlobBuilder::new(glob)
                         .literal_separator(true)
                         .build()
@@ -535,14 +535,14 @@ impl TypesBuilder {
                                 glob: Some(glob.to_string()),
                                 err: err.kind().to_string(),
                             }
-                        })));
+                        })?);
                 glob_to_selection.push((isel, iglob));
             }
             selections.push(selection.clone().map(move |_| def));
         }
-        let set = try!(build_set.build().map_err(|err| {
+        let set = build_set.build().map_err(|err| {
             Error::Glob { glob: None, err: err.to_string() }
-        }));
+        })?;
         Ok(Types {
             defs: defs,
             selections: selections,
@@ -655,7 +655,7 @@ impl TypesBuilder {
                 for type_name in types {
                     let globs = self.types.get(type_name).unwrap().globs.clone();
                     for glob in globs {
-                        try!(self.add(name, &glob));
+                        self.add(name, &glob)?;
                     }
                 }
                 Ok(())

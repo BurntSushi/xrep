@@ -42,8 +42,8 @@ use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 let mut stdout = StandardStream::stdout(ColorChoice::Always);
-try!(stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
-try!(writeln!(&mut stdout, "green text!"));
+stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+writeln!(&mut stdout, "green text!")?;
 # Ok(()) }
 ```
 
@@ -62,9 +62,9 @@ use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 let mut bufwtr = BufferWriter::stderr(ColorChoice::Always);
 let mut buffer = bufwtr.buffer();
-try!(buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
-try!(writeln!(&mut buffer, "green text!"));
-try!(bufwtr.print(&buffer));
+buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+writeln!(&mut buffer, "green text!")?;
+bufwtr.print(&buffer)?;
 # Ok(()) }
 ```
 */
@@ -486,7 +486,7 @@ impl<W: io::Write> WriteColor for WriterInner<W> {
             WriterInner::Ansi(ref mut wtr) => wtr.set_color(spec),
             #[cfg(windows)]
             WriterInner::Windows { ref mut wtr, ref console } => {
-                try!(wtr.flush());
+                wtr.flush()?;
                 let mut console = console.lock().unwrap();
                 spec.write_console(&mut *console)
             }
@@ -499,8 +499,8 @@ impl<W: io::Write> WriteColor for WriterInner<W> {
             WriterInner::Ansi(ref mut wtr) => wtr.reset(),
             #[cfg(windows)]
             WriterInner::Windows { ref mut wtr, ref mut console } => {
-                try!(wtr.flush());
-                try!(console.lock().unwrap().reset());
+                wtr.flush()?;
+                console.lock().unwrap().reset()?;
                 Ok(())
             }
         }
@@ -547,7 +547,7 @@ impl<'a, W: io::Write> WriteColor for WriterInnerLock<'a, W> {
             WriterInnerLock::Ansi(ref mut wtr) => wtr.set_color(spec),
             #[cfg(windows)]
             WriterInnerLock::Windows { ref mut wtr, ref mut console } => {
-                try!(wtr.flush());
+                wtr.flush()?;
                 spec.write_console(console)
             }
         }
@@ -560,8 +560,8 @@ impl<'a, W: io::Write> WriteColor for WriterInnerLock<'a, W> {
             WriterInnerLock::Ansi(ref mut wtr) => wtr.reset(),
             #[cfg(windows)]
             WriterInnerLock::Windows { ref mut wtr, ref mut console } => {
-                try!(wtr.flush());
-                try!(console.reset());
+                wtr.flush()?;
+                console.reset()?;
                 Ok(())
             }
         }
@@ -689,13 +689,13 @@ impl BufferWriter {
         let mut stream = self.stream.wrap(self.stream.get_ref().lock());
         if let Some(ref sep) = self.separator {
             if self.printed.load(Ordering::SeqCst) {
-                try!(stream.write_all(sep));
-                try!(stream.write_all(b"\n"));
+                stream.write_all(sep)?;
+                stream.write_all(b"\n")?;
             }
         }
         match buf.0 {
-            BufferInner::NoColor(ref b) => try!(stream.write_all(&b.0)),
-            BufferInner::Ansi(ref b) => try!(stream.write_all(&b.0)),
+            BufferInner::NoColor(ref b) => stream.write_all(&b.0)?,
+            BufferInner::Ansi(ref b) => stream.write_all(&b.0)?,
             #[cfg(windows)]
             BufferInner::Windows(ref b) => {
                 // We guarantee by construction that we have a console here.
@@ -703,7 +703,7 @@ impl BufferWriter {
                 let console_mutex = self.console.as_ref()
                     .expect("got Windows buffer but have no Console");
                 let mut console = console_mutex.lock().unwrap();
-                try!(b.print(&mut *console, &mut stream));
+                b.print(&mut *console, &mut stream)?;
             }
         }
         self.printed.store(true, Ordering::SeqCst);
@@ -959,15 +959,15 @@ impl<W: io::Write> WriteColor for Ansi<W> {
     fn supports_color(&self) -> bool { true }
 
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
-        try!(self.reset());
+        self.reset()?;
         if let Some(ref c) = spec.fg_color {
-            try!(self.write_color(true, c, spec.intense));
+            self.write_color(true, c, spec.intense)?;
         }
         if let Some(ref c) = spec.bg_color {
-            try!(self.write_color(false, c, spec.intense));
+            self.write_color(false, c, spec.intense)?;
         }
         if spec.bold {
-            try!(self.write_str("\x1B[1m"));
+            self.write_str("\x1B[1m")?;
         }
         Ok(())
     }
@@ -1090,15 +1090,15 @@ impl WindowsBuffer {
     ) -> io::Result<()> {
         let mut last = 0;
         for &(pos, ref spec) in &self.colors {
-            try!(stream.write_all(&self.buf[last..pos]));
-            try!(stream.flush());
+            stream.write_all(&self.buf[last..pos])?;
+            stream.flush()?;
             last = pos;
             match *spec {
-                None => try!(console.reset()),
-                Some(ref spec) => try!(spec.write_console(console)),
+                None => console.reset()?,
+                Some(ref spec) => spec.write_console(console)?,
             }
         }
-        try!(stream.write_all(&self.buf[last..]));
+        stream.write_all(&self.buf[last..])?;
         stream.flush()
     }
 
@@ -1213,10 +1213,10 @@ impl ColorSpec {
 
         let intense = if self.intense { Intense::Yes } else { Intense::No };
         if let Some(color) = self.fg_color.as_ref().map(|c| c.to_windows()) {
-            try!(console.fg(intense, color));
+            console.fg(intense, color)?;
         }
         if let Some(color) = self.bg_color.as_ref().map(|c| c.to_windows()) {
-            try!(console.bg(intense, color));
+            console.bg(intense, color)?;
         }
         Ok(())
     }
@@ -1368,7 +1368,7 @@ fn write_lossy_utf8<W: io::Write>(mut w: W, buf: &[u8]) -> io::Result<usize> {
     match ::std::str::from_utf8(buf) {
         Ok(s) => w.write(s.as_bytes()),
         Err(ref e) if e.valid_up_to() == 0 => {
-            try!(w.write(b"\xEF\xBF\xBD"));
+            w.write(b"\xEF\xBF\xBD")?;
             Ok(1)
         }
         Err(e) => w.write(&buf[..e.valid_up_to()]),

@@ -22,7 +22,7 @@ This example shows how to match a single glob against a single file path.
 # fn example() -> Result<(), globset::Error> {
 use globset::Glob;
 
-let glob = try!(Glob::new("*.rs")).compile_matcher();
+let glob = Glob::new("*.rs")?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(glob.is_match("foo/bar.rs"));
@@ -39,8 +39,8 @@ semantics. In this example, we prevent wildcards from matching path separators.
 # fn example() -> Result<(), globset::Error> {
 use globset::GlobBuilder;
 
-let glob = try!(GlobBuilder::new("*.rs")
-    .literal_separator(true).build()).compile_matcher();
+let glob = GlobBuilder::new("*.rs")
+    .literal_separator(true).build()?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(!glob.is_match("foo/bar.rs")); // no longer matches
@@ -59,10 +59,10 @@ use globset::{Glob, GlobSetBuilder};
 let mut builder = GlobSetBuilder::new();
 // A GlobBuilder can be used to configure each glob's match semantics
 // independently.
-builder.add(try!(Glob::new("*.rs")));
-builder.add(try!(Glob::new("src/lib.rs")));
-builder.add(try!(Glob::new("src/**/foo.rs")));
-let set = try!(builder.build());
+builder.add(Glob::new("*.rs")?);
+builder.add(Glob::new("src/lib.rs")?);
+builder.add(Glob::new("src/**/foo.rs")?);
+let set = builder.build()?;
 
 assert_eq!(set.matches("src/bar/baz/foo.rs"), vec![0, 2]);
 # Ok(()) } example().unwrap();
@@ -412,8 +412,8 @@ impl GlobSet {
                 GlobSetMatchStrategy::Suffix(suffixes.suffix()),
                 GlobSetMatchStrategy::Prefix(prefixes.prefix()),
                 GlobSetMatchStrategy::RequiredExtension(
-                    try!(required_exts.build())),
-                GlobSetMatchStrategy::Regex(try!(regexes.regex_set())),
+                    required_exts.build()?),
+                GlobSetMatchStrategy::Regex(regexes.regex_set()?),
             ],
         })
     }
@@ -767,7 +767,7 @@ impl MultiStrategyBuilder {
 
     fn regex_set(self) -> Result<RegexSetStrategy, Error> {
         Ok(RegexSetStrategy {
-            matcher: try!(new_regex_set(self.literals)),
+            matcher: new_regex_set(self.literals)?,
             map: self.map,
         })
     }
@@ -792,7 +792,7 @@ impl RequiredExtensionStrategyBuilder {
         for (ext, regexes) in self.0.into_iter() {
             exts.insert(ext.clone(), vec![]);
             for (global_index, regex) in regexes {
-                let compiled = try!(new_regex(&regex));
+                let compiled = new_regex(&regex)?;
                 exts.get_mut(&ext).unwrap().push((global_index, compiled));
             }
         }

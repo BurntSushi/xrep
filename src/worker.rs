@@ -282,7 +282,7 @@ impl Worker {
         path: &Path,
         file: &File,
     ) -> Result<u64> {
-        if try!(file.metadata()).len() == 0 {
+        if file.metadata()?.len() == 0 {
             // Opening a memory map with an empty file results in an error.
             // However, this may not actually be an empty file! For example,
             // /proc/cpuinfo reports itself as an empty file, but it can
@@ -290,7 +290,7 @@ impl Worker {
             // regular read calls.
             return self.search(printer, path, file);
         }
-        let mmap = unsafe { try!(Mmap::map(file)) };
+        let mmap = unsafe { Mmap::map(file)? };
         let buf = &*mmap;
         if buf.len() >= 3 && Encoding::for_bom(buf).is_some() {
             // If we have a UTF-16 bom in our memory map, then we need to fall

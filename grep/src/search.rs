@@ -141,11 +141,11 @@ impl GrepBuilder {
     /// If there was a problem parsing or compiling the regex with the given
     /// options, then an error is returned.
     pub fn build(self) -> Result<Grep> {
-        let expr = try!(self.parse());
+        let expr = self.parse()?;
         let literals = LiteralSets::create(&expr);
-        let re = try!(self.regex(&expr));
+        let re = self.regex(&expr)?;
         let required = match literals.to_regex_builder() {
-            Some(builder) => Some(try!(self.regex_build(builder))),
+            Some(builder) => Some(self.regex_build(builder)?),
             None => {
                 match strip_unicode_word_boundaries(&expr) {
                     None => None,
@@ -186,12 +186,12 @@ impl GrepBuilder {
     /// the line terminator.
     fn parse(&self) -> Result<syntax::Expr> {
         let expr =
-            try!(syntax::ExprBuilder::new()
-                 .allow_bytes(true)
-                 .unicode(true)
-                 .case_insensitive(try!(self.is_case_insensitive()))
-                 .parse(&self.pattern));
-        let expr = try!(nonl::remove(expr, self.opts.line_terminator));
+            syntax::ExprBuilder::new()
+            .allow_bytes(true)
+            .unicode(true)
+            .case_insensitive(self.is_case_insensitive()?)
+            .parse(&self.pattern)?;
+        let expr = nonl::remove(expr, self.opts.line_terminator)?;
         debug!("regex ast:\n{:#?}", expr);
         Ok(expr)
     }

@@ -62,8 +62,8 @@ use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 let mut stdout = StandardStream::stdout(ColorChoice::Always);
-try!(stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
-try!(writeln!(&mut stdout, "green text!"));
+stdout.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+writeln!(&mut stdout, "green text!")?;
 ```
 
 ### Example: using `BufferWriter`
@@ -80,7 +80,7 @@ use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 let mut bufwtr = BufferWriter::stderr(ColorChoice::Always);
 let mut buffer = bufwtr.buffer();
-try!(buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green))));
-try!(writeln!(&mut buffer, "green text!"));
-try!(bufwtr.print(&buffer));
+buffer.set_color(ColorSpec::new().set_fg(Some(Color::Green)))?;
+writeln!(&mut buffer, "green text!")?;
+bufwtr.print(&buffer)?;
 ```

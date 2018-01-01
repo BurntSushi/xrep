@@ -322,13 +322,13 @@ impl GitignoreBuilder {
     pub fn build(&self) -> Result<Gitignore, Error> {
         let nignore = self.globs.iter().filter(|g| !g.is_whitelist()).count();
         let nwhite = self.globs.iter().filter(|g| g.is_whitelist()).count();
-        let set = try!(
+        let set =
             self.builder.build().map_err(|err| {
                 Error::Glob {
                     glob: None,
                     err: err.to_string(),
                 }
-            }));
+            })?;
         Ok(Gitignore {
             set: set,
             root: self.root.clone(),
@@ -383,7 +383,7 @@ impl GitignoreBuilder {
         gitignore: &str,
     ) -> Result<&mut GitignoreBuilder, Error> {
         for line in gitignore.lines() {
-            try!(self.add_line(from.clone(), line));
+            self.add_line(from.clone(), line)?;
         }
         Ok(self)
     }
@@ -465,7 +465,7 @@ impl GitignoreBuilder {
         if glob.actual.ends_with("/**") {
             glob.actual = format!("{}/*", glob.actual);
         }
-        let parsed = try!(
+        let parsed =
             GlobBuilder::new(&glob.actual)
                 .literal_separator(literal_separator)
                 .case_insensitive(self.case_insensitive)
@@ -475,7 +475,7 @@ impl GitignoreBuilder {
                         glob: Some(glob.original.clone()),
                         err: err.kind().to_string(),
                     }
-                }));
+                })?;
         self.builder.add(parsed);
         self.globs.push(glob);
         Ok(self)

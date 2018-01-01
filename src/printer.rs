@@ -726,28 +726,28 @@ impl FromStr for Spec {
         if pieces.len() <= 1 || pieces.len() > 3 {
             return Err(Error::InvalidFormat(s.to_string()));
         }
-        let otype: OutType = try!(pieces[0].parse());
-        match try!(pieces[1].parse()) {
+        let otype: OutType = pieces[0].parse()?;
+        match pieces[1].parse()? {
             SpecType::None => Ok(Spec { ty: otype, value: SpecValue::None }),
             SpecType::Style => {
                 if pieces.len() < 3 {
                     return Err(Error::InvalidFormat(s.to_string()));
                 }
-                let style: Style = try!(pieces[2].parse());
+                let style: Style = pieces[2].parse()?;
                 Ok(Spec { ty: otype, value: SpecValue::Style(style) })
             }
             SpecType::Fg => {
                 if pieces.len() < 3 {
                     return Err(Error::InvalidFormat(s.to_string()));
                 }
-                let color: Color = try!(pieces[2].parse());
+                let color: Color = pieces[2].parse()?;
                 Ok(Spec { ty: otype, value: SpecValue::Fg(color) })
             }
             SpecType::Bg => {
                 if pieces.len() < 3 {
                     return Err(Error::InvalidFormat(s.to_string()));
                 }
-                let color: Color = try!(pieces[2].parse());
+                let color: Color = pieces[2].parse()?;
                 Ok(Spec { ty: otype, value: SpecValue::Bg(color) })
             }
         }

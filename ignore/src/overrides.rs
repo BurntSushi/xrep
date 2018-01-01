@@ -124,7 +124,7 @@ impl OverrideBuilder {
     ///
     /// Once a matcher is built, no new globs can be added to it.
     pub fn build(&self) -> Result<Override, Error> {
-        Ok(Override(try!(self.builder.build())))
+        Ok(Override(self.builder.build()?))
     }
 
     /// Add a glob to the set of overrides.
@@ -134,7 +134,7 @@ impl OverrideBuilder {
     /// namely, `!` at the beginning of a glob will ignore a file. Without `!`,
     /// all matches of the glob provided are treated as whitelist matches.
     pub fn add(&mut self, glob: &str) -> Result<&mut OverrideBuilder, Error> {
-        try!(self.builder.add_line(None, glob));
+        self.builder.add_line(None, glob)?;
         Ok(self)
     }
 
@@ -144,7 +144,7 @@ impl OverrideBuilder {
     pub fn case_insensitive(
         &mut self, yes: bool
     ) -> Result<&mut OverrideBuilder, Error> {
-        try!(self.builder.case_insensitive(yes));
+        self.builder.case_insensitive(yes)?;
         Ok(self)
     }
 }

@@ -36,7 +36,7 @@ This example shows how to match a single glob against a single file path.
 ```rust
 use globset::Glob;
 
-let glob = try!(Glob::new("*.rs")).compile_matcher();
+let glob = Glob::new("*.rs")?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(glob.is_match("foo/bar.rs"));
@@ -51,8 +51,8 @@ semantics. In this example, we prevent wildcards from matching path separators.
 ```rust
 use globset::GlobBuilder;
 
-let glob = try!(GlobBuilder::new("*.rs")
-    .literal_separator(true).build()).compile_matcher();
+let glob = GlobBuilder::new("*.rs")
+    .literal_separator(true).build()?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(!glob.is_match("foo/bar.rs")); // no longer matches
@@ -69,10 +69,10 @@ use globset::{Glob, GlobSetBuilder};
 let mut builder = GlobSetBuilder::new();
 // A GlobBuilder can be used to configure each glob's match semantics
 // independently.
-builder.add(try!(Glob::new("*.rs")));
-builder.add(try!(Glob::new("src/lib.rs")));
-builder.add(try!(Glob::new("src/**/foo.rs")));
-let set = try!(builder.build());
+builder.add(Glob::new("*.rs")?);
+builder.add(Glob::new("src/lib.rs")?);
+builder.add(Glob::new("src/**/foo.rs")?);
+let set = builder.build()?;
 
 assert_eq!(set.matches("src/bar/baz/foo.rs"), vec![0, 2]);
 ```

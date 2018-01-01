@@ -264,7 +264,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         while !self.terminate() {
             let upto = self.inp.lastnl;
             self.print_after_context(upto);
-            if !try!(self.fill()) {
+            if !self.fill()? {
                 break;
             }
             while !self.terminate() && self.inp.pos < self.inp.lastnl {
@@ -301,7 +301,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         }
         if self.after_context_remaining > 0 {
             if self.last_printed == self.inp.lastnl {
-                try!(self.fill());
+                self.fill()?;
             }
             let upto = self.inp.lastnl;
             if upto > 0 {
@@ -348,9 +348,9 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             self.count_lines(keep);
             self.last_line = 0;
         }
-        let ok = try!(self.inp.fill(&mut self.haystack, keep).map_err(|err| {
+        let ok = self.inp.fill(&mut self.haystack, keep).map_err(|err| {
             Error::from_io(err, &self.path)
-        }));
+        })?;
         Ok(ok)
     }
 
@@ -594,8 +594,8 @@ impl InputBuffer {
                 let new_len = cmp::max(min_len, self.buf.len() * 2);
                 self.buf.resize(new_len, 0);
             }
-            let n = try!(rdr.read(
-                &mut self.buf[self.end..self.end + self.read_size]));
+            let n = rdr.read(
+                &mut self.buf[self.end..self.end + self.read_size])?;
             if !self.text {
                 if is_binary(&self.buf[self.end..self.end + n], self.first) {
                     return Ok(false);

@@ -279,13 +279,13 @@ impl DirEntryRaw {
         depth: usize,
         ent: &fs::DirEntry,
     ) -> Result<DirEntryRaw, Error> {
-        let ty = try!(ent.file_type().map_err(|err| {
+        let ty = ent.file_type().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
             Error::WithDepth {
                 depth: depth,
                 err: Box::new(err),
             }
-        }));
+        })?;
         Ok(DirEntryRaw::from_entry_os(depth, ent, ty))
     }
 
@@ -322,9 +322,9 @@ impl DirEntryRaw {
 
     #[cfg(not(unix))]
     fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
-        let md = try!(fs::metadata(&pb).map_err(|err| {
+        let md = fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
-        }));
+        })?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -337,9 +337,9 @@ impl DirEntryRaw {
     fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
-        let md = try!(fs::metadata(&pb).map_err(|err| {
+        let md = fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
-        }));
+        })?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
