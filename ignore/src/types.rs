@@ -100,6 +100,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("agda", &["*.agda", "*.lagda"]),
     ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
+    ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
     ("awk", &["*.awk"]),
     ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
     ("c", &["*.c", "*.h", "*.H"]),
