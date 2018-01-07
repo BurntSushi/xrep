@@ -191,18 +191,24 @@ If you're a **Gentoo** user, you can install `ripgrep` from the [official repo](
 $ emerge sys-apps/ripgrep
 ```
 
+If you're a **Fedora 28+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
+
+```
+$ sudo dnf install ripgrep
+```
+
 If you're a **Fedora 24+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
-$ dnf copr enable carlwgeorge/ripgrep
-$ dnf install ripgrep
+$ sudo dnf copr enable carlwgeorge/ripgrep
+$ sudo dnf install ripgrep
 ```
 
 If you're a **RHEL/CentOS 7** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
-$ yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
-$ yum install ripgrep
+$ sudo yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
+$ sudo yum install ripgrep
 ```
 
 If you're a **Nix** user, you can install `ripgrep` from
