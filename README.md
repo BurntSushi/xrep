@@ -191,7 +191,7 @@ If you're a **Gentoo** user, you can install `ripgrep` from the [official repo](
 $ emerge sys-apps/ripgrep
 ```
 
-If you're a **Fedora 28+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
+If you're a **Fedora 28+** user, you can install `ripgrep` from official repositories.
 
 ```
 $ sudo dnf install ripgrep
