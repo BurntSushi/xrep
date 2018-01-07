@@ -184,6 +184,15 @@ Only show matches surrounded by line boundaries.
 This is equivalent to putting ^...$ around the search pattern.
 .RS
 .RE
+.TP
+.B \-z, \-\-search\-zip
+Search in compressed files.
+Currently gz, bz2, xz and lzma formats are supported.
+.RS
+.PP
+Note that rg expects to find the decompression binaries for the
+respective formats in your system\[aq]s PATH for use with this flag.
+.RE
 .SH LESS COMMON OPTIONS
 .TP
 .B \-A, \-\-after\-context \f[I]NUM\f[]

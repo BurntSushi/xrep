@@ -191,6 +191,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("type-clear")
              .value_name("TYPE").takes_value(true)
              .multiple(true).number_of_values(1))
+        .arg(flag("search-zip").short("z"))
 }
 
 struct Usage {
@@ -583,6 +584,11 @@ lazy_static! {
               only clears the default type definitions that are found inside \
               of ripgrep.\n\nNote that this MUST be passed to every \
               invocation of ripgrep. Type settings are NOT persisted.");
+        doc!(h, "search-zip",
+             "Search in compressed files.",
+             "Search in compressed files. Currently gz, bz2, xz, and \
+              lzma files are supported. This options expects the uncompression \
+              binaries to be available in the system PATH.");
 
         h
     };

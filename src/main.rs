@@ -16,6 +16,7 @@ extern crate num_cpus;
 extern crate regex;
 extern crate same_file;
 extern crate termcolor;
+extern crate globset;
 
 use std::error::Error;
 use std::process;
@@ -50,6 +51,7 @@ mod search_buffer;
 mod search_stream;
 mod unescape;
 mod worker;
+mod decompressor;
 
 pub type Result<T> = result::Result<T, Box<Error + Send + Sync>>;
 

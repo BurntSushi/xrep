@@ -87,6 +87,7 @@ _rg() {
     '(-w -x --line-regexp --word-regexp)'{-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     '(-e -f --file --files --regexp --type-list)1: :_rg_pattern'
     '(--type-list)*:file:_files'
+    '(-z --search-zip)'{-z,--search-zip}'[search in compressed files]'
   )
 
   [[ ${_RG_COMPLETE_LIST_ARGS:-} == (1|t*|y*) ]] && {

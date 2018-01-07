@@ -11,6 +11,7 @@ addons:
     packages:
       # Needed for completion-function test
       - zsh
+      - xz-utils
 
 matrix:
   fast_finish: true
