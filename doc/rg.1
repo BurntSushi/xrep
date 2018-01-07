@@ -184,6 +184,15 @@ Only show matches surrounded by line boundaries.
 This is equivalent to putting ^...$ around the search pattern.
 .RS
 .RE
+.TP
+.B \-z, \-\-search\-zip
+Search in compressed files.
+Currently gz, bz2, xz and lzma formats are supported.
+.RS
+.PP
+Note that ripgrep expects to find the decompression binaries for the
+respective formats in your system\[aq]s PATH for use with this flag.
+.RE
 .SH LESS COMMON OPTIONS
 .TP
 .B \-A, \-\-after\-context \f[I]NUM\f[]
@@ -437,9 +446,7 @@ such part on a separate output line.
 .TP
 .B \-\-passthru, \-\-passthrough
 Show both matching and non\-matching lines.
-This is equivalent to adding ^ to the list of search patterns.
-This option overrides \-\-count and cannot be used with
-\-\-only\-matching or \-\-replace.
+This option cannot be used with \-\-only\-matching or \-\-replace.
 .RS
 .RE
 .TP

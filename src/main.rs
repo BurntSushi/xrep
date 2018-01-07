@@ -4,6 +4,7 @@ extern crate bytecount;
 extern crate clap;
 extern crate encoding_rs;
 extern crate env_logger;
+extern crate globset;
 extern crate grep;
 extern crate ignore;
 #[macro_use]
@@ -44,6 +45,7 @@ macro_rules! eprintln {
 mod app;
 mod args;
 mod decoder;
+mod decompressor;
 mod pathutil;
 mod printer;
 mod search_buffer;

@@ -9,8 +9,10 @@ env:
 addons:
   apt:
     packages:
-      # Needed for completion-function test
+      # Needed for completion-function test.
       - zsh
+      # Needed for testing decompression search.
+      - xz-utils
 
 matrix:
   fast_finish: true

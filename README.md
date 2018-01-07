@@ -91,6 +91,8 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
   automatically detecting UTF-16 is provided. Other text encodings must be
   specifically specified with the `-E/--encoding` flag.)
+* `ripgrep` supports searching files compressed in a common format (gzip, xz,
+  lzma or bzip2 current) with the `-z/--search-zip` flag.
 
 In other words, use `ripgrep` if you like speed, filtering by default, fewer
 bugs, and Unicode support.
@@ -109,12 +111,10 @@ give you a glimpse at some important downsides or missing features of
   support for Unicode categories (e.g., `\p{Sc}` to match currency symbols or
   `\p{Lu}` to match any uppercase letter). (Fancier regexes will never be
   supported.)
-* `ripgrep` doesn't yet support searching compressed files. (Likely to be
-  supported in the future.)
 * `ripgrep` doesn't have multiline search. (Unlikely to ever be supported.)
 
-In other words, if you like fancy regexes, searching compressed files or
-multiline search, then `ripgrep` may not quite meet your needs (yet).
+In other words, if you like fancy regexes or multiline search, then `ripgrep`
+may not quite meet your needs (yet).
 
 ### Feature comparison
 

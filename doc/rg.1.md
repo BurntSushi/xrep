@@ -125,6 +125,13 @@ Project home page: https://github.com/BurntSushi/ripgrep
 : Only show matches surrounded by line boundaries. This is equivalent to
   putting ^...$ around the search pattern.
 
+-z, --search-zip
+: Search in compressed files. Currently gz, bz2, xz and lzma
+  formats are supported.
+
+    Note that ripgrep expects to find the decompression binaries for the
+    respective formats in your system's PATH for use with this flag.
+
 # LESS COMMON OPTIONS
 
 -A, --after-context *NUM*

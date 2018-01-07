@@ -191,6 +191,7 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("type-clear")
              .value_name("TYPE").takes_value(true)
              .multiple(true).number_of_values(1))
+        .arg(flag("search-zip").short("z"))
 }
 
 struct Usage {
@@ -441,7 +442,8 @@ lazy_static! {
               can be specified by using the --ignore-file flag several times. \
               When specifying multiple ignore files, earlier files have lower \
               precedence than later files. If you are looking for a way to \
-              include or exclude files and directories directly used -g instead.");
+              include or exclude files and directories directly used -g \
+              instead.");
         doc!(h, "follow",
              "Follow symbolic links.");
         doc!(h, "max-count",
@@ -583,6 +585,11 @@ lazy_static! {
               only clears the default type definitions that are found inside \
               of ripgrep.\n\nNote that this MUST be passed to every \
               invocation of ripgrep. Type settings are NOT persisted.");
+        doc!(h, "search-zip",
+             "Search in compressed files.",
+             "Search in compressed files. Currently gz, bz2, xz, and \
+              lzma files are supported. This option expects the decompression \
+              binaries to be available in the system PATH.");
 
         h
     };
@@ -590,8 +597,9 @@ lazy_static! {
 
 fn validate_line_number_width(s: String) -> Result<(), String> {
     if s.starts_with("0") {
-        Err(String::from("Custom padding characters are currently not supported. \
-        Please enter only a numeric value."))
+        Err(String::from(
+            "Custom padding characters are currently not supported. \
+             Please enter only a numeric value."))
     } else {
         validate_number(s)
     }

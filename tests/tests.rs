@@ -75,6 +75,10 @@ fn sort_lines(lines: &str) -> String {
     format!("{}\n", lines.join("\n"))
 }
 
+fn cmd_exists(name: &str) -> bool {
+    Command::new(name).arg("--help").output().is_ok()
+}
+
 sherlock!(single_file, |wd: WorkDir, mut cmd| {
     let lines: String = wd.stdout(&mut cmd);
     let expected = "\
@@ -1608,6 +1612,104 @@ clean!(suggest_fixed_strings_for_invalid_regex, "foo(", ".",
     let err = String::from_utf8_lossy(&output.stderr);
     assert_eq!(err.contains("--fixed-strings"), true);
 });
+
+#[test]
+fn compressed_gzip() {
+    if !cmd_exists("gzip") {
+        return;
+    }
+    let gzip_file = include_bytes!("./data/sherlock.gz");
+
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create_bytes("sherlock.gz", gzip_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.gz");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
+fn compressed_bzip2() {
+    if !cmd_exists("bzip2") {
+        return;
+    }
+    let bzip2_file = include_bytes!("./data/sherlock.bz2");
+
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create_bytes("sherlock.bz2", bzip2_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.bz2");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
+fn compressed_xz() {
+    if !cmd_exists("xz") {
+        return;
+    }
+    let xz_file = include_bytes!("./data/sherlock.xz");
+
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create_bytes("sherlock.xz", xz_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.xz");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
+fn compressed_lzma() {
+    if !cmd_exists("xz") {
+        return;
+    }
+    let lzma_file = include_bytes!("./data/sherlock.lzma");
+
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create_bytes("sherlock.lzma", lzma_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.lzma");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
+fn compressed_failing_gzip() {
+    if !cmd_exists("gzip") {
+        return;
+    }
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create("sherlock.gz", hay::SHERLOCK);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.gz");
+
+    wd.assert_non_empty_stderr(&mut cmd);
+
+    let output = cmd.output().unwrap();
+    let err = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(err.contains("not in gzip format"), true);
+}
 
 #[test]
 fn feature_740_passthru() {

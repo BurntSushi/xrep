@@ -9,6 +9,7 @@ use memmap::Mmap;
 use termcolor::WriteColor;
 
 use decoder::DecodeReader;
+use decompressor::{self, DecompressionReader};
 use pathutil::strip_prefix;
 use printer::Printer;
 use search_buffer::BufferSearcher;
@@ -42,6 +43,7 @@ struct Options {
     no_messages: bool,
     quiet: bool,
     text: bool,
+    search_zip_files: bool
 }
 
 impl Default for Options {
@@ -61,6 +63,7 @@ impl Default for Options {
             no_messages: false,
             quiet: false,
             text: false,
+            search_zip_files: false,
         }
     }
 }
@@ -190,6 +193,12 @@ impl WorkerBuilder {
         self.opts.text = yes;
         self
     }
+
+    /// If enabled, search through compressed files as well
+    pub fn search_zip_files(mut self, yes: bool) -> Self {
+        self.opts.search_zip_files = yes;
+        self
+    }
 }
 
 /// Worker is responsible for executing searches on file paths, while choosing
@@ -218,22 +227,33 @@ impl Worker {
             }
             Work::DirEntry(dent) => {
                 let mut path = dent.path();
-                let file = match File::open(path) {
-                    Ok(file) => file,
-                    Err(err) => {
-                        if !self.opts.no_messages {
-                            eprintln!("{}: {}", path.display(), err);
+                if self.opts.search_zip_files
+                     && decompressor::is_compressed(path)
+                {
+                    match DecompressionReader::from_path(path) {
+                        Some(reader) => self.search(printer, path, reader),
+                        None => {
+                            return 0;
                         }
-                        return 0;
                     }
-                };
-                if let Some(p) = strip_prefix("./", path) {
-                    path = p;
-                }
-                if self.opts.mmap {
-                    self.search_mmap(printer, path, &file)
                 } else {
-                    self.search(printer, path, file)
+                    let file = match File::open(path) {
+                        Ok(file) => file,
+                        Err(err) => {
+                            if !self.opts.no_messages {
+                                eprintln!("{}: {}", path.display(), err);
+                            }
+                            return 0;
+                        }
+                    };
+                    if let Some(p) = strip_prefix("./", path) {
+                        path = p;
+                    }
+                    if self.opts.mmap {
+                        self.search_mmap(printer, path, &file)
+                    } else {
+                        self.search(printer, path, file)
+                    }
                 }
             }
         };

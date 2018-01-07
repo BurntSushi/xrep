@@ -77,6 +77,7 @@ pub struct Args {
     type_list: bool,
     types: Types,
     with_filename: bool,
+    search_zip_files: bool
 }
 
 impl Args {
@@ -229,6 +230,7 @@ impl Args {
             .no_messages(self.no_messages)
             .quiet(self.quiet)
             .text(self.text)
+            .search_zip_files(self.search_zip_files)
             .build()
     }
 
@@ -365,6 +367,7 @@ impl<'a> ArgMatches<'a> {
             type_list: self.is_present("type-list"),
             types: self.types()?,
             with_filename: with_filename,
+            search_zip_files: self.is_present("search-zip")
         };
         if args.mmap {
             debug!("will try to use memory maps");
