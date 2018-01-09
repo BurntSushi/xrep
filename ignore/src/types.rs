@@ -190,6 +190,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ]),
     ("markdown", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
     ("md", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
+    ("man", &["*.[0-9lnpx]", "*.[0-9][cEFMmpSx]"),
     ("matlab", &["*.m"]),
     ("mk", &["mkfile"]),
     ("ml", &["*.ml"]),
