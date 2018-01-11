@@ -973,7 +973,7 @@ impl<W: io::Write> WriteColor for Ansi<W> {
     }
 
     fn reset(&mut self) -> io::Result<()> {
-        self.write_str("\x1B[m")
+        self.write_str("\x1B[0m")
     }
 }
 
