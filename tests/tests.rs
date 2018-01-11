@@ -1134,7 +1134,7 @@ clean!(regression_428_color_context_path, "foo", ".",
     let expected = format!(
         "{colored_path}:foo\n{colored_path}-bar\n",
         colored_path=format!(
-            "\x1b\x5b\x6d\x1b\x5b\x33\x35\x6d{path}\x1b\x5b\x6d",
+            "\x1b\x5b\x30\x6d\x1b\x5b\x33\x35\x6d{path}\x1b\x5b\x30\x6d",
             path=path("sherlock")));
     assert_eq!(lines, expected);
 });
@@ -1178,9 +1178,9 @@ clean!(regression_599, "^$", "input.txt", |wd: WorkDir, mut cmd: Command| {
     // Technically, the expected output should only be two lines, but:
     // https://github.com/BurntSushi/ripgrep/issues/441
     let expected = "\
-[m1[m:[m[31m[m
-[m2[m:[m[31m[m
-[m4[m:
+[0m1[0m:[0m[31m[0m
+[0m2[0m:[0m[31m[0m
+[0m4[0m:
 ";
     assert_eq!(expected, lines);
 });
