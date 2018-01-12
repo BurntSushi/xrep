@@ -228,7 +228,7 @@ $ # (Or using the attribute name, which is also `ripgrep`.)
 If you're an **Ubuntu** user, `ripgrep` can be installed from the `snap` store.
 * Note that if you are using `16.04 LTS` or later, snap is already installed.
 * For older versions you can install snap using
-[this guide](https://docs.snapcraft.io/core/install-ubuntu)
+[this guide](https://docs.snapcraft.io/core/install-ubuntu).
 
 ```
 sudo snap install rg
