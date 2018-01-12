@@ -225,6 +225,12 @@ $ nix-env --install ripgrep
 $ # (Or using the attribute name, which is also `ripgrep`.)
 ```
 
+If you're an **Ubuntu** user and you are using `16.04 LTS` or later, you can install `ripgrep` from the `snap` store:
+
+```
+sudo snap install rg
+```
+
 If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`.
 * Note that the minimum supported version of Rust for ripgrep is **1.17**,
   although ripgrep may work with older versions.
