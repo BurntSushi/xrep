@@ -272,7 +272,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("vim", &["*.vim"]),
     ("vimscript", &["*.vim"]),
     ("wiki", &["*.mediawiki", "*.wiki"]),
-    ("webidl", &["*.idl", "*.widl"]),
+    ("webidl", &["*.idl", "*.webidl", "*.widl"]),
     ("xml", &["*.xml", "*.xml.dist"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
