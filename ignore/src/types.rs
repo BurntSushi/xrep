@@ -135,6 +135,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "*.f90", "*.F90", "*.f95", "*.F95",
     ]),
     ("fsharp", &["*.fs", "*.fsx", "*.fsi"]),
+    ("gn", &["*.gn", "*.gni"]),
     ("go", &["*.go"]),
     ("groovy", &["*.groovy", "*.gradle"]),
     ("h", &["*.h", "*.hpp"]),
