@@ -114,7 +114,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("config", &["*.cfg", "*.conf", "*.config", "*.ini"]),
     ("cpp", &[
         "*.C", "*.cc", "*.cpp", "*.cxx",
-        "*.h", "*.H", "*.hh", "*.hpp", "*.inl",
+        "*.h", "*.H", "*.hh", "*.hpp", "*.hxx", "*.inl",
     ]),
     ("crystal", &["Projectfile", "*.cr"]),
     ("cs", &["*.cs"]),
