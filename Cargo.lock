@@ -237,6 +237,7 @@ dependencies = [
  "clap 2.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "globset 0.2.1",
  "grep 0.1.7",
  "ignore 0.3.1",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",

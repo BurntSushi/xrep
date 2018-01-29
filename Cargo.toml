@@ -49,6 +49,7 @@ num_cpus = "1"
 regex = "0.2.4"
 same-file = "1"
 termcolor = { version = "0.3.3", path = "termcolor" }
+globset = { version = "0.2.1", path = "globset" }
 
 [build-dependencies]
 clap = "2.26"

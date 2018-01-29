@@ -103,6 +103,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
     ("awk", &["*.awk"]),
     ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
+    ("bzip2", &["*.bz2"]),
     ("c", &["*.c", "*.h", "*.H"]),
     ("cabal", &["*.cabal"]),
     ("cbor", &["*.cbor"]),
@@ -137,6 +138,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("fsharp", &["*.fs", "*.fsx", "*.fsi"]),
     ("gn", &["*.gn", "*.gni"]),
     ("go", &["*.go"]),
+    ("gzip", &["*.gz"]),
     ("groovy", &["*.groovy", "*.gradle"]),
     ("h", &["*.h", "*.hpp"]),
     ("hbs", &["*.hbs"]),
@@ -184,6 +186,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
+    ("lzma", &["*.lzma"]),
     ("m4", &["*.ac", "*.m4"]),
     ("make", &[
         "gnumakefile", "Gnumakefile", "GNUmakefile",
@@ -276,6 +279,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("wiki", &["*.mediawiki", "*.wiki"]),
     ("webidl", &["*.idl", "*.webidl", "*.widl"]),
     ("xml", &["*.xml", "*.xml.dist"]),
+    ("xz", &["*.xz"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
     ("zsh", &[
