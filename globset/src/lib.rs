@@ -106,6 +106,9 @@ extern crate memchr;
 extern crate regex;
 extern crate walkdir;
 
+#[cfg(test)]
+extern crate tempdir;
+
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
@@ -843,6 +846,8 @@ impl RequiredExtensionStrategyBuilder {
 mod tests {
     use super::GlobSetBuilder;
     use glob::Glob;
+    use ::tempdir::TempDir;
+    use ::std::fs::{File, create_dir_all};
 
     #[test]
     fn set_works() {
@@ -872,13 +877,62 @@ mod tests {
         assert!(!set.is_match("a"));
     }
 
+    fn touch(dir: &TempDir, names: &[&str]) {
+        for name in names {
+            File::create(dir.path().join(name)).expect("Failed to create a test file");
+        }
+    }
+
     #[test]
-    fn gilnaa() {
+    fn do_the_globwalk() {
+        let dir = TempDir::new("globset_walkdir").expect("Failed to create temporary folder");
+        let dir_path = dir.path();
+        create_dir_all(dir_path.join("src/some_mod")).expect("");
+        create_dir_all(dir_path.join("tests")).expect("");
+        create_dir_all(dir_path.join("contrib")).expect("");
+
+        touch(&dir, &[
+            "a.rs",
+            "b.rs",
+            "avocado.rs",
+            "lib.c",
+            "src/hello.rs",
+            "src/world.rs",
+            "src/some_mod/unexpected.rs",
+            "src/cruel.txt",
+            "contrib/README.md",
+            "contrib/README.rst",
+            "contrib/lib.rs",
+        ][..]);
+
+
         let mut builder = GlobSetBuilder::new();
         builder.add(Glob::new("src/**/*.rs").unwrap());
         builder.add(Glob::new("*.c").unwrap());
         builder.add(Glob::new("**/lib.rs").unwrap());
+        builder.add(Glob::new("**/*.{md,rst}").unwrap());
         let set = builder.build().unwrap();
-        set.iter_at("/home/gilnaa/florp").for_each(|x| println!("== {:?}", x));
+
+        let mut expected = vec!["src/some_mod/unexpected.rs",
+                                "src/world.rs",
+                                "src/hello.rs",
+                                "lib.c",
+                                "contrib/lib.rs",
+                                "contrib/README.md",
+                                "contrib/README.rst"];
+
+        for matched_file in set.iter_at(dir_path) {
+            let path = matched_file.path().strip_prefix(dir_path).unwrap().to_str().unwrap();
+
+            let del_idx = if let Some(idx) = expected.iter().position(|n| &path == n) {
+                idx
+            } else {
+                panic!("Iterated file is unexpected: {}", path);
+            };
+            expected.remove(del_idx);
+        }
+
+        let empty: &[&str] = &[][..];
+        assert_eq!(expected, empty);
     }
 }

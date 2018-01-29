@@ -28,6 +28,7 @@ walkdir = "2.0"
 
 [dev-dependencies]
 glob = "0.2"
+tempdir = "0.3"
 
 [features]
 simd-accel = ["regex/simd-accel"]
