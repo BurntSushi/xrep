@@ -104,6 +104,7 @@ extern crate fnv;
 extern crate log;
 extern crate memchr;
 extern crate regex;
+extern crate walkdir;
 
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
@@ -111,7 +112,7 @@ use std::error::Error as StdError;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::hash;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str;
 
 use aho_corasick::{Automaton, AcAutomaton, FullAcAutomaton};
@@ -416,6 +417,44 @@ impl GlobSet {
                 GlobSetMatchStrategy::Regex(regexes.regex_set()?),
             ],
         })
+    }
+
+    /// Iterate files and directories matching this globset at the given directory.
+    pub fn iter_at<P: AsRef<Path>>(&self, dir: P) -> GlobWalker {
+        GlobWalker {
+            glob: self,
+            base: dir.as_ref().into(),
+            walker: walkdir::WalkDir::new(dir).into_iter()
+        }
+    }
+}
+
+/// An iterator for recursively yielding glob matches.
+///
+/// The order of elements yielded by this iterator is unspecified.
+pub struct GlobWalker<'a> {
+    glob: &'a GlobSet,
+    base: PathBuf,
+    walker: walkdir::IntoIter,
+}
+
+impl<'a> Iterator for GlobWalker<'a> {
+    type Item = walkdir::DirEntry;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for entry in &mut self.walker {
+            if let Ok(entry) = entry {
+                // Strip the common base directory so that the matcher will be
+                // able to recognize the file name.
+                // `unwrap` here is safe, since walkdir returns the files with relation
+                // to the given base-dir.
+                if self.glob.is_match(entry.path().strip_prefix(&*self.base).unwrap()) {
+                    return Some(entry)
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -831,5 +870,15 @@ mod tests {
         let set = GlobSetBuilder::new().build().unwrap();
         assert!(!set.is_match(""));
         assert!(!set.is_match("a"));
+    }
+
+    #[test]
+    fn gilnaa() {
+        let mut builder = GlobSetBuilder::new();
+        builder.add(Glob::new("src/**/*.rs").unwrap());
+        builder.add(Glob::new("*.c").unwrap());
+        builder.add(Glob::new("**/lib.rs").unwrap());
+        let set = builder.build().unwrap();
+        set.iter_at("/home/gilnaa/florp").for_each(|x| println!("== {:?}", x));
     }
 }
