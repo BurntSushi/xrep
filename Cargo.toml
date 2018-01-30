@@ -34,7 +34,7 @@ members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
 
 [dependencies]
 atty = "0.2.2"
-bytecount = "0.3"
+bytecount = "0.3.1"
 clap = "2.26"
 encoding_rs = "0.7"
 env_logger = { version = "0.4", default-features = false }
