@@ -3,7 +3,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, BufRead};
-use std::ops;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -305,11 +304,6 @@ impl Args {
 /// several options/flags.
 struct ArgMatches<'a>(clap::ArgMatches<'a>);
 
-impl<'a> ops::Deref for ArgMatches<'a> {
-    type Target = clap::ArgMatches<'a>;
-    fn deref(&self) -> &clap::ArgMatches<'a> { &self.0 }
-}
-
 impl<'a> ArgMatches<'a> {
     /// Convert the result of parsing CLI arguments into ripgrep's
     /// configuration.
@@ -376,7 +370,7 @@ impl<'a> ArgMatches<'a> {
 
     /// Return all file paths that ripgrep should search.
     fn paths(&self) -> Vec<PathBuf> {
-        let mut paths: Vec<PathBuf> = match self.values_of_os("PATH") {
+        let mut paths: Vec<PathBuf> = match self.values_of_os("path") {
             None => vec![],
             Some(vals) => vals.map(|p| Path::new(p).to_path_buf()).collect(),
         };
@@ -385,7 +379,7 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("file")
             || self.is_present("files")
             || self.is_present("regexp") {
-            if let Some(path) = self.value_of_os("PATTERN") {
+            if let Some(path) = self.value_of_os("pattern") {
                 paths.insert(0, Path::new(path).to_path_buf());
             }
         }
@@ -451,7 +445,7 @@ impl<'a> ArgMatches<'a> {
         match self.values_of_os("regexp") {
             None => {
                 if self.values_of_os("file").is_none() {
-                    if let Some(os_pat) = self.value_of_os("PATTERN") {
+                    if let Some(os_pat) = self.value_of_os("pattern") {
                         pats.push(self.os_str_pattern(os_pat)?);
                     }
                 }
@@ -645,7 +639,7 @@ impl<'a> ArgMatches<'a> {
 
     /// Returns the replacement string as UTF-8 bytes if it exists.
     fn replace(&self) -> Option<Vec<u8>> {
-        self.value_of_lossy("replace").map(|s| s.into_owned().into_bytes())
+        self.value_of_lossy("replace").map(|s| s.into_bytes())
     }
 
     /// Returns the unescaped context separator in UTF-8 bytes.
@@ -695,9 +689,9 @@ impl<'a> ArgMatches<'a> {
     /// Returns the user's color choice based on command line parameters and
     /// environment.
     fn color_choice(&self) -> termcolor::ColorChoice {
-        let preference = match self.0.value_of_lossy("color") {
+        let preference = match self.value_of_lossy("color") {
             None => "auto".to_string(),
-            Some(v) => v.into_owned(),
+            Some(v) => v,
         };
         if preference == "always" {
             termcolor::ColorChoice::Always
@@ -743,7 +737,7 @@ impl<'a> ArgMatches<'a> {
     /// A `None` encoding implies that the encoding should be automatically
     /// detected on a per-file basis.
     fn encoding(&self) -> Result<Option<&'static Encoding>> {
-        match self.0.value_of_lossy("encoding") {
+        match self.value_of_lossy("encoding") {
             None => Ok(None),
             Some(label) => {
                 if label == "auto" {
@@ -941,6 +935,35 @@ impl<'a> ArgMatches<'a> {
             None => Ok(None),
             Some(v) => v.parse().map(Some).map_err(From::from),
         }
+    }
+
+    // The following methods mostly dispatch to the underlying clap methods
+    // directly. Methods that would otherwise get a single value will fetch
+    // all values and return the last one. (Clap returns the first one.) We
+    // only define the ones we need.
+
+    fn is_present(&self, name: &str) -> bool {
+        self.0.is_present(name)
+    }
+
+    fn occurrences_of(&self, name: &str) -> u64 {
+        self.0.occurrences_of(name)
+    }
+
+    fn value_of_lossy(&self, name: &str) -> Option<String> {
+        self.values_of_lossy(name).and_then(|mut vals| vals.pop())
+    }
+
+    fn values_of_lossy(&self, name: &str) -> Option<Vec<String>> {
+        self.0.values_of_lossy(name)
+    }
+
+    fn value_of_os(&'a self, name: &str) -> Option<&'a OsStr> {
+        self.values_of_os(name).and_then(|it| it.last())
+    }
+
+    fn values_of_os(&'a self, name: &str) -> Option<clap::OsValues<'a>> {
+        self.0.values_of_os(name)
     }
 }
 

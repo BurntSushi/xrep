@@ -113,12 +113,6 @@ struct RGArg {
     /// The name of this argument. This is always present and is the name
     /// used in the code to find the value of an argument at runtime.
     name: &'static str,
-    /// The short name of a flag. This is always empty for positional
-    /// arguments, and is empty for flags that only have a long name.
-    name_short: &'static str,
-    /// The long name of a flag. This is always empty for positional arguments,
-    /// and always non-empty for flags.
-    name_long: &'static str,
     /// A short documentation string describing this argument. This string
     /// should fit on a single line and be a complete sentence.
     ///
@@ -131,64 +125,186 @@ struct RGArg {
     ///
     /// This is shown in the `--help` output.
     doc_long: &'static str,
-    /// The name of the value used in the `-h/--help` output. By convention,
-    /// this is an all-uppercase string. e.g., `PATH` or `PATTERN`.
-    value_name: &'static str,
-    /// Whether this argument is a flag or not. If it's not a flag, then it is
-    /// a positional argument.
-    flag: bool,
-    /// Whether this argument accepts a single value. This setting is only
-    /// applicable to flags.
-    one_value: bool,
-    /// Whether this argument accepts multiple values. If this is a flag, then
-    /// when this is enabled the flag can be repeated an arbitrary number of
-    /// times, where each use admits a single value.
-    multiple: bool,
-    /// A set of possible values for this argument. If an end user provides any
-    /// value other than what's in this set, then clap will report an error.
-    possible_values: Vec<&'static str>,
+    /// The type of this argument.
+    kind: RGArgKind,
+}
+
+/// The kind of a ripgrep argument.
+///
+/// This can be one of three possibilities: a positional argument, a boolean
+/// switch flag or a flag that accepts exactly one argument. Each variant
+/// stores argument type specific data.
+///
+/// Note that clap supports more types of arguments than this, but we don't
+/// (and probably shouldn't) use them in ripgrep.
+///
+/// Finally, note that we don't capture *all* state about an argument in this
+/// type. Some state is only known to clap. There isn't any particular reason
+/// why; the state we do capture is motivated by use cases (like generating
+/// documentation).
+#[derive(Clone)]
+enum RGArgKind {
+    /// A positional argument.
+    Positional {
+        /// The name of the value used in the `-h/--help` output. By
+        /// convention, this is an all-uppercase string. e.g., `PATH` or
+        /// `PATTERN`.
+        value_name: &'static str,
+        /// Whether an argument can be repeated multiple times or not.
+        ///
+        /// The only argument this applies to is PATH, where an end user can
+        /// specify multiple paths for ripgrep to search.
+        ///
+        /// If this is disabled, then an argument can only be provided once.
+        /// For example, PATTERN is one such argument. (Note that the
+        /// -e/--regexp flag is distinct from the positional PATTERN argument,
+        /// and it can be provided multiple times.)
+        multiple: bool,
+    },
+    /// A boolean switch.
+    Switch {
+        /// The long name of a flag. This is always non-empty.
+        long: &'static str,
+        /// The short name of a flag. This is empty if a flag only has a long
+        /// name.
+        short: Option<&'static str>,
+        /// Whether this switch can be provided multiple times where meaning
+        /// is attached to the number of times this flag is given.
+        ///
+        /// Note that every switch can be provided multiple times. This
+        /// particular state indicates whether all instances of a switch are
+        /// relevant or not.
+        ///
+        /// For example, the -u/--unrestricted flag can be provided multiple
+        /// times where each repeated use of it indicates more relaxing of
+        /// ripgrep's filtering. Conversely, the -i/--ignore-case flag can
+        /// also be provided multiple times, but it is simply considered either
+        /// present or not. In these cases, -u/--unrestricted has `multiple`
+        /// set to `true` while -i/--ignore-case has `multiple` set to `false`.
+        multiple: bool,
+    },
+    /// A flag the accepts a single value.
+    Flag {
+        /// The long name of a flag. This is always non-empty.
+        long: &'static str,
+        /// The short name of a flag. This is empty if a flag only has a long
+        /// name.
+        short: Option<&'static str>,
+        /// The name of the value used in the `-h/--help` output. By
+        /// convention, this is an all-uppercase string. e.g., `PATH` or
+        /// `PATTERN`.
+        value_name: &'static str,
+        /// Whether this flag can be provided multiple times with multiple
+        /// distinct values.
+        ///
+        /// Note that every flag can be provided multiple times. This
+        /// particular state indicates whether all instances of a flag are
+        /// relevant or not.
+        ///
+        /// For example, the -g/--glob flag can be provided multiple times and
+        /// all of its values should be interpreted by ripgrep. Conversely,
+        /// while the -C/--context flag can also be provided multiple times,
+        /// only its last instance is used while all previous instances are
+        /// ignored. In these cases, -g/--glob has `multiple` set to `true`
+        /// while -C/--context has `multiple` set to `false`.
+        multiple: bool,
+        /// A set of possible values for this flag. If an end user provides
+        /// any value other than what's in this set, then clap will report an
+        /// error.
+        possible_values: Vec<&'static str>,
+    }
 }
 
 impl RGArg {
     /// Create a positional argument.
-    fn positional(name: &'static str) -> RGArg {
+    ///
+    /// The `long_name` parameter is the name of the argument, e.g., `pattern`.
+    /// The `value_name` parameter is a name that describes the type of
+    /// argument this flag accepts. It should be in uppercase, e.g., PATH or
+    /// PATTERN.
+    fn positional(name: &'static str, value_name: &'static str) -> RGArg {
         RGArg {
-            claparg: Arg::with_name(name),
+            claparg: Arg::with_name(name).value_name(value_name),
             name: name,
-            name_short: "",
-            name_long: "",
             doc_short: "",
             doc_long: "",
-            value_name: "",
-            flag: false,
-            one_value: false,
-            multiple: false,
-            possible_values: vec![],
+            kind: RGArgKind::Positional {
+                value_name: value_name,
+                multiple: false,
+            },
         }
     }
 
-    /// Create a flag.
-    fn flag(long_name: &'static str) -> RGArg {
+    /// Create a boolean switch.
+    ///
+    /// The `long_name` parameter is the name of the flag, e.g., `--long-name`.
+    ///
+    /// All switches may be repeated an arbitrary number of times. If a switch
+    /// is truly boolean, that consumers of clap's configuration should only
+    /// check whether the flag is present or not. Otherwise, consumers may
+    /// inspect the number of times the switch is used.
+    fn switch(long_name: &'static str) -> RGArg {
+        let claparg = Arg::with_name(long_name)
+            .long(long_name)
+            .multiple(true);
         RGArg {
-            claparg: Arg::with_name(long_name).long(long_name),
+            claparg: claparg,
             name: long_name,
-            name_short: "",
-            name_long: long_name,
             doc_short: "",
             doc_long: "",
-            value_name: "",
-            flag: true,
-            one_value: false,
-            multiple: false,
-            possible_values: vec![],
+            kind: RGArgKind::Switch {
+                long: long_name,
+                short: None,
+                multiple: false,
+            },
+        }
+    }
+
+    /// Create a flag. A flag always accepts exactly one argument.
+    ///
+    /// The `long_name` parameter is the name of the flag, e.g., `--long-name`.
+    /// The `value_name` parameter is a name that describes the type of
+    /// argument this flag accepts. It should be in uppercase, e.g., PATH or
+    /// PATTERN.
+    ///
+    /// All flags may be repeated an arbitrary number of times. If a flag has
+    /// only one logical value, that consumers of clap's configuration should
+    /// only use the last value.
+    fn flag(long_name: &'static str, value_name: &'static str) -> RGArg {
+        let claparg = Arg::with_name(long_name)
+            .long(long_name)
+            .value_name(value_name)
+            .takes_value(true)
+            .multiple(true)
+            .number_of_values(1);
+        RGArg {
+            claparg: claparg,
+            name: long_name,
+            doc_short: "",
+            doc_long: "",
+            kind: RGArgKind::Flag {
+                long: long_name,
+                short: None,
+                value_name: value_name,
+                multiple: false,
+                possible_values: vec![],
+            }
         }
     }
 
     /// Set the short flag name.
     ///
-    /// This panics if this arg isn't a flag.
+    /// This panics if this arg isn't a switch or a flag.
     fn short(mut self, name: &'static str) -> RGArg {
-        self.name_short = name;
+        match self.kind {
+            RGArgKind::Positional{..} => panic!("expected switch or flag"),
+            RGArgKind::Switch { ref mut short, .. } => {
+                *short = Some(name);
+            }
+            RGArgKind::Flag { ref mut short, .. } => {
+                *short = Some(name);
+            }
+        }
         self.claparg = self.claparg.short(name);
         self
     }
@@ -212,49 +328,41 @@ impl RGArg {
         self
     }
 
-    /// Set the value name used in the -h/--help output. Usually this is in
-    /// all uppercase. e.g., `PATTERN` or `PATH`.
-    fn value_name(mut self, name: &'static str) -> RGArg {
-        self.value_name = name;
-        self.claparg = self.claparg.value_name(name);
-        self
-    }
-
-    /// Enable this flag to accept a single value.
-    ///
-    /// If this argument is positional, then this panics.
-    fn takes_value(mut self) -> RGArg {
-        assert!(self.flag);
-        self.one_value = true;
-        self.claparg = self.claparg.takes_value(true).number_of_values(1);
-        self
-    }
-
     /// Enable this argument to accept multiple values.
     ///
-    /// For flags, this permits the flag to be repeated where each instance
-    /// can accept exactly one value.
+    /// Note that while switches and flags can always be repeated an arbitrary
+    /// number of times, this particular method enables the flag to be
+    /// logically repeated where each occurrence of the flag may have
+    /// significance. That is, when this is disabled, then a switch is either
+    /// present or not and a flag has exactly one value (the last one given).
+    /// When this is enabled, then a switch has a count corresponding to the
+    /// number of times it is used and a flag's value is a list of all values
+    /// given.
+    ///
+    /// For the most part, this distinction is resolved by consumers of clap's
+    /// configuration.
     fn multiple(mut self) -> RGArg {
-        self.multiple = true;
-        if self.flag {
-            self.claparg = self.claparg
-                .takes_value(true)
-                .multiple(true)
-                .number_of_values(1);
-        } else {
-            self.claparg = self.claparg.multiple(true);
+        // Why not put `multiple` on RGArg proper? Because it's useful to
+        // document it distinct for each different kind. See RGArgKind docs.
+        match self.kind {
+            RGArgKind::Positional { ref mut multiple, .. } => {
+                self.claparg = self.claparg.multiple(true);
+                *multiple = true;
+            }
+            // We don't need to modify clap's state in the following cases
+            // because all switches and flags always have `multiple` enabled.
+            RGArgKind::Switch { ref mut multiple, .. } => {
+                *multiple = true;
+            }
+            RGArgKind::Flag { ref mut multiple, .. } => {
+                *multiple = true;
+            }
         }
         self
     }
 
-    /// Enable this boolean flag to be specified multiple times.
-    fn multiple_switch(mut self) -> RGArg {
-        assert!(self.flag);
-        self.claparg = self.claparg.multiple(true);
-        self
-    }
-
-    /// Set the possible values for this argument.
+    /// Set the possible values for this argument. If this argument is not
+    /// a flag, then this panics.
     ///
     /// If the end user provides any value other than what is given here, then
     /// clap will report an error to the user.
@@ -263,10 +371,16 @@ impl RGArg {
     /// when using -h/--help, so users of this method should provide
     /// appropriate documentation for the choices in the "long" help text.
     fn possible_values(mut self, values: &[&'static str]) -> RGArg {
-        self.possible_values = values.to_vec();
-        self.claparg = self.claparg
-            .possible_values(values)
-            .hide_possible_values(true);
+        match self.kind {
+            RGArgKind::Positional{..} => panic!("expected flag"),
+            RGArgKind::Switch{..} => panic!("expected flag"),
+            RGArgKind::Flag { ref mut possible_values, .. } => {
+                *possible_values = values.to_vec();
+                self.claparg = self.claparg
+                    .possible_values(values)
+                    .hide_possible_values(true);
+            }
+        }
         self
     }
 
@@ -280,10 +394,15 @@ impl RGArg {
 
     /// Permit this flag to have values that begin with a hypen.
     ///
-    /// This panics if this arg is positional.
+    /// This panics if this arg is not a flag.
     fn allow_leading_hyphen(mut self) -> RGArg {
-        assert!(self.flag);
-        self.claparg = self.claparg.allow_hyphen_values(true);
+        match self.kind {
+            RGArgKind::Positional{..} => panic!("expected flag"),
+            RGArgKind::Switch{..} => panic!("expected flag"),
+            RGArgKind::Flag {..} => {
+                self.claparg = self.claparg.allow_hyphen_values(true);
+            }
+        }
         self
     }
 
@@ -439,7 +558,7 @@ will be provided. Namely, the following is equivalent to the above:
 
     rg -- -foo
 ");
-    let arg = RGArg::positional("PATTERN")
+    let arg = RGArg::positional("pattern", "PATTERN")
         .help(SHORT).long_help(LONG)
         .required_unless(&[
             "file", "files", "regexp", "type-list",
@@ -453,7 +572,7 @@ fn arg_path(args: &mut Vec<RGArg>) {
 A file or directory to search. Directories are searched recursively. Paths \
 specified on the command line override glob and ignore rules. \
 ");
-    let arg = RGArg::positional("PATH")
+    let arg = RGArg::positional("path", "PATH")
         .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
@@ -466,9 +585,8 @@ Show NUM lines after each match.
 
 This overrides the --context flag.
 ");
-    let arg = RGArg::flag("after-context").short("A")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("after-context", "NUM").short("A")
+        .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
     args.push(arg);
@@ -481,9 +599,8 @@ Show NUM lines before each match.
 
 This overrides the --context flag.
 ");
-    let arg = RGArg::flag("before-context").short("B")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("before-context", "NUM").short("B")
+        .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
     args.push(arg);
@@ -496,7 +613,7 @@ Search case sensitively.
 
 This overrides the -i/--ignore-case and -S/--smart-case flags.
 ");
-    let arg = RGArg::flag("case-sensitive").short("s")
+    let arg = RGArg::switch("case-sensitive").short("s")
         .help(SHORT).long_help(LONG)
         .overrides("ignore-case")
         .overrides("smart-case");
@@ -524,9 +641,8 @@ The possible values for this flag are:
 When the --vimgrep flag is given to ripgrep, then the default value for the
 --color flag changes to 'never'.
 ");
-    let arg = RGArg::flag("color")
-        .help(SHORT).long_help(LONG).value_name("WHEN")
-        .takes_value()
+    let arg = RGArg::flag("color", "WHEN")
+        .help(SHORT).long_help(LONG)
         .possible_values(&["never", "auto", "always", "ansi"])
         .default_value_if("never", "vimgrep");
     args.push(arg);
@@ -562,8 +678,8 @@ that represented by the rgb value (0,128,255):
 Note that the the intense and nointense style flags will have no effect when
 used alongside these extended color codes.
 ");
-    let arg = RGArg::flag("colors")
-        .help(SHORT).long_help(LONG).value_name("COLOR_SPEC")
+    let arg = RGArg::flag("colors", "COLOR_SPEC")
+        .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
 }
@@ -575,7 +691,7 @@ Show column numbers (1-based). This only shows the column numbers for the first
 match on each line. This does not try to account for Unicode. One byte is equal
 to one column. This implies --line-number.
 ");
-    let arg = RGArg::flag("column")
+    let arg = RGArg::switch("column")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -588,9 +704,8 @@ both the -B/--before-context and -A/--after-context flags with the same value.
 
 This overrides both the -B/--before-context and -A/--after-context flags.
 ");
-    let arg = RGArg::flag("context").short("C")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("context", "NUM").short("C")
+        .help(SHORT).long_help(LONG)
         .number()
         .overrides("before-context")
         .overrides("after-context");
@@ -603,9 +718,8 @@ fn flag_context_separator(args: &mut Vec<RGArg>) {
 The string used to separate non-contiguous context lines in the output. Escape
 sequences like \\x7F or \\t may be used. The default value is --.
 ");
-    let arg = RGArg::flag("context-separator")
-        .help(SHORT).long_help(LONG).value_name("SEPARATOR")
-        .takes_value();
+    let arg = RGArg::flag("context-separator", "SEPARATOR")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -621,7 +735,7 @@ If only one file is given to ripgrep, then only the count is printed if there
 is a match. The --with-filename flag can be used to force printing the file
 path in this case.
 ");
-    let arg = RGArg::flag("count").short("c")
+    let arg = RGArg::switch("count").short("c")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -631,7 +745,7 @@ fn flag_debug(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Show debug messages. Please use this when filing a bug report.
 ");
-    let arg = RGArg::flag("debug")
+    let arg = RGArg::switch("debug")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -646,9 +760,8 @@ engine may otherwise be used if the limit is reached.
 The argument accepts the same size suffixes as allowed in with the
 --max-filesize flag.
 ");
-    let arg = RGArg::flag("dfa-size-limit")
-        .help(SHORT).long_help(LONG).value_name("NUM+SUFFIX?")
-        .takes_value();
+    let arg = RGArg::flag("dfa-size-limit", "NUM+SUFFIX?")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -661,9 +774,8 @@ detection of encoding on a per-file basis. Other supported values can be found
 in the list of labels here:
 https://encoding.spec.whatwg.org/#concept-encoding-get
 ");
-    let arg = RGArg::flag("encoding").short("E")
-        .help(SHORT).long_help(LONG).value_name("ENCODING")
-        .takes_value();
+    let arg = RGArg::flag("encoding", "ENCODING").short("E")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -677,8 +789,8 @@ input lines, and the newline is not counted as part of the pattern.
 
 A line is printed if and only if it matches at least one of the patterns.
 ");
-    let arg = RGArg::flag("file").short("f")
-        .help(SHORT).long_help(LONG).value_name("PATH")
+    let arg = RGArg::flag("file", "PATH").short("f")
+        .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
     args.push(arg);
@@ -690,10 +802,10 @@ fn flag_files(args: &mut Vec<RGArg>) {
 Print each file that would be searched without actually performing the search.
 This is useful to determine whether a particular file is being search or not.
 ");
-    let arg = RGArg::flag("files")
+    let arg = RGArg::switch("files")
         .help(SHORT).long_help(LONG)
-        // This also technically conflicts with PATTERN, but the first file
-        // path will actually be in PATTERN.
+        // This also technically conflicts with pattern, but the first file
+        // path will actually be in pattern.
         .conflicts(&["file", "regexp", "type-list"]);
     args.push(arg);
 }
@@ -705,7 +817,7 @@ Only print the paths with at least one match.
 
 This overrides --file-without-match.
 ");
-    let arg = RGArg::flag("files-with-matches").short("l")
+    let arg = RGArg::switch("files-with-matches").short("l")
         .help(SHORT).long_help(LONG)
         .overrides("files-without-match");
     args.push(arg);
@@ -718,7 +830,7 @@ Only print the paths that contain zero matches.
 
 This overrides --file-with-matches.
 ");
-    let arg = RGArg::flag("files-without-match")
+    let arg = RGArg::switch("files-without-match")
         .help(SHORT).long_help(LONG)
         .overrides("files-with-matches");
     args.push(arg);
@@ -731,7 +843,7 @@ Treat the pattern as a literal string instead of a regular expression. When
 this flag is used, special regular expression meta characters such as .(){}*+
 do not need to be escaped.
 ");
-    let arg = RGArg::flag("fixed-strings").short("F")
+    let arg = RGArg::switch("fixed-strings").short("F")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -743,7 +855,7 @@ When this flag is enabled, ripgrep will follow symbolic links while traversing
 directories. This is disabled by default. Note that ripgrep will check for
 symbolic link loops and report errors if it finds one.
 ");
-    let arg = RGArg::flag("follow").short("L")
+    let arg = RGArg::switch("follow").short("L")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -756,8 +868,8 @@ glob. This always overrides any other ignore logic. Multiple glob flags may be
 used. Globbing rules match .gitignore globs. Precede a glob with a ! to exclude
 it.
 ");
-    let arg = RGArg::flag("glob").short("g")
-        .help(SHORT).long_help(LONG).value_name("GLOB")
+    let arg = RGArg::flag("glob", "GLOB").short("g")
+        .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
     args.push(arg);
@@ -772,7 +884,7 @@ default mode when printing to a terminal.
 
 This overrides the --no-heading flag.
 ");
-    let arg = RGArg::flag("heading")
+    let arg = RGArg::switch("heading")
         .help(SHORT).long_help(LONG)
         .overrides("no-heading");
     args.push(arg);
@@ -785,7 +897,7 @@ every matched line. This is the default mode when not printing to a terminal.
 
 This overrides the --heading flag.
 ");
-    let arg = RGArg::flag("no-heading")
+    let arg = RGArg::switch("no-heading")
         .help(NO_SHORT).long_help(NO_LONG)
         .overrides("heading");
     args.push(arg);
@@ -798,7 +910,7 @@ Search hidden files and directories. By default, hidden files and directories
 are skipped. Note that if a hidden file or a directory is whitelisted in an
 ignore file, then it will be searched even if this flag isn't provided.
 ");
-    let arg = RGArg::flag("hidden")
+    let arg = RGArg::switch("hidden")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -812,8 +924,8 @@ glob. This always overrides any other ignore logic. Multiple glob flags may be
 used. Globbing rules match .gitignore globs. Precede a glob with a ! to exclude
 it. Globs are matched case insensitively.
 ");
-    let arg = RGArg::flag("iglob")
-        .help(SHORT).long_help(LONG).value_name("GLOB")
+    let arg = RGArg::flag("iglob", "GLOB")
+        .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
     args.push(arg);
@@ -828,7 +940,7 @@ Unicode's \"simple\" case folding rules.
 
 This flag overrides -s/--case-sensitive and -S/--smart-case.
 ");
-    let arg = RGArg::flag("ignore-case").short("i")
+    let arg = RGArg::switch("ignore-case").short("i")
         .help(SHORT).long_help(LONG)
         .overrides("case-sensitive")
         .overrides("smart-case");
@@ -848,8 +960,8 @@ files, earlier files have lower precedence than later files.
 If you are looking for a way to include or exclude files and directories
 directly on the command line, then used -g instead.
 ");
-    let arg = RGArg::flag("ignore-file")
-        .help(SHORT).long_help(LONG).value_name("PATH")
+    let arg = RGArg::flag("ignore-file", "PATH")
+        .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
     args.push(arg);
@@ -860,7 +972,7 @@ fn flag_invert_match(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Invert matching. Show lines that do not match the given patterns.
 ");
-    let arg = RGArg::flag("invert-match").short("v")
+    let arg = RGArg::switch("invert-match").short("v")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -871,7 +983,7 @@ fn flag_line_number(args: &mut Vec<RGArg>) {
 Show line numbers (1-based). This is enabled by default when searching in a
 terminal.
 ");
-    let arg = RGArg::flag("line-number").short("n")
+    let arg = RGArg::switch("line-number").short("n")
         .help(SHORT).long_help(LONG)
         .overrides("no-line-number");
     args.push(arg);
@@ -881,7 +993,7 @@ terminal.
 Suppress line numbers. This is enabled by default when not searching in a
 terminal.
 ");
-    let arg = RGArg::flag("no-line-number").short("N")
+    let arg = RGArg::switch("no-line-number").short("N")
         .help(NO_SHORT).long_help(NO_LONG)
         .overrides("line-number");
     args.push(arg);
@@ -893,9 +1005,8 @@ fn flag_line_number_width(args: &mut Vec<RGArg>) {
 Left pad line numbers up to NUM width. Space is used as the default padding
 character. This has no effect if --no-line-number is enabled.
 ");
-    let arg = RGArg::flag("line-number-width")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("line-number-width", "NUM")
+        .help(SHORT).long_help(LONG)
         .line_number_width();
     args.push(arg);
 }
@@ -909,7 +1020,7 @@ where the entire line participates in a match.
 
 This overrides the --word-regexp flag.
 ");
-    let arg = RGArg::flag("line-regexp").short("x")
+    let arg = RGArg::switch("line-regexp").short("x")
         .help(SHORT).long_help(LONG)
         .overrides("word-regexp");
     args.push(arg);
@@ -921,9 +1032,8 @@ fn flag_max_columns(args: &mut Vec<RGArg>) {
 Don't print lines longer than this limit in bytes. Longer lines are omitted,
 and only the number of matches in that line is printed.
 ");
-    let arg = RGArg::flag("max-columns").short("M")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("max-columns", "NUM").short("M")
+        .help(SHORT).long_help(LONG)
         .number();
     args.push(arg);
 }
@@ -933,9 +1043,8 @@ fn flag_max_count(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Limit the number of matching lines per file searched to NUM.
 ");
-    let arg = RGArg::flag("max-count").short("m")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("max-count", "NUM").short("m")
+        .help(SHORT).long_help(LONG)
         .number();
     args.push(arg);
 }
@@ -951,9 +1060,8 @@ treated as bytes.
 
 Examples: --max-filesize 50K or --max-filesize 80M
 ");
-    let arg = RGArg::flag("max-filesize")
-        .help(SHORT).long_help(LONG).value_name("NUM+SUFFIX?")
-        .takes_value();
+    let arg = RGArg::flag("max-filesize", "NUM+SUFFIX?")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -967,9 +1075,8 @@ For example, 'rg --maxdepth 0 dir/' is a no-op because dir/ will not be
 descended into. 'rg --maxdepth 1 dir/' will search only the direct children of
 'dir'.
 ");
-    let arg = RGArg::flag("maxdepth")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value()
+    let arg = RGArg::flag("maxdepth", "NUM")
+        .help(SHORT).long_help(LONG)
         .number();
     args.push(arg);
 }
@@ -989,7 +1096,7 @@ is simultaneously truncated.
 
 This flag overrides --no-mmap.
 ");
-    let arg = RGArg::flag("mmap")
+    let arg = RGArg::switch("mmap")
         .help(SHORT).long_help(LONG)
         .overrides("no-mmap");
     args.push(arg);
@@ -1000,7 +1107,7 @@ Never use memory maps, even when they might be faster.
 
 This flag overrides --mmap.
 ");
-    let arg = RGArg::flag("no-mmap")
+    let arg = RGArg::switch("no-mmap")
         .help(NO_SHORT).long_help(NO_LONG)
         .overrides("mmap");
     args.push(arg);
@@ -1012,7 +1119,7 @@ fn flag_no_ignore(args: &mut Vec<RGArg>) {
 Don't respect ignore files (.gitignore, .ignore, etc.). This implies
 --no-ignore-parent and --no-ignore-vcs.
 ");
-    let arg = RGArg::flag("no-ignore")
+    let arg = RGArg::switch("no-ignore")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1022,7 +1129,7 @@ fn flag_no_ignore_parent(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Don't respect ignore files (.gitignore, .ignore, etc.) in parent directories.
 ");
-    let arg = RGArg::flag("no-ignore-parent")
+    let arg = RGArg::switch("no-ignore-parent")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1034,7 +1141,7 @@ Don't respect version control ignore files (.gitignore, etc.). This implies
 --no-ignore-parent for VCS files. Note that .ignore files will continue to be
 respected.
 ");
-    let arg = RGArg::flag("no-ignore-vcs")
+    let arg = RGArg::switch("no-ignore-vcs")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1045,7 +1152,7 @@ fn flag_no_messages(args: &mut Vec<RGArg>) {
 Suppress all error messages. This provides the same behavior as redirecting
 stderr to /dev/null on Unix-like systems.
 ");
-    let arg = RGArg::flag("no-messages")
+    let arg = RGArg::switch("no-messages")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1058,7 +1165,7 @@ printing file paths before matches, and when printing a list of matching files
 such as with --count, --files-with-matches and --files. This option is useful
 for use with xargs.
 ");
-    let arg = RGArg::flag("null").short("0")
+    let arg = RGArg::switch("null").short("0")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1069,7 +1176,7 @@ fn flag_only_matching(args: &mut Vec<RGArg>) {
 Print only the matched (non-empty) parts of a matching line, with each such
 part on a separate output line.
 ");
-    let arg = RGArg::flag("only-matching").short("o")
+    let arg = RGArg::switch("only-matching").short("o")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1083,9 +1190,8 @@ platform's path separator, which is / on Unix and \\ on Windows. This flag is
 intended for overriding the default when the environment demands it (e.g.,
 cygwin). A path separator is limited to a single byte.
 ");
-    let arg = RGArg::flag("path-separator")
-        .help(SHORT).long_help(LONG).value_name("SEPARATOR")
-        .takes_value();
+    let arg = RGArg::flag("path-separator", "SEPARATOR")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -1102,7 +1208,7 @@ without needing to modify the pattern.
 
 This flag conflicts with the --only-matching and --replace flags.
 ");
-    let arg = RGArg::flag("passthru")
+    let arg = RGArg::switch("passthru")
         .help(SHORT).long_help(LONG)
         .alias("passthrough")
         .conflicts(&["only-matching", "replace"]);
@@ -1116,7 +1222,7 @@ This is a convenience alias for '--color always --heading --line-number'. This
 flag is useful when you still want pretty output even if you're piping ripgrep
 to another program or file. For example: 'rg -p foo | less -R'.
 ");
-    let arg = RGArg::flag("pretty").short("p")
+    let arg = RGArg::switch("pretty").short("p")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1128,7 +1234,7 @@ Do not print anything to stdout. If a match is found in a file, then ripgrep
 will stop searching. This is useful when ripgrep is used only for its exit
 code (which will be an error if no matches are found).
 ");
-    let arg = RGArg::flag("quiet").short("q")
+    let arg = RGArg::switch("quiet").short("q")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1141,9 +1247,8 @@ The upper size limit of the compiled regex. The default limit is 10M.
 The argument accepts the same size suffixes as allowed in the --max-filesize
 flag.
 ");
-    let arg = RGArg::flag("regex-size-limit")
-        .help(SHORT).long_help(LONG).value_name("NUM+SUFFIX?")
-        .takes_value();
+    let arg = RGArg::flag("regex-size-limit", "NUM+SUFFIX?")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -1164,8 +1269,8 @@ will be provided. Namely, the following is equivalent to the above:
 
     rg -- -foo
 ");
-    let arg = RGArg::flag("regexp").short("e")
-        .help(SHORT).long_help(LONG).value_name("PATTERN")
+    let arg = RGArg::flag("regexp", "PATTERN").short("e")
+        .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
     args.push(arg);
@@ -1185,9 +1290,8 @@ line. To replace the entire line, you should match the entire line.
 
 This flag can be used with the -o/--only-matching flag.
 ");
-    let arg = RGArg::flag("replace").short("r")
-        .help(SHORT).long_help(LONG).value_name("ARG")
-        .takes_value()
+    let arg = RGArg::flag("replace", "REPLACEMENT_TEXT").short("r")
+        .help(SHORT).long_help(LONG)
         .allow_leading_hyphen();
     args.push(arg);
 }
@@ -1199,7 +1303,7 @@ Search in compressed files. Currently gz, bz2, xz, and lzma files are
 supported. This option expects the decompression binaries to be available in
 your PATH.
 ");
-    let arg = RGArg::flag("search-zip").short("z")
+    let arg = RGArg::switch("search-zip").short("z")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1212,7 +1316,7 @@ sensitively otherwise.
 
 This overrides the -s/--case-sensitive and -i/--ignore-case flags.
 ");
-    let arg = RGArg::flag("smart-case").short("S")
+    let arg = RGArg::switch("smart-case").short("S")
         .help(SHORT).long_help(LONG)
         .overrides("case-sensitive")
         .overrides("ignore-case");
@@ -1225,7 +1329,7 @@ fn flag_sort_files(args: &mut Vec<RGArg>) {
 Sort results by file path. Note that this currently disables all parallelism
 and runs search in a single thread.
 ");
-    let arg = RGArg::flag("sort-files")
+    let arg = RGArg::switch("sort-files")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1245,7 +1349,7 @@ considered binary and search stops (unless this flag is present).
 Note that when the `-u/--unrestricted` flag is provided for a third time, then
 this flag is automatically enabled.
 ");
-    let arg = RGArg::flag("text").short("a")
+    let arg = RGArg::switch("text").short("a")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1256,9 +1360,8 @@ fn flag_threads(args: &mut Vec<RGArg>) {
 The approximate number of threads to use. A value of 0 (which is the default)
 causes ripgrep to choose the thread count using heuristics.
 ");
-    let arg = RGArg::flag("threads").short("j")
-        .help(SHORT).long_help(LONG).value_name("NUM")
-        .takes_value();
+    let arg = RGArg::flag("threads", "NUM").short("j")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 
@@ -1268,8 +1371,8 @@ fn flag_type(args: &mut Vec<RGArg>) {
 Only search files matching TYPE. Multiple type flags may be provided. Use the
 --type-list flag to list all available types.
 ");
-    let arg = RGArg::flag("type").short("t")
-        .help(SHORT).long_help(LONG).value_name("TYPE")
+    let arg = RGArg::flag("type", "TYPE").short("t")
+        .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
 }
@@ -1304,8 +1407,8 @@ Additional glob rules can still be added to the src type by using the
 Note that type names must consist only of Unicode letters or numbers.
 Punctuation characters are not allowed.
 ");
-    let arg = RGArg::flag("type-add")
-        .help(SHORT).long_help(LONG).value_name("TYPE_SPEC")
+    let arg = RGArg::flag("type-add", "TYPE_SPEC")
+        .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
 }
@@ -1319,8 +1422,8 @@ default type definitions that are found inside of ripgrep.
 Note that this MUST be passed to every invocation of ripgrep. Type settings are
 NOT persisted.
 ");
-    let arg = RGArg::flag("type-clear")
-        .help(SHORT).long_help(LONG).value_name("TYPE")
+    let arg = RGArg::flag("type-clear", "TYPE")
+        .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
 }
@@ -1331,8 +1434,8 @@ fn flag_type_not(args: &mut Vec<RGArg>) {
 Do not search files matching TYPE. Multiple type-not flags may be provided. Use
 the --type-list flag to list all available types.
 ");
-    let arg = RGArg::flag("type-not").short("T")
-        .help(SHORT).long_help(LONG).value_name("TYPE")
+    let arg = RGArg::flag("type-not", "TYPE").short("T")
+        .help(SHORT).long_help(LONG)
         .multiple();
     args.push(arg);
 }
@@ -1342,7 +1445,7 @@ fn flag_type_list(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Show all supported file types and their corresponding globs.
 ");
-    let arg = RGArg::flag("type-list")
+    let arg = RGArg::switch("type-list")
         .help(SHORT).long_help(LONG)
         // This also technically conflicts with PATTERN, but the first file
         // path will actually be in PATTERN.
@@ -1360,9 +1463,9 @@ directories. Three -u flags will additionally search binary files.
 -uu is roughly equivalent to grep -r and -uuu is roughly equivalent to grep -a
 -r.
 ");
-    let arg = RGArg::flag("unrestricted").short("u")
+    let arg = RGArg::switch("unrestricted").short("u")
         .help(SHORT).long_help(LONG)
-        .multiple_switch();
+        .multiple();
     args.push(arg);
 }
 
@@ -1373,7 +1476,7 @@ Show results with every match on its own line, including line numbers and
 column numbers. With this option, a line with more than one match will be
 printed more than once.
 ");
-    let arg = RGArg::flag("vimgrep")
+    let arg = RGArg::switch("vimgrep")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }
@@ -1388,7 +1491,7 @@ file; otherwise, the file name will be shown as a prefix for each matched line.
 
 This flag overrides --no-filename.
 ");
-    let arg = RGArg::flag("with-filename").short("H")
+    let arg = RGArg::switch("with-filename").short("H")
         .help(SHORT).long_help(LONG)
         .overrides("no-filename");
     args.push(arg);
@@ -1400,7 +1503,7 @@ ripgrep is explicitly instructed to search one file or stdin.
 
 This flag overrides --with-filename.
 ");
-    let arg = RGArg::flag("no-filename")
+    let arg = RGArg::switch("no-filename")
         .help(NO_SHORT).long_help(NO_LONG)
         .overrides("with-filename");
     args.push(arg);
@@ -1414,7 +1517,7 @@ putting \\b before and after all of the search patterns.
 
 This overrides the --line-regexp flag.
 ");
-    let arg = RGArg::flag("word-regexp").short("w")
+    let arg = RGArg::switch("word-regexp").short("w")
         .help(SHORT).long_help(LONG)
         .overrides("line-regexp");
     args.push(arg);
