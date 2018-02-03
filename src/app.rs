@@ -44,6 +44,14 @@ OPTIONS:
 /// This is an intentionally stand-alone module so that it can be used easily
 /// in a `build.rs` script to build shell completion files.
 pub fn app() -> App<'static, 'static> {
+    // We need to specify our version in a static because we've painted clap
+    // into a corner. We've told it that every string we give it will be
+    // 'static, but we need to build the version string dynamically. We can
+    // fake the 'static lifetime with lazy_static.
+    lazy_static! {
+        static ref LONG_VERSION: String = long_version();
+    }
+
     let arg = |name| {
         Arg::with_name(name)
             .help(USAGES[name].short)
@@ -194,6 +202,30 @@ pub fn app() -> App<'static, 'static> {
         .arg(flag("search-zip").short("z"))
 }
 
+/// Return the "long" format of ripgrep's version string.
+fn long_version() -> String {
+    // Let's say whether faster CPU instructions are enabled or not.
+    let mut features = vec![];
+    if cfg!(feature = "simd-accel") {
+        features.push("+SIMD");
+    } else {
+        features.push("-SIMD");
+    }
+    if cfg!(feature = "avx-accel") {
+        features.push("+AVX");
+    } else {
+        features.push("-AVX");
+    }
+    // Do we have a git hash?
+    // (Yes, if ripgrep was built on a machine with `git` installed.)
+    let hash = match option_env!("RIPGREP_BUILD_GIT_HASH") {
+        None => String::new(),
+        Some(githash) => format!(" (rev {})", githash),
+    };
+    // Put everything together.
+    format!("{}{}\n{}", crate_version!(), hash, features.join(" "))
+}
+
 struct Usage {
     short: &'static str,
     long: &'static str,
@@ -212,24 +244,6 @@ macro_rules! doc {
 }
 
 lazy_static! {
-    static ref LONG_VERSION: String = {
-        let mut features: Vec<&str> = vec![];
-
-        if cfg!(feature = "avx-accel") {
-            features.push("+AVX");
-        } else {
-            features.push("-AVX");
-        }
-
-        if cfg!(feature = "simd-accel") {
-            features.push("+SIMD");
-        } else {
-            features.push("-SIMD");
-        }
-
-        format!("{}\n{}", crate_version!(), features.join(" "))
-    };
-
     static ref USAGES: HashMap<&'static str, Usage> = {
         let mut h = HashMap::new();
         doc!(h, "help-short",
