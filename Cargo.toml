@@ -37,12 +37,11 @@ atty = "0.2.2"
 bytecount = "0.3.1"
 clap = "2.26"
 encoding_rs = "0.7"
-env_logger = { version = "0.4", default-features = false }
 grep = { version = "0.1.7", path = "grep" }
 ignore = { version = "0.3.1", path = "ignore" }
 lazy_static = "1"
 libc = "0.2"
-log = "0.3"
+log = "0.4"
 memchr = "2"
 memmap = "0.6"
 num_cpus = "1"

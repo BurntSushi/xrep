@@ -21,7 +21,7 @@ bench = false
 [dependencies]
 aho-corasick = "0.6.0"
 fnv = "1.0"
-log = "0.3"
+log = "0.4"
 memchr = "2"
 regex = "0.2.1"
 

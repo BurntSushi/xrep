@@ -10,7 +10,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap;
 use encoding_rs::Encoding;
-use env_logger;
 use grep::{Grep, GrepBuilder, Error as GrepError};
 use log;
 use num_cpus;
@@ -27,6 +26,7 @@ use printer::{ColorSpecs, Printer};
 use unescape::unescape;
 use worker::{Worker, WorkerBuilder};
 
+use logger::Logger;
 use Result;
 
 /// `Args` are transformed/normalized from `ArgMatches`.
@@ -91,14 +91,13 @@ impl Args {
     pub fn parse() -> Result<Args> {
         let matches = app::app().get_matches();
 
-        let mut logb = env_logger::LogBuilder::new();
-        if matches.is_present("debug") {
-            logb.filter(None, log::LogLevelFilter::Debug);
-        } else {
-            logb.filter(None, log::LogLevelFilter::Warn);
-        }
-        if let Err(err) = logb.init() {
+        if let Err(err) = Logger::init() {
             errored!("failed to initialize logger: {}", err);
+        }
+        if matches.is_present("debug") {
+            log::set_max_level(log::LevelFilter::Debug);
+        } else {
+            log::set_max_level(log::LevelFilter::Warn);
         }
         ArgMatches(matches).to_args()
     }

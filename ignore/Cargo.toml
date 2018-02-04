@@ -21,7 +21,7 @@ bench = false
 crossbeam = "0.3"
 globset = { version = "0.2.1", path = "../globset" }
 lazy_static = "1"
-log = "0.3"
+log = "0.4"
 memchr = "2"
 regex = "0.2.1"
 same-file = "1"

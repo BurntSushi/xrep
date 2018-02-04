@@ -13,7 +13,7 @@ keywords = ["regex", "grep", "egrep", "search", "pattern"]
 license = "Unlicense/MIT"
 
 [dependencies]
-log = "0.3"
+log = "0.4"
 memchr = "2"
 regex = "0.2.1"
 regex-syntax = "0.4.0"

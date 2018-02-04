@@ -3,7 +3,6 @@ extern crate bytecount;
 #[macro_use]
 extern crate clap;
 extern crate encoding_rs;
-extern crate env_logger;
 extern crate globset;
 extern crate grep;
 extern crate ignore;
@@ -42,6 +41,7 @@ mod app;
 mod args;
 mod decoder;
 mod decompressor;
+mod logger;
 mod pathutil;
 mod printer;
 mod search_buffer;
