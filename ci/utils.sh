@@ -1,6 +1,6 @@
-mktempd() {
-    echo $(mktemp -d 2>/dev/null || mktemp -d -t tmp)
-}
+#!/bin/bash
+
+# Various utility functions used through CI.
 
 host() {
     case "$TRAVIS_OS_NAME" in
@@ -15,9 +15,6 @@ host() {
 
 gcc_prefix() {
     case "$TARGET" in
-        aarch64-unknown-linux-gnu)
-            echo aarch64-linux-gnu-
-            ;;
         arm*-gnueabihf)
             echo arm-linux-gnueabihf-
             ;;
@@ -27,19 +24,8 @@ gcc_prefix() {
     esac
 }
 
-dobin() {
-    [ -z $MAKE_DEB ] && die 'dobin: $MAKE_DEB not set'
-    [ $# -lt 1 ] && die "dobin: at least one argument needed"
-
-    local f prefix=$(gcc_prefix)
-    for f in "$@"; do
-        install -m0755 $f $dtd/debian/usr/bin/
-        ${prefix}strip -s $dtd/debian/usr/bin/$(basename $f)
-    done
-}
-
 architecture() {
-    case ${TARGET:?} in
+    case "$TARGET" in
         x86_64-*)
             echo amd64
             ;;
@@ -56,9 +42,8 @@ architecture() {
 }
 
 is_ssse3_target() {
-    case "${TARGET}" in
-        i686-unknown-netbsd) return 1 ;; # i686-unknown-netbsd - SSE2
-        i686*|x86_64*)       return 0 ;;
+    case "$TARGET" in
+        x86_64*)  return 0 ;;
+        *)        return 1 ;;
     esac
-    return 1
 }

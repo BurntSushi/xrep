@@ -1,11 +1,9 @@
 language: rust
 cache:    cargo
-
 env:
   global:
-    - PROJECT_NAME=ripgrep
+    - PROJECT_NAME: ripgrep
     - RUST_BACKTRACE: full
-
 addons:
   apt:
     packages:
@@ -13,13 +11,12 @@ addons:
       - zsh
       # Needed for testing decompression search.
       - xz-utils
-
 matrix:
   fast_finish: true
   include:
     # Nightly channel.
-    # (All *nix releases are done on the nightly channel to take advantage
-    # of the regex library's multiple pattern SIMD search.)
+    # All *nix releases are done on the nightly channel to take advantage
+    # of the regex library's multiple pattern SIMD search.
     - os: linux
       rust: nightly
       env: TARGET=i686-unknown-linux-musl
@@ -39,14 +36,16 @@ matrix:
           - binutils-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
-    # Beta channel.
+    # Beta channel. We enable these to make sure there are no regressions in
+    # Rust beta releases.
     - os: linux
       rust: beta
       env: TARGET=x86_64-unknown-linux-musl
     - os: linux
       rust: beta
       env: TARGET=x86_64-unknown-linux-gnu
-    # Minimum Rust supported channel.
+    # Minimum Rust supported channel. We enable these to make sure ripgrep
+    # continues to work on the advertised minimum Rust version.
     - os: linux
       rust: 1.20.0
       env: TARGET=x86_64-unknown-linux-gnu
@@ -63,43 +62,27 @@ matrix:
           - binutils-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
-
-before_install:
-  - export PATH="$PATH:$HOME/.cargo/bin"
-
-install:
-  - bash ci/install.sh
-
-script:
-  - bash ci/script.sh
-
-before_deploy:
-  - bash ci/before_deploy.sh
-
+install: ci/install.sh
+script: ci/script.sh
+before_deploy: ci/before_deploy.sh
 deploy:
   provider: releases
+  file_glob: true
+  file: deployment/${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
+  skip_cleanup: true
+  on:
+    condition: $TRAVIS_RUST_VERSION = nightly
+    branch: ag/misc-improvements
+    # tags: true
   api_key:
     secure: "IbSnsbGkxSydR/sozOf1/SRvHplzwRUHzcTjM7BKnr7GccL86gRPUrsrvD103KjQUGWIc1TnK1YTq5M0Onswg/ORDjqa1JEJPkPdPnVh9ipbF7M2De/7IlB4X4qXLKoApn8+bx2x/mfYXu4G+G1/2QdbaKK2yfXZKyjz0YFx+6CNrVCT2Nk8q7aHvOOzAL58vsG8iPDpupuhxlMDDn/UhyOWVInmPPQ0iJR1ZUJN8xJwXvKvBbfp3AhaBiAzkhXHNLgBR8QC5noWWMXnuVDMY3k4f3ic0V+p/qGUCN/nhptuceLxKFicMCYObSZeUzE5RAI0/OBW7l3z2iCoc+TbAnn+JrX/ObJCfzgAOXAU3tLaBFMiqQPGFKjKg1ltSYXomOFP/F7zALjpvFp4lYTBajRR+O3dqaxA9UQuRjw27vOeUpMcga4ZzL4VXFHzrxZKBHN//XIGjYAVhJ1NSSeGpeJV5/+jYzzWKfwSagRxQyVCzMooYFFXzn8Yxdm3PJlmp3GaAogNkdB9qKcrEvRINCelalzALPi0hD/HUDi8DD2PNTCLLMo6VSYtvc685Zbe+KgNzDV1YyTrRCUW6JotrS0r2ULLwnsh40hSB//nNv3XmwNmC/CmW5QAnIGj8cBMF4S2t6ohADIndojdAfNiptmaZOIT6owK7bWMgPMyopo="
-  file_glob: true
-  file: ${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
-  # don't delete the artifacts from previous phases
-  skip_cleanup: true
-  # deploy when a new tag is pushed
-  on:
-    # channel to use to produce the release artifacts
-    # NOTE make sure you only release *once* per target
-    # TODO you may want to pick a different channel
-    condition: $TRAVIS_RUST_VERSION = nightly
-    tags: true
-
 branches:
   only:
     # Pushes and PR to the master branch
     - master
-    # IMPORTANT Ruby regex to match tags. Required, or travis won't trigger deploys when a new tag
-    # is pushed. This regex matches semantic versions like v1.2.3-rc4+2016.02.22
+    # Ruby regex to match tags. Required, or travis won't trigger deploys when
+    # a new tag is pushed.
     - /^\d+\.\d+\.\d+.*$/
-
 notifications:
   email:
     on_success: never
