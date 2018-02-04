@@ -403,6 +403,17 @@ context related options.)
 .RS
 .RE
 .TP
+.B \-\-no\-config
+Never read configuration files.
+When this flag is present, ripgrep will not respect the
+RIPGREP_CONFIG_PATH environment variable.
+.RS
+.PP
+If ripgrep ever grows a feature to automatically read configuration
+files in pre\-defined locations, then this flag will also disable that
+behavior as well.
+.RE
+.TP
 .B \-\-no\-messages
 Suppress all error messages.
 .RS
@@ -597,6 +608,77 @@ ripgrep.
 Note that this must be passed to every invocation of rg.
 .RS
 .RE
+.SH CONFIGURATION FILES
+.PP
+ripgrep supports reading configuration files that change ripgrep\[aq]s
+default behavior.
+The format of the configuration file is an "rc" style and is very
+simple.
+It is defined by two rules:
+.IP
+.nf
+\f[C]
+1.\ Every\ line\ is\ a\ shell\ argument,\ after\ trimming\ ASCII\ whitespace.
+2.\ Lines\ starting\ with\ \[aq]#\[aq]\ (optionally\ preceded\ by\ any\ amount\ of
+\ \ \ ASCII\ whitespace)\ are\ ignored.
+\f[]
+.fi
+.PP
+ripgrep will look for a single configuration file if and only if the
+RIPGREP_CONFIG_PATH environment variable is set and is non\-empty.
+ripgrep will parse shell arguments from this file on startup and will
+behave as if the arguments in this file were prepended to any explicit
+arguments given to ripgrep on the command line.
+.PP
+For example, if your ripgreprc file contained a single line:
+.IP
+.nf
+\f[C]
+\-\-smart\-case
+\f[]
+.fi
+.PP
+then the following command
+.IP
+.nf
+\f[C]
+RIPGREP_CONFIG_PATH=wherever/.ripgreprc\ rg\ foo
+\f[]
+.fi
+.PP
+would behave identically to the following command
+.IP
+.nf
+\f[C]
+rg\ \-\-smart\-case\ foo
+\f[]
+.fi
+.PP
+ripgrep also provides a flag, \-\-no\-config, that when present will
+suppress any and all support for configuration.
+This includes any future support for auto\-loading configuration files
+from pre\-determined paths.
+.PP
+Conflicts between configuration files and explicit arguments are handled
+exactly like conflicts in the same command line invocation.
+That is, this command:
+.IP
+.nf
+\f[C]
+RIPGREP_CONFIG_PATH=wherever/.ripgreprc\ rg\ foo\ \-\-case\-sensitive
+\f[]
+.fi
+.PP
+is exactly equivalent to
+.IP
+.nf
+\f[C]
+rg\ \-\-smart\-case\ foo\ \-\-case\-sensitive
+\f[]
+.fi
+.PP
+in which case, the \-\-case\-sensitive flag would override the
+\-\-smart\-case flag.
 .SH SHELL COMPLETION
 .PP
 Shell completion files are included in the release tarball for Bash,

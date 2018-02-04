@@ -1711,6 +1711,22 @@ fn compressed_failing_gzip() {
     assert_eq!(err.contains("not in gzip format"), true);
 }
 
+sherlock!(feature_196_persistent_config, "sherlock",
+|wd: WorkDir, mut cmd: Command| {
+    // Make sure we get no matches by default.
+    wd.assert_err(&mut cmd);
+
+    // Now add our config file, and make sure it impacts ripgrep.
+    wd.create(".ripgreprc", "--ignore-case");
+    cmd.env("RIPGREP_CONFIG_PATH", ".ripgreprc");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+});
+
 #[test]
 fn feature_740_passthru() {
     let wd = WorkDir::new("feature_740");

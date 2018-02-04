@@ -362,6 +362,50 @@ extensions.
 The syntax supported is
 [documented as part of Rust's regex library](https://doc.rust-lang.org/regex/regex/index.html#syntax).
 
+### Configuration files
+
+ripgrep supports reading configuration files that change ripgrep's default
+behavior. The format of the configuration file is an "rc" style and is very
+simple. It is defined by two rules:
+
+1. Every line is a shell argument, after trimming ASCII whitespace.
+2. Lines starting with '#' (optionally preceded by any amount of
+   ASCII whitespace) are ignored.
+
+ripgrep will look for a single configuration file if and only if the
+`RIPGREP_CONFIG_PATH` environment variable is set and is non-empty. ripgrep
+will parse shell arguments from this file on startup and will behave as if
+the arguments in this file were prepended to any explicit arguments given to
+ripgrep on the command line.
+
+For example, if your ripgreprc file contained a single line:
+
+    --smart-case
+
+then the following command
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo
+
+would behave identically to the following command
+
+    rg --smart-case foo
+
+ripgrep also provides a flag, --no-config, that when present will suppress
+any and all support for configuration. This includes any future support for
+auto-loading configuration files from pre-determined paths.
+
+Conflicts between configuration files and explicit arguments are handled
+exactly like conflicts in the same command line invocation. That is, this
+command:
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo --case-sensitive
+
+is exactly equivalent to
+
+    rg --smart-case foo --case-sensitive
+
+in which case, the --case-sensitive flag would override the --smart-case flag.
+
 ### Shell completions
 
 Shell completion files are included in the release tarball for Bash, Fish, Zsh

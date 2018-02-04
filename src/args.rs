@@ -25,6 +25,7 @@ use printer::{ColorSpecs, Printer};
 use unescape::unescape;
 use worker::{Worker, WorkerBuilder};
 
+use config;
 use logger::Logger;
 use Result;
 
@@ -88,17 +89,59 @@ impl Args {
     ///
     /// Also, initialize a global logger.
     pub fn parse() -> Result<Args> {
-        let matches = app::app().get_matches();
+        // We parse the args given on CLI. This does not include args from
+        // the config. We use the CLI args as an initial configuration while
+        // trying to parse config files. If a config file exists and has
+        // arguments, then we re-parse argv, otherwise we just use the matches
+        // we have here.
+        let early_matches = ArgMatches(app::app().get_matches());
 
         if let Err(err) = Logger::init() {
             errored!("failed to initialize logger: {}", err);
         }
+        if early_matches.is_present("debug") {
+            log::set_max_level(log::LevelFilter::Debug);
+        } else {
+            log::set_max_level(log::LevelFilter::Warn);
+        }
+
+        let matches = Args::matches(early_matches);
+        // The logging level may have changed if we brought in additional
+        // arguments from a configuration file, so recheck it and set the log
+        // level as appropriate.
         if matches.is_present("debug") {
             log::set_max_level(log::LevelFilter::Debug);
         } else {
             log::set_max_level(log::LevelFilter::Warn);
         }
-        ArgMatches(matches).to_args()
+        matches.to_args()
+    }
+
+    /// Run clap and return the matches. If clap determines a problem with the
+    /// user provided arguments (or if --help or --version are given), then an
+    /// error/usage/version will be printed and the process will exit.
+    ///
+    /// If there are no additional arguments from the environment (e.g., a
+    /// config file), then the given matches are returned as is.
+    fn matches(early_matches: ArgMatches<'static>) -> ArgMatches<'static> {
+        // If the end user says no config, then respect it.
+        if early_matches.is_present("no-config") {
+            debug!("not reading config files because --no-config is present");
+            return early_matches;
+        }
+        // If the user wants ripgrep to use a config file, then parse args
+        // from that first.
+        let mut args = config::args(early_matches.is_present("no-messages"));
+        if args.is_empty() {
+            return early_matches;
+        }
+        let mut cliargs = env::args_os();
+        if let Some(bin) = cliargs.next() {
+            args.insert(0, bin);
+        }
+        args.extend(cliargs);
+        debug!("final argv: {:?}", args);
+        ArgMatches(app::app().get_matches_from(args))
     }
 
     /// Returns true if ripgrep should print the files it will search and exit

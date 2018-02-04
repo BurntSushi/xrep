@@ -39,6 +39,7 @@ macro_rules! errored {
 
 mod app;
 mod args;
+mod config;
 mod decoder;
 mod decompressor;
 mod logger;
@@ -49,7 +50,7 @@ mod search_stream;
 mod unescape;
 mod worker;
 
-pub type Result<T> = result::Result<T, Box<Error + Send + Sync>>;
+pub type Result<T> = result::Result<T, Box<Error>>;
 
 fn main() {
     reset_sigpipe();

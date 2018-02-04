@@ -54,6 +54,7 @@ _rg() {
     '(--mmap --no-mmap)--mmap[search using memory maps when possible]'
     '(-H --with-filename --no-filename)--no-filename[suppress all file names]'
     "(-p --heading --pretty --vimgrep)--no-heading[don't group matches by file name]"
+    "--no-config[don't load configuration files]"
     "(--no-ignore-parent)--no-ignore[don't respect ignore files]"
     "--no-ignore-parent[don't respect ignore files in parent directories]"
     "--no-ignore-vcs[don't respect version control ignore files]"

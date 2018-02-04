@@ -22,6 +22,11 @@ Note that ripgrep may abort unexpectedly when using default settings if it
 searches a file that is simultaneously truncated. This behavior can be avoided
 by passing the --no-mmap flag.
 
+ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
+configuration file. The file can specify one shell argument per line. Lines
+starting with '#' are ignored. For more details, see the man page or the
+README.
+
 Project home page: https://github.com/BurntSushi/ripgrep
 
 Use -h for short descriptions and --help for more details.";
@@ -513,6 +518,7 @@ fn all_args_and_flags() -> Vec<RGArg> {
     flag_max_filesize(&mut args);
     flag_maxdepth(&mut args);
     flag_mmap(&mut args);
+    flag_no_config(&mut args);
     flag_no_ignore(&mut args);
     flag_no_ignore_parent(&mut args);
     flag_no_ignore_vcs(&mut args);
@@ -1113,6 +1119,20 @@ This flag overrides --mmap.
     args.push(arg);
 }
 
+fn flag_no_config(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Never read configuration files.";
+    const LONG: &str = long!("\
+Never read configuration files. When this flag is present, ripgrep will not
+respect the RIPGREP_CONFIG_PATH environment variable.
+
+If ripgrep ever grows a feature to automatically read configuration files in
+pre-defined locations, then this flag will also disable that behavior as well.
+");
+    let arg = RGArg::switch("no-config")
+        .help(SHORT).long_help(LONG);
+    args.push(arg);
+}
+
 fn flag_no_ignore(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Don't respect ignore files.";
     const LONG: &str = long!("\
@@ -1182,8 +1202,7 @@ part on a separate output line.
 }
 
 fn flag_path_separator(args: &mut Vec<RGArg>) {
-    const SHORT: &str =
-        "Set the path separator to use when printing file paths.";
+    const SHORT: &str = "Set the path separator.";
     const LONG: &str = long!("\
 Set the path separator to use when printing file paths. This defaults to your
 platform's path separator, which is / on Unix and \\ on Windows. This flag is

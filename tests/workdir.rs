@@ -93,6 +93,7 @@ impl WorkDir {
     /// this working directory.
     pub fn command(&self) -> process::Command {
         let mut cmd = process::Command::new(&self.bin());
+        cmd.env_remove("RIPGREP_CONFIG_PATH");
         cmd.current_dir(&self.dir);
         cmd
     }
