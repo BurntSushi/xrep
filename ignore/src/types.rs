@@ -100,28 +100,35 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("agda", &["*.agda", "*.lagda"]),
     ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
+    ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
     ("awk", &["*.awk"]),
+    ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
+    ("bzip2", &["*.bz2"]),
     ("c", &["*.c", "*.h", "*.H"]),
+    ("cabal", &["*.cabal"]),
     ("cbor", &["*.cbor"]),
     ("ceylon", &["*.ceylon"]),
     ("clojure", &["*.clj", "*.cljc", "*.cljs", "*.cljx"]),
     ("cmake", &["*.cmake", "CMakeLists.txt"]),
     ("coffeescript", &["*.coffee"]),
     ("creole", &["*.creole"]),
-    ("config", &["*.config"]),
+    ("config", &["*.cfg", "*.conf", "*.config", "*.ini"]),
     ("cpp", &[
         "*.C", "*.cc", "*.cpp", "*.cxx",
-        "*.h", "*.H", "*.hh", "*.hpp",
+        "*.h", "*.H", "*.hh", "*.hpp", "*.hxx", "*.inl",
     ]),
     ("crystal", &["Projectfile", "*.cr"]),
     ("cs", &["*.cs"]),
     ("csharp", &["*.cs"]),
+    ("cshtml", &["*.cshtml"]),
     ("css", &["*.css", "*.scss"]),
     ("cython", &["*.pyx"]),
     ("dart", &["*.dart"]),
     ("d", &["*.d"]),
+    ("docker", &["*Dockerfile*"]),
     ("elisp", &["*.el"]),
     ("elixir", &["*.ex", "*.eex", "*.exs"]),
+    ("elm", &["*.elm"]),
     ("erlang", &["*.erl", "*.hrl"]),
     ("fish", &["*.fish"]),
     ("fortran", &[
@@ -129,32 +136,74 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "*.f90", "*.F90", "*.f95", "*.F95",
     ]),
     ("fsharp", &["*.fs", "*.fsx", "*.fsi"]),
+    ("gn", &["*.gn", "*.gni"]),
     ("go", &["*.go"]),
+    ("gzip", &["*.gz"]),
     ("groovy", &["*.groovy", "*.gradle"]),
     ("h", &["*.h", "*.hpp"]),
     ("hbs", &["*.hbs"]),
     ("haskell", &["*.hs", "*.lhs"]),
     ("html", &["*.htm", "*.html", "*.ejs"]),
     ("java", &["*.java"]),
-    ("jinja", &["*.jinja", "*.jinja2"]),
+    ("jinja", &["*.j2", "*.jinja", "*.jinja2"]),
     ("js", &[
         "*.js", "*.jsx", "*.vue",
     ]),
-    ("json", &["*.json"]),
+    ("json", &["*.json", "composer.lock"]),
     ("jsonl", &["*.jsonl"]),
+    ("julia", &["*.jl"]),
+    ("jupyter", &["*.ipynb", "*.jpynb"]),
+    ("jl", &["*.jl"]),
     ("kotlin", &["*.kt", "*.kts"]),
     ("less", &["*.less"]),
+    ("license", &[
+        // General
+        "COPYING", "COPYING[.-]*",
+        "COPYRIGHT", "COPYRIGHT[.-]*",
+        "EULA", "EULA[.-]*",
+        "licen[cs]e", "licen[cs]e.*",
+        "LICEN[CS]E", "LICEN[CS]E[.-]*", "*[.-]LICEN[CS]E*",
+        "NOTICE", "NOTICE[.-]*",
+        "PATENTS", "PATENTS[.-]*",
+        "UNLICEN[CS]E", "UNLICEN[CS]E[.-]*",
+        // GPL (gpl.txt, etc.)
+        "agpl[.-]*",
+        "gpl[.-]*",
+        "lgpl[.-]*",
+        // Other license-specific (APACHE-2.0.txt, etc.)
+        "AGPL-*[0-9]*",
+        "APACHE-*[0-9]*",
+        "BSD-*[0-9]*",
+        "CC-BY-*",
+        "GFDL-*[0-9]*",
+        "GNU-*[0-9]*",
+        "GPL-*[0-9]*",
+        "LGPL-*[0-9]*",
+        "MIT-*[0-9]*",
+        "MPL-*[0-9]*",
+        "OFL-*[0-9]*",
+    ]),
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
+    ("lzma", &["*.lzma"]),
     ("m4", &["*.ac", "*.m4"]),
-    ("make", &["gnumakefile", "Gnumakefile", "makefile", "Makefile", "*.mk", "*.mak"]),
+    ("make", &[
+        "gnumakefile", "Gnumakefile", "GNUmakefile",
+        "makefile", "Makefile",
+        "*.mk", "*.mak"
+    ]),
     ("markdown", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
     ("md", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
+    ("man", &["*.[0-9lnpx]", "*.[0-9][cEFMmpSx]"]),
     ("matlab", &["*.m"]),
     ("mk", &["mkfile"]),
     ("ml", &["*.ml"]),
+    ("msbuild", &[
+        "*.csproj", "*.fsproj", "*.vcxproj", "*.proj", "*.props", "*.targets"
+    ]),
     ("nim", &["*.nim"]),
+    ("nix", &["*.nix"]),
     ("objc", &["*.h", "*.m"]),
     ("objcpp", &["*.h", "*.mm"]),
     ("ocaml", &["*.ml", "*.mli", "*.mll", "*.mly"]),
@@ -163,8 +212,11 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("pdf", &["*.pdf"]),
     ("php", &["*.php", "*.php3", "*.php4", "*.php5", "*.phtml"]),
     ("pod", &["*.pod"]),
+    ("protobuf", &["*.proto"]),
     ("ps", &["*.cdxml", "*.ps1", "*.ps1xml", "*.psd1", "*.psm1"]),
+    ("purs", &["*.purs"]),
     ("py", &["*.py"]),
+    ("qmake", &["*.pro", "*.pri", "*.prf"]),
     ("readme", &["README*", "*README"]),
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
     ("rdoc", &["*.rdoc"]),
@@ -173,18 +225,49 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("rust", &["*.rs"]),
     ("sass", &["*.sass", "*.scss"]),
     ("scala", &["*.scala"]),
-    ("sh", &["*.bash", "*.csh", "*.ksh", "*.sh", "*.tcsh"]),
+    ("sh", &[
+        // Portable/misc. init files
+        ".login", ".logout", ".profile", "profile",
+        // bash-specific init files
+        ".bash_login", "bash_login",
+        ".bash_logout", "bash_logout",
+        ".bash_profile", "bash_profile",
+        ".bashrc", "bashrc", "*.bashrc",
+        // csh-specific init files
+        ".cshrc", "*.cshrc",
+        // ksh-specific init files
+        ".kshrc", "*.kshrc",
+        // tcsh-specific init files
+        ".tcshrc",
+        // zsh-specific init files
+        ".zshenv", "zshenv",
+        ".zlogin", "zlogin",
+        ".zlogout", "zlogout",
+        ".zprofile", "zprofile",
+        ".zshrc", "zshrc",
+        // Extensions
+        "*.bash", "*.csh", "*.ksh", "*.sh", "*.tcsh", "*.zsh",
+    ]),
+    ("smarty", &["*.tpl"]),
+    ("sml", &["*.sml", "*.sig"]),
+    ("soy", &["*.soy"]),
     ("spark", &["*.spark"]),
+    ("sql", &["*.sql", "*.psql"]),
     ("stylus", &["*.styl"]),
-    ("sql", &["*.sql"]),
     ("sv", &["*.v", "*.vg", "*.sv", "*.svh", "*.h"]),
     ("svg", &["*.svg"]),
     ("swift", &["*.swift"]),
     ("swig", &["*.def", "*.i"]),
+    ("systemd", &[
+        "*.automount", "*.conf", "*.device", "*.link", "*.mount", "*.path",
+        "*.scope", "*.service", "*.slice", "*.socket", "*.swap", "*.target",
+        "*.timer",
+    ]),
     ("taskpaper", &["*.taskpaper"]),
     ("tcl", &["*.tcl"]),
     ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib"]),
     ("textile", &["*.textile"]),
+    ("tf", &["*.tf"]),
     ("ts", &["*.ts", "*.tsx"]),
     ("txt", &["*.txt"]),
     ("toml", &["*.toml", "Cargo.lock"]),
@@ -194,10 +277,19 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("vim", &["*.vim"]),
     ("vimscript", &["*.vim"]),
     ("wiki", &["*.mediawiki", "*.wiki"]),
-    ("xml", &["*.xml"]),
+    ("webidl", &["*.idl", "*.webidl", "*.widl"]),
+    ("xml", &["*.xml", "*.xml.dist"]),
+    ("xz", &["*.xz"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
-    ("zsh", &["zshenv", ".zshenv", "zprofile", ".zprofile", "zshrc", ".zshrc", "zlogin", ".zlogin", "zlogout", ".zlogout", "*.zsh"]),
+    ("zsh", &[
+        ".zshenv", "zshenv",
+        ".zlogin", "zlogin",
+        ".zlogout", "zlogout",
+        ".zprofile", "zprofile",
+        ".zshrc", "zshrc",
+        "*.zsh",
+    ]),
 ];
 
 /// Glob represents a single glob in a set of file type definitions.
@@ -443,18 +535,23 @@ impl TypesBuilder {
                 }
             };
             for (iglob, glob) in def.globs.iter().enumerate() {
-                build_set.add(try!(
+                build_set.add(
                     GlobBuilder::new(glob)
                         .literal_separator(true)
                         .build()
-                        .map_err(|err| Error::Glob(err.to_string()))));
+                        .map_err(|err| {
+                            Error::Glob {
+                                glob: Some(glob.to_string()),
+                                err: err.kind().to_string(),
+                            }
+                        })?);
                 glob_to_selection.push((isel, iglob));
             }
             selections.push(selection.clone().map(move |_| def));
         }
-        let set = try!(build_set.build().map_err(|err| {
-            Error::Glob(err.to_string())
-        }));
+        let set = build_set.build().map_err(|err| {
+            Error::Glob { glob: None, err: err.to_string() }
+        })?;
         Ok(Types {
             defs: defs,
             selections: selections,
@@ -567,7 +664,7 @@ impl TypesBuilder {
                 for type_name in types {
                     let globs = self.types.get(type_name).unwrap().globs.clone();
                     for glob in globs {
-                        try!(self.add(name, &glob));
+                        self.add(name, &glob)?;
                     }
                 }
                 Ok(())

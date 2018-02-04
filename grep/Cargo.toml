@@ -1,6 +1,6 @@
 [package]
 name = "grep"
-version = "0.1.6"  #:version
+version = "0.1.7"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Fast line oriented regex searching as a library.
@@ -13,7 +13,7 @@ keywords = ["regex", "grep", "egrep", "search", "pattern"]
 license = "Unlicense/MIT"
 
 [dependencies]
-log = "0.3"
-memchr = "1"
+log = "0.4"
+memchr = "2"
 regex = "0.2.1"
 regex-syntax = "0.4.0"

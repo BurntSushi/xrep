@@ -3,8 +3,8 @@ The `search_buffer` module is responsible for searching a single file all in a
 single buffer. Typically, the source of the buffer is a memory map. This can
 be useful for when memory maps are faster than streaming search.
 
-Note that this module doesn't quite support everything that `search_stream` does.
-Notably, showing contexts.
+Note that this module doesn't quite support everything that `search_stream`
+does. Notably, showing contexts.
 */
 use std::cmp;
 use std::path::Path;
@@ -113,7 +113,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
 
     #[inline(never)]
     pub fn run(mut self) -> u64 {
-        let binary_upto = cmp::min(10240, self.buf.len());
+        let binary_upto = cmp::min(10_240, self.buf.len());
         if !self.opts.text && is_binary(&self.buf[..binary_upto], true) {
             return 0;
         }

@@ -1,6 +1,6 @@
 [package]
 name = "ignore"
-version = "0.1.8"  #:version
+version = "0.3.1"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A fast library for efficiently matching ignore files such as `.gitignore`
@@ -18,20 +18,22 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam = "0.2"
-globset = { version = "0.1.4", path = "../globset" }
-lazy_static = "0.2"
-log = "0.3"
-memchr = "1"
+crossbeam = "0.3"
+globset = { version = "0.2.1", path = "../globset" }
+lazy_static = "1"
+log = "0.4"
+memchr = "2"
 regex = "0.2.1"
+same-file = "1"
 thread_local = "0.3.2"
-walkdir = "1.0.7"
+walkdir = "2"
+
+[target.'cfg(windows)'.dependencies.winapi]
+version = "0.3"
+features = ["std", "winnt"]
 
 [dev-dependencies]
 tempdir = "0.3.5"
 
 [features]
 simd-accel = ["globset/simd-accel"]
-
-[profile.release]
-debug = true

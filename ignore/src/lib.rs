@@ -54,10 +54,13 @@ extern crate lazy_static;
 extern crate log;
 extern crate memchr;
 extern crate regex;
+extern crate same_file;
 #[cfg(test)]
 extern crate tempdir;
 extern crate thread_local;
 extern crate walkdir;
+#[cfg(windows)]
+extern crate winapi;
 
 use std::error;
 use std::fmt;
@@ -112,7 +115,17 @@ pub enum Error {
     /// An error that occurs when doing I/O, such as reading an ignore file.
     Io(io::Error),
     /// An error that occurs when trying to parse a glob.
-    Glob(String),
+    Glob {
+        /// The original glob that caused this error. This glob, when
+        /// available, always corresponds to the glob provided by an end user.
+        /// e.g., It is the glob as written in a `.gitignore` file.
+        ///
+        /// (This glob may be distinct from the glob that is actually
+        /// compiled, after accounting for `gitignore` semantics.)
+        glob: Option<String>,
+        /// The underlying glob error as a string.
+        err: String,
+    },
     /// A type selection for a file type that is not defined.
     UnrecognizedFileType(String),
     /// A user specified file type definition could not be parsed.
@@ -144,7 +157,7 @@ impl Error {
             Error::WithDepth { ref err, .. } => err.is_io(),
             Error::Loop { .. } => false,
             Error::Io(_) => true,
-            Error::Glob(_) => false,
+            Error::Glob { .. } => false,
             Error::UnrecognizedFileType(_) => false,
             Error::InvalidDefinition => false,
         }
@@ -188,6 +201,29 @@ impl Error {
         }
         errline.with_path(path)
     }
+
+    /// Build an error from a walkdir error.
+    fn from_walkdir(err: walkdir::Error) -> Error {
+        let depth = err.depth();
+        if let (Some(anc), Some(child)) = (err.loop_ancestor(), err.path()) {
+            return Error::WithDepth {
+                depth: depth,
+                err: Box::new(Error::Loop {
+                    ancestor: anc.to_path_buf(),
+                    child: child.to_path_buf(),
+                }),
+            };
+        }
+        let path = err.path().map(|p| p.to_path_buf());
+        let mut ig_err = Error::Io(io::Error::from(err));
+        if let Some(path) = path {
+            ig_err = Error::WithPath {
+                path: path,
+                err: Box::new(ig_err),
+            };
+        }
+        ig_err
+    }
 }
 
 impl error::Error for Error {
@@ -199,7 +235,7 @@ impl error::Error for Error {
             Error::WithDepth { ref err, .. } => err.description(),
             Error::Loop { .. } => "file system loop found",
             Error::Io(ref err) => err.description(),
-            Error::Glob(ref msg) => msg,
+            Error::Glob { ref err, .. } => err,
             Error::UnrecognizedFileType(_) => "unrecognized file type",
             Error::InvalidDefinition => "invalid definition",
         }
@@ -227,7 +263,10 @@ impl fmt::Display for Error {
                           child.display(), ancestor.display())
             }
             Error::Io(ref err) => err.fmt(f),
-            Error::Glob(ref msg) => write!(f, "{}", msg),
+            Error::Glob { glob: None, ref err } => write!(f, "{}", err),
+            Error::Glob { glob: Some(ref glob), ref err } => {
+                write!(f, "error parsing glob '{}': {}", glob, err)
+            }
             Error::UnrecognizedFileType(ref ty) => {
                 write!(f, "unrecognized file type: {}", ty)
             }
@@ -242,30 +281,6 @@ impl fmt::Display for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Error {
         Error::Io(err)
-    }
-}
-
-impl From<walkdir::Error> for Error {
-    fn from(err: walkdir::Error) -> Error {
-        let depth = err.depth();
-        if let (Some(anc), Some(child)) = (err.loop_ancestor(), err.path()) {
-            return Error::WithDepth {
-                depth: depth,
-                err: Box::new(Error::Loop {
-                    ancestor: anc.to_path_buf(),
-                    child: child.to_path_buf(),
-                }),
-            };
-        }
-        let path = err.path().map(|p| p.to_path_buf());
-        let mut ig_err = Error::Io(io::Error::from(err));
-        if let Some(path) = path {
-            ig_err = Error::WithPath {
-                path: path,
-                err: Box::new(ig_err),
-            };
-        }
-        ig_err
     }
 }
 

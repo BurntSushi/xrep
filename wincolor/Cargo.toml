@@ -1,6 +1,6 @@
 [package]
 name = "wincolor"
-version = "0.1.3"  #:version
+version = "0.1.5"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A simple Windows specific API for controlling text color in a Windows console.
@@ -17,5 +17,4 @@ name = "wincolor"
 bench = false
 
 [dependencies]
-kernel32-sys = "0.2.2"
-winapi = "0.2.8"
+winapi = { version = "0.3", features = ["minwindef", "processenv", "winbase", "wincon"] }

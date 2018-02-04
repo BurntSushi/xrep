@@ -124,7 +124,7 @@ impl OverrideBuilder {
     ///
     /// Once a matcher is built, no new globs can be added to it.
     pub fn build(&self) -> Result<Override, Error> {
-        Ok(Override(try!(self.builder.build())))
+        Ok(Override(self.builder.build()?))
     }
 
     /// Add a glob to the set of overrides.
@@ -134,7 +134,17 @@ impl OverrideBuilder {
     /// namely, `!` at the beginning of a glob will ignore a file. Without `!`,
     /// all matches of the glob provided are treated as whitelist matches.
     pub fn add(&mut self, glob: &str) -> Result<&mut OverrideBuilder, Error> {
-        try!(self.builder.add_line(None, glob));
+        self.builder.add_line(None, glob)?;
+        Ok(self)
+    }
+
+    /// Toggle whether the globs should be matched case insensitively or not.
+    /// 
+    /// This is disabled by default.
+    pub fn case_insensitive(
+        &mut self, yes: bool
+    ) -> Result<&mut OverrideBuilder, Error> {
+        self.builder.case_insensitive(yes)?;
         Ok(self)
     }
 }
@@ -192,8 +202,9 @@ mod tests {
     #[test]
     fn gitignore() {
         let ov = ov(&["/foo", "bar/*.rs", "baz/**"]);
+        assert!(ov.matched("bar/lib.rs", false).is_whitelist());
         assert!(ov.matched("bar/wat/lib.rs", false).is_ignore());
-        assert!(ov.matched("wat/bar/lib.rs", false).is_whitelist());
+        assert!(ov.matched("wat/bar/lib.rs", false).is_ignore());
         assert!(ov.matched("foo", false).is_whitelist());
         assert!(ov.matched("wat/foo", false).is_ignore());
         assert!(ov.matched("baz", false).is_ignore());
@@ -219,5 +230,28 @@ mod tests {
     fn absolute_path() {
         let ov = ov(&["!/bar"]);
         assert!(ov.matched("./foo/bar", false).is_none());
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let ov = OverrideBuilder::new(ROOT)
+            .case_insensitive(true).unwrap()
+            .add("*.html").unwrap()
+            .build().unwrap();
+        assert!(ov.matched("foo.html", false).is_whitelist());
+        assert!(ov.matched("foo.HTML", false).is_whitelist());
+        assert!(ov.matched("foo.htm", false).is_ignore());
+        assert!(ov.matched("foo.HTM", false).is_ignore());
+    }
+
+    #[test]
+    fn default_case_sensitive() {
+        let ov = OverrideBuilder::new(ROOT)
+            .add("*.html").unwrap()
+            .build().unwrap();
+        assert!(ov.matched("foo.html", false).is_whitelist());
+        assert!(ov.matched("foo.HTML", false).is_ignore());
+        assert!(ov.matched("foo.htm", false).is_ignore());
+        assert!(ov.matched("foo.HTM", false).is_ignore());
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "ripgrep"
-version = "0.5.0"  #:version
+version = "0.7.1"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Line oriented search tool using Rust's regex library. Combines the raw
@@ -16,6 +16,10 @@ license = "Unlicense/MIT"
 exclude = ["HomebrewFormula"]
 build = "build.rs"
 
+[badges]
+travis-ci = { repository = "BurntSushi/ripgrep" }
+appveyor = { repository = "BurntSushi/ripgrep" }
+
 [[bin]]
 bench = false
 path = "src/main.rs"
@@ -25,31 +29,50 @@ name = "rg"
 name = "integration"
 path = "tests/tests.rs"
 
+[workspace]
+members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
+
 [dependencies]
 atty = "0.2.2"
-bytecount = "0.1.4"
-clap = "2.20.5"
-encoding_rs = "0.5.0"
-env_logger = { version = "0.4", default-features = false }
-grep = { version = "0.1.5", path = "grep" }
-ignore = { version = "0.1.7", path = "ignore" }
-lazy_static = "0.2"
+bytecount = "0.3.1"
+encoding_rs = "0.7"
+grep = { version = "0.1.7", path = "grep" }
+ignore = { version = "0.3.1", path = "ignore" }
+lazy_static = "1"
 libc = "0.2"
-log = "0.3"
-memchr = "1"
-memmap = "0.5"
+log = "0.4"
+memchr = "2"
+memmap = "0.6"
 num_cpus = "1"
-regex = "0.2.1"
-same-file = "0.1.1"
-termcolor = { version = "0.3.0", path = "termcolor" }
+regex = "0.2.4"
+same-file = "1"
+termcolor = { version = "0.3.3", path = "termcolor" }
+globset = { version = "0.2.1", path = "globset" }
+
+[dependencies.clap]
+version = "2.26"
+default-features = false
+features = ["suggestions", "color"]
+
+[target.'cfg(windows)'.dependencies.winapi]
+version = "0.3"
+features = ["std", "winnt"]
 
 [build-dependencies]
-clap = "2.18"
-lazy_static = "0.2"
+lazy_static = "1"
+
+[build-dependencies.clap]
+version = "2.26"
+default-features = false
+features = ["suggestions", "color"]
 
 [features]
 avx-accel = ["bytecount/avx-accel"]
-simd-accel = ["bytecount/simd-accel", "regex/simd-accel"]
+simd-accel = [
+  "bytecount/simd-accel",
+  "regex/simd-accel",
+  "encoding_rs/simd-accel",
+]
 
 [profile.release]
 debug = true

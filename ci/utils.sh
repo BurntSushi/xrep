@@ -39,11 +39,11 @@ dobin() {
 }
 
 architecture() {
-    case $1 in
-        x86_64-unknown-linux-gnu|x86_64-unknown-linux-musl)
+    case ${TARGET:?} in
+        x86_64-*)
             echo amd64
             ;;
-        i686-unknown-linux-gnu|i686-unknown-linux-musl)
+        i686-*|i586-*|i386-*)
             echo i386
             ;;
         arm*-unknown-linux-gnueabihf)
@@ -53,4 +53,12 @@ architecture() {
             die "architecture: unexpected target $TARGET"
             ;;
     esac
+}
+
+is_ssse3_target() {
+    case "${TARGET}" in
+        i686-unknown-netbsd) return 1 ;; # i686-unknown-netbsd - SSE2
+        i686*|x86_64*)       return 0 ;;
+    esac
+    return 1
 }

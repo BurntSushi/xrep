@@ -13,7 +13,7 @@ use std::time::Duration;
 static TEST_DIR: &'static str = "ripgrep-tests";
 static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// WorkDir represents a directory in which tests are run.
+/// `WorkDir` represents a directory in which tests are run.
 ///
 /// Directories are created from a global atomic counter to avoid duplicates.
 #[derive(Debug)]
@@ -41,9 +41,17 @@ impl WorkDir {
         }
     }
 
-    /// Create a new file with the given name and contents in this directory.
+    /// Create a new file with the given name and contents in this directory,
+    /// or panic on error.
     pub fn create<P: AsRef<Path>>(&self, name: P, contents: &str) {
         self.create_bytes(name, contents.as_bytes());
+    }
+
+    /// Try to create a new file with the given name and contents in this
+    /// directory.
+    pub fn try_create<P: AsRef<Path>>(&self, name: P, contents: &str) -> io::Result<()> {
+        let path = self.dir.join(name);
+        self.try_create_bytes(path, contents.as_bytes())
     }
 
     /// Create a new file with the given name and size.
@@ -53,12 +61,19 @@ impl WorkDir {
         nice_err(&path, file.set_len(filesize));
     }
 
-    /// Create a new file with the given name and contents in this directory.
+    /// Create a new file with the given name and contents in this directory,
+    /// or panic on error.
     pub fn create_bytes<P: AsRef<Path>>(&self, name: P, contents: &[u8]) {
         let path = self.dir.join(name);
-        let mut file = nice_err(&path, File::create(&path));
-        nice_err(&path, file.write_all(contents));
-        nice_err(&path, file.flush());
+        nice_err(&path, self.try_create_bytes(&path, contents));
+    }
+
+    /// Try to create a new file with the given name and contents in this
+    /// directory.
+    fn try_create_bytes<P: AsRef<Path>>(&self, path: P, contents: &[u8]) -> io::Result<()> {
+        let mut file = File::create(&path)?;
+        file.write_all(contents)?;
+        file.flush()
     }
 
     /// Remove a file with the given name from this directory.
@@ -78,6 +93,7 @@ impl WorkDir {
     /// this working directory.
     pub fn command(&self) -> process::Command {
         let mut cmd = process::Command::new(&self.bin());
+        cmd.env_remove("RIPGREP_CONFIG_PATH");
         cmd.current_dir(&self.dir);
         cmd
     }
@@ -245,6 +261,23 @@ impl WorkDir {
     pub fn assert_err(&self, cmd: &mut process::Command) {
         let o = cmd.output().unwrap();
         if o.status.success() {
+            panic!("\n\n===== {:?} =====\n\
+                    command succeeded but expected failure!\
+                    \n\ncwd: {}\
+                    \n\nstatus: {}\
+                    \n\nstdout: {}\n\nstderr: {}\
+                    \n\n=====\n",
+                   cmd, self.dir.display(), o.status,
+                   String::from_utf8_lossy(&o.stdout),
+                   String::from_utf8_lossy(&o.stderr));
+        }
+    }
+
+    /// Runs the given command and asserts that something was printed to
+    /// stderr.
+    pub fn assert_non_empty_stderr(&self, cmd: &mut process::Command) {
+        let o = cmd.output().unwrap();
+        if o.status.success() || o.stderr.is_empty() {
             panic!("\n\n===== {:?} =====\n\
                     command succeeded but expected failure!\
                     \n\ncwd: {}\

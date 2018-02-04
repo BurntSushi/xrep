@@ -1082,7 +1082,7 @@ def download_subtitles_en(suite_dir):
     if not os.path.exists(en_path):
         if not os.path.exists(en_path_gz):
             run_cmd(['curl', '-LO', SUBTITLES_EN_URL], cwd=subtitle_dir)
-        run_cmd(['gunzip', en_path_gz], cwd=subtitle_dir)
+        run_cmd(['gunzip', en_path_gz])
     if not os.path.exists(en_path_sample):
         # Get a sample roughly the same size as the Russian corpus so that
         # benchmarks finish in a reasonable time.
@@ -1109,7 +1109,7 @@ def download_subtitles_ru(suite_dir):
     if not os.path.exists(ru_path):
         if not os.path.exists(ru_path_gz):
             run_cmd(['curl', '-LO', SUBTITLES_RU_URL], cwd=subtitle_dir)
-        run_cmd(['gunzip', ru_path_gz], cwd=subtitle_dir)
+        run_cmd(['gunzip', ru_path_gz])
 
 
 def has_subtitles_ru(suite_dir):
@@ -1184,6 +1184,7 @@ def collect_benchmarks(suite_dir, filter_pat=None,
                     name,
                     ' '.join(['--download %s' % n for n in e.missing_names]),
                 ))
+            continue
         except MissingCommands as e:
             fmt = 'missing commands: %s, skipping benchmark %s ' \
                   '(run with --allow-missing to run incomplete benchmarks)'
@@ -1239,7 +1240,7 @@ def main():
         benchmarks = collect_benchmarks(
             args.dir, filter_pat=args.bench,
             allow_missing_commands=args.allow_missing,
-            disabled_cmds=args.disabled.split(','),
+            disabled_cmds=(args.disabled or '').split(','),
             warmup_iter=args.warmup_iter, bench_iter=args.bench_iter)
         for b in benchmarks:
             print(b.name)
@@ -1266,7 +1267,7 @@ def main():
     benchmarks = collect_benchmarks(
         args.dir, filter_pat=args.bench,
         allow_missing_commands=args.allow_missing,
-        disabled_cmds=args.disabled.split(','),
+        disabled_cmds=(args.disabled or '').split(','),
         warmup_iter=args.warmup_iter, bench_iter=args.bench_iter)
     for i, b in enumerate(benchmarks):
         result = b.run()

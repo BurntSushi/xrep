@@ -1,10 +1,10 @@
 ripgrep (rg)
 ------------
-`ripgrep` is a line oriented search tool that combines the usability of The
-Silver Searcher (similar to `ack`) with the raw speed of GNU grep. `ripgrep`
-works by recursively searching your current directory for a regex pattern.
-`ripgrep` has first class support on Windows, Mac and Linux, with binary
-downloads available for
+`ripgrep` is a line-oriented search tool that recursively searches your current
+directory for a regex pattern while respecting your gitignore rules. To a first
+approximation, ripgrep combines the usability of The Silver Searcher (similar
+to `ack`) with the raw speed of GNU grep. `ripgrep` has first class support on
+Windows, macOS and Linux, with binary downloads available for
 [every release](https://github.com/BurntSushi/ripgrep/releases).
 
 [![Linux build status](https://travis-ci.org/BurntSushi/ripgrep.svg?branch=master)](https://travis-ci.org/BurntSushi/ripgrep)
@@ -34,50 +34,50 @@ for a very detailed comparison with more benchmarks and analysis.
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep (Unicode) | `rg -n -w '[A-Z]+_SUSPEND'` | 450 | **0.134s** |
-| [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 450 | 0.753s |
-| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=C git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 0.823s |
-| [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 2.880s |
-| [sift](https://github.com/svent/sift) | `sift --git -n -w '[A-Z]+_SUSPEND'` | 450 | 3.656s |
-| [The Platinum Searcher](https://github.com/monochromegane/the_platinum_searcher) | `pt -w -e '[A-Z]+_SUSPEND'` | 450 | 12.369s |
-| [ack](https://github.com/petdance/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 16.952s |
+| ripgrep (Unicode) | `rg -n -w '[A-Z]+_SUSPEND'` | 450 | **0.106s** |
+| [git grep](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=C git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 0.553s |
+| [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 450 | 0.589s |
+| [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 2.266s |
+| [sift](https://github.com/svent/sift) | `sift --git -n -w '[A-Z]+_SUSPEND'` | 450 | 3.505s |
+| [ack](https://github.com/petdance/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 6.823s |
+| [The Platinum Searcher](https://github.com/monochromegane/the_platinum_searcher) | `pt -w -e '[A-Z]+_SUSPEND'` | 450 | 14.208s |
 
 (Yes, `ack` [has](https://github.com/petdance/ack2/issues/445) a
 [bug](https://github.com/petdance/ack2/issues/14).)
 
 Here's another benchmark that disregards gitignore files and searches with a
 whitelist instead. The corpus is the same as in the previous benchmark, and the
-flags passed to each command ensures that they are doing equivalent work:
+flags passed to each command ensure that they are doing equivalent work:
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep | `rg -L -u -tc -n -w '[A-Z]+_SUSPEND'` | 404 | **0.108s** |
-| [ucg](https://github.com/gvansickle/ucg) | `ucg --type=cc -w '[A-Z]+_SUSPEND'` | 392 | 0.219s |
-| [GNU grep](https://www.gnu.org/software/grep/) | `egrep -R -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 404 | 0.733s |
+| ripgrep | `rg -L -u -tc -n -w '[A-Z]+_SUSPEND'` | 404 | **0.079s** |
+| [ucg](https://github.com/gvansickle/ucg) | `ucg --type=cc -w '[A-Z]+_SUSPEND'` | 390 | 0.163s |
+| [GNU grep](https://www.gnu.org/software/grep/) | `egrep -R -n --include='*.c' --include='*.h' -w '[A-Z]+_SUSPEND'` | 404 | 0.611s |
 
 (`ucg` [has slightly different behavior in the presence of symbolic links](https://github.com/gvansickle/ucg/issues/106).)
 
-And finally, a straight up comparison between ripgrep and GNU grep on a single
+And finally, a straight-up comparison between ripgrep and GNU grep on a single
 large file (~9.3GB,
 [`OpenSubtitles2016.raw.en.gz`](http://opus.lingfil.uu.se/OpenSubtitles2016/mono/OpenSubtitles2016.raw.en.gz)):
 
 | Tool | Command | Line count | Time |
 | ---- | ------- | ---------- | ---- |
-| ripgrep | `rg -w 'Sherlock [A-Z]\w+'` | 5268 | **2.520s** |
-| [GNU grep](https://www.gnu.org/software/grep/) | `LC_ALL=C egrep -w 'Sherlock [A-Z]\w+'` | 5268 | 7.143s |
+| ripgrep | `rg -w 'Sherlock [A-Z]\w+'` | 5268 | **2.108s** |
+| [GNU grep](https://www.gnu.org/software/grep/) | `LC_ALL=C egrep -w 'Sherlock [A-Z]\w+'` | 5268 | 7.014s |
 
 In the above benchmark, passing the `-n` flag (for showing line numbers)
-increases the times to `3.081s` for ripgrep and `11.403s` for GNU grep.
+increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
 
 ### Why should I use `ripgrep`?
 
-* It can replace both The Silver Searcher and GNU grep because it is faster
-  than both. (N.B. It is not, strictly speaking, a "drop-in" replacement for
-  both, but the feature sets are far more similar than different.)
+* It can replace both The Silver Searcher and GNU grep because it is generally
+  faster than both. (N.B. It is not, strictly speaking, a "drop-in" replacement
+  for both, but the feature sets are far more similar than different.)
 * Like The Silver Searcher, `ripgrep` defaults to recursive directory search
   and won't search files ignored by your `.gitignore` files. It also ignores
   hidden and binary files by default. `ripgrep` also implements full support
-  for `.gitignore`, where as there are many bugs related to that functionality
+  for `.gitignore`, whereas there are many bugs related to that functionality
   in The Silver Searcher.
 * `ripgrep` can search specific types of files. For example, `rg -tpy foo`
   limits your search to Python files and `rg -Tjs foo` excludes Javascript
@@ -91,9 +91,11 @@ increases the times to `3.081s` for ripgrep and `11.403s` for GNU grep.
   as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
   automatically detecting UTF-16 is provided. Other text encodings must be
   specifically specified with the `-E/--encoding` flag.)
+* `ripgrep` supports searching files compressed in a common format (gzip, xz,
+  lzma or bzip2 current) with the `-z/--search-zip` flag.
 
 In other words, use `ripgrep` if you like speed, filtering by default, fewer
-bugs and Unicode support.
+bugs, and Unicode support.
 
 ### Why shouldn't I use `ripgrep`?
 
@@ -102,23 +104,27 @@ give you a glimpse at some important downsides or missing features of
 `ripgrep`.
 
 * `ripgrep` uses a regex engine based on finite automata, so if you want fancy
-  regex features such as backreferences or look around, `ripgrep` won't give
+  regex features such as backreferences or lookaround, `ripgrep` won't provide
   them to you. `ripgrep` does support lots of things though, including, but not
   limited to: lazy quantification (e.g., `a+?`), repetitions (e.g., `a{2,5}`),
   begin/end assertions (e.g., `^\w+$`), word boundaries (e.g., `\bfoo\b`), and
   support for Unicode categories (e.g., `\p{Sc}` to match currency symbols or
   `\p{Lu}` to match any uppercase letter). (Fancier regexes will never be
   supported.)
-* `ripgrep` doesn't yet support searching compressed files. (Likely to be
-  supported in the future.)
 * `ripgrep` doesn't have multiline search. (Unlikely to ever be supported.)
 
-In other words, if you like fancy regexes, searching compressed files or
-multiline search, then `ripgrep` may not quite meet your needs (yet).
+In other words, if you like fancy regexes or multiline search, then `ripgrep`
+may not quite meet your needs (yet).
+
+### Feature comparison
+
+Andy Lester, author of [ack](https://beyondgrep.com/), has published an
+excellent table comparing the features of ack, ag, git-grep, GNU grep and
+ripgrep: https://beyondgrep.com/feature-comparison/
 
 ### Is it really faster than everything else?
 
-Yes. A large number of benchmarks with detailed analysis for each is
+Generally, yes. A large number of benchmarks with detailed analysis for each is
 [available on my blog](http://blog.burntsushi.net/ripgrep/).
 
 Summarizing, `ripgrep` is fast because:
@@ -146,15 +152,19 @@ Summarizing, `ripgrep` is fast because:
 
 The binary name for `ripgrep` is `rg`.
 
-[Binaries for `ripgrep` are available for Windows, Mac and
-Linux.](https://github.com/BurntSushi/ripgrep/releases) Linux binaries are
-static executables. Windows binaries are available either as built with MinGW
-(GNU) or with Microsoft Visual C++ (MSVC). When possible, prefer MSVC over GNU,
-but you'll need to have the
-[Microsoft VC++ 2015 redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
+**[Archives of precompiled binaries for `ripgrep` are available for Windows,
+macOS and Linux.](https://github.com/BurntSushi/ripgrep/releases)** Users of
+platforms not explicitly mentioned below (such as Debian) are advised
+to download one of these archives.
+
+Linux binaries are static executables. Windows binaries are available either as
+built with MinGW (GNU) or with Microsoft Visual C++ (MSVC). When possible,
+prefer MSVC over GNU, but you'll need to have the [Microsoft VC++ 2015
+redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 installed.
 
-If you're a **Mac OS X Homebrew** user, then you can install ripgrep either
+If you're a **macOS Homebrew** or a **Linuxbrew** user,
+then you can install ripgrep either
 from homebrew-core, (compiled with rust stable, no SIMD):
 
 ```
@@ -184,21 +194,27 @@ $ pacman -S ripgrep
 If you're a **Gentoo** user, you can install `ripgrep` from the [official repo](https://packages.gentoo.org/packages/sys-apps/ripgrep):
 
 ```
-$ emerge ripgrep
+$ emerge sys-apps/ripgrep
 ```
 
-If you're a **Fedora 24+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlgeorge/ripgrep/):
+If you're a **Fedora 27+** user, you can install `ripgrep` from official repositories.
 
 ```
-$ dnf copr enable carlgeorge/ripgrep
-$ dnf install ripgrep
+$ sudo dnf install ripgrep
 ```
 
-If you're a **RHEL/CentOS 7** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlgeorge/ripgrep/):
+If you're a **Fedora 24+** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
-$ yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlgeorge/ripgrep/repo/epel-7/carlgeorge-ripgrep-epel-7.repo
-$ yum install ripgrep
+$ sudo dnf copr enable carlwgeorge/ripgrep
+$ sudo dnf install ripgrep
+```
+
+If you're a **RHEL/CentOS 7** user, you can install `ripgrep` from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
+
+```
+$ sudo yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
+$ sudo yum install ripgrep
 ```
 
 If you're a **Nix** user, you can install `ripgrep` from
@@ -209,8 +225,21 @@ $ nix-env --install ripgrep
 $ # (Or using the attribute name, which is also `ripgrep`.)
 ```
 
-If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`. Note
-that this requires you to have **Rust 1.12 or newer** installed.
+If you're an **Ubuntu** user, `ripgrep` can be installed from the `snap` store.
+* Note that if you are using `16.04 LTS` or later, snap is already installed.
+* For older versions you can install snap using
+[this guide](https://docs.snapcraft.io/core/install-ubuntu).
+
+```
+sudo snap install rg
+```
+
+If you're a **Rust programmer**, `ripgrep` can be installed with `cargo`.
+* Note that the minimum supported version of Rust for ripgrep is **1.17**,
+  although ripgrep may work with older versions.
+* Note that the binary may be bigger than expected because it contains debug
+  symbols. This is intentional. To remove debug symbols and therefore reduce
+  the file size, run `strip` on the binary.
 
 ```
 $ cargo install ripgrep
@@ -221,7 +250,7 @@ $ cargo install ripgrep
 
 ### Whirlwind tour
 
-The command line usage of `ripgrep` doesn't differ much from other tools that
+The command-line usage of `ripgrep` doesn't differ much from other tools that
 perform a similar function, so you probably already know how to use `ripgrep`.
 The full details can be found in `rg --help`, but let's go on a whirlwind tour.
 
@@ -231,7 +260,7 @@ Coloring works on Windows too! Colors can be controlled more granularly with
 the `--color` flag.
 
 One last thing before we get started: generally speaking, `ripgrep` assumes the
-input is reading is UTF-8. However, if ripgrep notices a file is encoded as
+input it is reading to be UTF-8. However, if ripgrep notices a file is encoded as
 UTF-16, then it will know how to search it. For other encodings, you'll need to
 explicitly specify them with the `-E/--encoding` flag.
 
@@ -333,21 +362,72 @@ extensions.
 The syntax supported is
 [documented as part of Rust's regex library](https://doc.rust-lang.org/regex/regex/index.html#syntax).
 
+### Configuration files
+
+ripgrep supports reading configuration files that change ripgrep's default
+behavior. The format of the configuration file is an "rc" style and is very
+simple. It is defined by two rules:
+
+1. Every line is a shell argument, after trimming ASCII whitespace.
+2. Lines starting with '#' (optionally preceded by any amount of
+   ASCII whitespace) are ignored.
+
+ripgrep will look for a single configuration file if and only if the
+`RIPGREP_CONFIG_PATH` environment variable is set and is non-empty. ripgrep
+will parse shell arguments from this file on startup and will behave as if
+the arguments in this file were prepended to any explicit arguments given to
+ripgrep on the command line.
+
+For example, if your ripgreprc file contained a single line:
+
+    --smart-case
+
+then the following command
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo
+
+would behave identically to the following command
+
+    rg --smart-case foo
+
+ripgrep also provides a flag, --no-config, that when present will suppress
+any and all support for configuration. This includes any future support for
+auto-loading configuration files from pre-determined paths.
+
+Conflicts between configuration files and explicit arguments are handled
+exactly like conflicts in the same command line invocation. That is, this
+command:
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo --case-sensitive
+
+is exactly equivalent to
+
+    rg --smart-case foo --case-sensitive
+
+in which case, the --case-sensitive flag would override the --smart-case flag.
+
 ### Shell completions
 
 Shell completion files are included in the release tarball for Bash, Fish, Zsh
 and PowerShell.
 
-For **bash**, move `rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
+For **bash**, move `complete/rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
 or `/etc/bash_completion.d/`.
 
-For **fish**, move `rg.fish` to `$HOME/.config/fish/completions`.
+For **fish**, move `complete/rg.fish` to `$HOME/.config/fish/completions/`.
+
+For **PowerShell**, add `. _rg.ps1` to your PowerShell
+[profile](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx)
+(note the leading period). If the `_rg.ps1` file is not on your `PATH`, do
+`. /path/to/_rg.ps1` instead.
+
+For **zsh**, move `complete/_rg` to one of your `$fpath` directories.
 
 ### Building
 
 `ripgrep` is written in Rust, so you'll need to grab a
 [Rust installation](https://www.rust-lang.org/) in order to compile it.
-`ripgrep` compiles with Rust 1.12 (stable) or newer. Building is easy:
+`ripgrep` compiles with Rust 1.17 (stable) or newer. Building is easy:
 
 ```
 $ git clone https://github.com/BurntSushi/ripgrep
@@ -369,7 +449,7 @@ If your machine doesn't support AVX instructions, then simply remove
 
 ### Running tests
 
-`ripgrep` is relatively well tested, including both unit tests and integration
+`ripgrep` is relatively well-tested, including both unit tests and integration
 tests. To run the full test suite, use:
 
 ```
@@ -378,12 +458,106 @@ $ cargo test
 
 from the repository root.
 
+### Tips
+
+#### Windows Powershell
+
+##### Powershell Profile
+
+To customize powershell on start-up, there is a special powershell script that has to be created.
+In order to find its location, type `$profile`
+See [more](https://technet.microsoft.com/en-us/library/bb613488(v=vs.85).aspx) for profile details.
+
+Any powershell code in this file gets evaluated at the start of console.
+This way you can have own aliases to be created at start.
+
+##### Setup function alias
+
+Often you can find a need to make alias for the favourite utility.
+
+But powershell function aliases do not behave like your typical linux shell alias.
+
+You always need to propagate arguments and **Stdin** input.
+But it cannot be done simply as `function grep() { $input | rg.exe --hidden $args }`
+
+Use below example as reference to how setup alias in powershell.
+
+```powershell
+function grep {
+    $count = @($input).Count
+    $input.Reset()
+
+    if ($count) {
+        $input | rg.exe --hidden $args
+    }
+    else {
+        rg.exe --hidden $args
+    }
+}
+```
+
+Powershell special variables:
+* input - is powershell **Stdin** object that allows you to access its content.
+* args - is array of arguments passed to this function.
+
+This alias checks whether there is **Stdin** input and propagates only if there is some lines.
+Otherwise empty `$input` will make powershell to trigger `rg` to search empty **Stdin**
+
+##### Piping non-ASCII content to ripgrep
+
+When piping input into native executables in PowerShell, the encoding of the
+input is controlled by the `$OutputEncoding` variable. By default, this is set
+to US-ASCII, and any characters in the pipeline that don't have encodings in
+US-ASCII are converted to `?` (question mark) characters.
+
+To change this setting, set `$OutputEncoding` to a different encoding, as
+represented by a .NET encoding object. Some common examples are below. The
+value of this variable is reset when PowerShell restarts, so to make this
+change take effect every time PowerShell is started add a line setting the
+variable into your PowerShell profile.
+
+Example `$OutputEncoding` settings:
+* UTF-8 without BOM: `$OutputEncoding = [System.Text.UTF8Encoding]::new()`
+* The console's output encoding:
+`$OutputEncoding = [System.Console]::OutputEncoding`
+
+If you continue to have encoding problems, you can also force the encoding
+that the console will use for printing to UTF-8 with
+`[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8`. This
+will also reset when PowerShell is restarted, so you can add that line
+to your profile as well if you want to make the setting permanent.
+
+#### How do I make the output look like ag's?
+
+Use the `--colors` flag, like so:
+
+    rg --colors line:fg:yellow      \
+       --colors line:style:bold     \
+       --colors path:fg:green       \
+       --colors path:style:bold     \
+       --colors match:fg:black      \
+       --colors match:bg:yellow     \
+       --colors match:style:nobold  \
+       foo
+
 ### Known issues
 
 #### I just hit Ctrl+C in the middle of ripgrep's output and now my terminal's foreground color is wrong!
 
-Type in `color` on Windows and `echo -ne "\033[0m"` on Unix to restore your
-original foreground color.
+Type in `color` in cmd.exe (Command Prompt) and `echo -ne "\033[0m"` on Unix
+to restore your original foreground color.
+
+In PowerShell, you can add the following code to your profile which will
+restore the original foreground color when `Reset-ForegroundColor` is called.
+Including the `Set-Alias` line will allow you to call it with simply `color`.
+
+```powershell
+$OrigFgColor = $Host.UI.RawUI.ForegroundColor
+function Reset-ForegroundColor {
+	$Host.UI.RawUI.ForegroundColor = $OrigFgColor
+}
+Set-Alias -Name color -Value Reset-ForegroundColor
+```
 
 PR [#187](https://github.com/BurntSushi/ripgrep/pull/187) fixed this, and it
 was later deprecated in
@@ -391,3 +565,26 @@ was later deprecated in
 available [here][msys issue explanation].
 
 [msys issue explanation]: https://github.com/BurntSushi/ripgrep/issues/281#issuecomment-269093893
+
+#### When I run `rg` it executes some other command!
+
+It's likely that you have a shell alias or even another tool called `rg` which
+is interfering with `ripgrep` — run `which rg` to see what it is.
+
+(Notably, the `rails` plug-in for
+[Oh My Zsh](https://github.com/robbyrussell/oh-my-zsh/wiki/Plugins#rails) sets
+up an `rg` alias for `rails generate`.)
+
+Problems like this can be resolved in one of several ways:
+
+* If you're using the OMZ `rails` plug-in, disable it by editing the `plugins`
+  array in your zsh configuration.
+* Temporarily bypass an existing `rg` alias by calling `ripgrep` as
+  `command rg`, `\rg`, or `'rg'`.
+* Temporarily bypass an existing alias or another tool named `rg` by calling
+  `ripgrep` by its full path (e.g., `/usr/bin/rg` or `/usr/local/bin/rg`).
+* Permanently disable an existing `rg` alias by adding `unalias rg` to the
+  bottom of your shell configuration file (e.g., `.bash_profile` or `.zshrc`).
+* Give `ripgrep` its own alias that doesn't conflict with other tools/aliases by
+  adding a line like the following to the bottom of your shell configuration
+  file: `alias ripgrep='command rg'`

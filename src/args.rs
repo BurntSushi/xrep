@@ -3,16 +3,13 @@ use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, BufRead};
-use std::ops;
 use std::path::{Path, PathBuf};
-use std::process;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap;
 use encoding_rs::Encoding;
-use env_logger;
-use grep::{Grep, GrepBuilder};
+use grep::{Grep, GrepBuilder, Error as GrepError};
 use log;
 use num_cpus;
 use regex;
@@ -28,6 +25,8 @@ use printer::{ColorSpecs, Printer};
 use unescape::unescape;
 use worker::{Worker, WorkerBuilder};
 
+use config;
+use logger::Logger;
 use Result;
 
 /// `Args` are transformed/normalized from `ArgMatches`.
@@ -36,7 +35,6 @@ pub struct Args {
     paths: Vec<PathBuf>,
     after_context: usize,
     before_context: usize,
-    color: bool,
     color_choice: termcolor::ColorChoice,
     colors: ColorSpecs,
     column: bool,
@@ -56,6 +54,7 @@ pub struct Args {
     invert_match: bool,
     line_number: bool,
     line_per_match: bool,
+    line_number_width: Option<usize>,
     max_columns: Option<usize>,
     max_count: Option<u64>,
     max_filesize: Option<u64>,
@@ -66,6 +65,7 @@ pub struct Args {
     no_ignore_vcs: bool,
     no_messages: bool,
     null: bool,
+    only_matching: bool,
     path_separator: Option<u8>,
     quiet: bool,
     quiet_matched: QuietMatched,
@@ -77,6 +77,7 @@ pub struct Args {
     type_list: bool,
     types: Types,
     with_filename: bool,
+    search_zip_files: bool
 }
 
 impl Args {
@@ -88,37 +89,59 @@ impl Args {
     ///
     /// Also, initialize a global logger.
     pub fn parse() -> Result<Args> {
-        use clap::ErrorKind::*;
+        // We parse the args given on CLI. This does not include args from
+        // the config. We use the CLI args as an initial configuration while
+        // trying to parse config files. If a config file exists and has
+        // arguments, then we re-parse argv, otherwise we just use the matches
+        // we have here.
+        let early_matches = ArgMatches(app::app().get_matches());
 
-        let matches = match app::app_short().get_matches_safe() {
-            Ok(matches) => matches,
-            Err(clap::Error { kind: HelpDisplayed, .. }) => {
-                let _ = ::app::app_long().print_help();
-                println!("");
-                process::exit(0);
-            }
-            Err(err) => err.exit(),
-        };
-        if matches.is_present("help-short") {
-            let _ = ::app::app_short().print_help();
-            println!("");
-            process::exit(0);
-        }
-        if matches.is_present("ripgrep-version") {
-            println!("ripgrep {}", crate_version!());
-            process::exit(0);
-        }
-
-        let mut logb = env_logger::LogBuilder::new();
-        if matches.is_present("debug") {
-            logb.filter(None, log::LogLevelFilter::Debug);
-        } else {
-            logb.filter(None, log::LogLevelFilter::Warn);
-        }
-        if let Err(err) = logb.init() {
+        if let Err(err) = Logger::init() {
             errored!("failed to initialize logger: {}", err);
         }
-        ArgMatches(matches).to_args()
+        if early_matches.is_present("debug") {
+            log::set_max_level(log::LevelFilter::Debug);
+        } else {
+            log::set_max_level(log::LevelFilter::Warn);
+        }
+
+        let matches = Args::matches(early_matches);
+        // The logging level may have changed if we brought in additional
+        // arguments from a configuration file, so recheck it and set the log
+        // level as appropriate.
+        if matches.is_present("debug") {
+            log::set_max_level(log::LevelFilter::Debug);
+        } else {
+            log::set_max_level(log::LevelFilter::Warn);
+        }
+        matches.to_args()
+    }
+
+    /// Run clap and return the matches. If clap determines a problem with the
+    /// user provided arguments (or if --help or --version are given), then an
+    /// error/usage/version will be printed and the process will exit.
+    ///
+    /// If there are no additional arguments from the environment (e.g., a
+    /// config file), then the given matches are returned as is.
+    fn matches(early_matches: ArgMatches<'static>) -> ArgMatches<'static> {
+        // If the end user says no config, then respect it.
+        if early_matches.is_present("no-config") {
+            debug!("not reading config files because --no-config is present");
+            return early_matches;
+        }
+        // If the user wants ripgrep to use a config file, then parse args
+        // from that first.
+        let mut args = config::args(early_matches.is_present("no-messages"));
+        if args.is_empty() {
+            return early_matches;
+        }
+        let mut cliargs = env::args_os();
+        if let Some(bin) = cliargs.next() {
+            args.insert(0, bin);
+        }
+        args.extend(cliargs);
+        debug!("final argv: {:?}", args);
+        ArgMatches(app::app().get_matches_from(args))
     }
 
     /// Returns true if ripgrep should print the files it will search and exit
@@ -161,9 +184,11 @@ impl Args {
             .heading(self.heading)
             .line_per_match(self.line_per_match)
             .null(self.null)
+            .only_matching(self.only_matching)
             .path_separator(self.path_separator)
             .with_filename(self.with_filename)
-            .max_columns(self.max_columns);
+            .max_columns(self.max_columns)
+            .line_number_width(self.line_number_width);
         if let Some(ref rep) = self.replace {
             p = p.replace(rep.clone());
         }
@@ -172,14 +197,16 @@ impl Args {
 
     /// Retrieve the configured file separator.
     pub fn file_separator(&self) -> Option<Vec<u8>> {
-        let use_heading_sep =
-            self.heading
-            && !self.count
-            && !self.files_with_matches
-            && !self.files_without_matches;
+        let contextless =
+            self.count
+            || self.files_with_matches
+            || self.files_without_matches;
+        let use_heading_sep = self.heading && !contextless;
+
         if use_heading_sep {
             Some(b"".to_vec())
-        } else if self.before_context > 0 || self.after_context > 0 {
+        } else if !contextless
+            && (self.before_context > 0 || self.after_context > 0) {
             Some(self.context_separator.clone())
         } else {
             None
@@ -223,7 +250,7 @@ impl Args {
     /// Returns true if there is exactly one file path given to search.
     pub fn is_one_path(&self) -> bool {
         self.paths.len() == 1
-        && (self.paths[0] == Path::new("-") || self.paths[0].is_file())
+        && (self.paths[0] == Path::new("-") || path_is_file(&self.paths[0]))
     }
 
     /// Create a worker whose configuration is taken from the
@@ -244,6 +271,7 @@ impl Args {
             .no_messages(self.no_messages)
             .quiet(self.quiet)
             .text(self.text)
+            .search_zip_files(self.search_zip_files)
             .build()
     }
 
@@ -303,10 +331,13 @@ impl Args {
         wd.git_ignore(!self.no_ignore && !self.no_ignore_vcs);
         wd.git_exclude(!self.no_ignore && !self.no_ignore_vcs);
         wd.ignore(!self.no_ignore);
+        if !self.no_ignore {
+            wd.add_custom_ignore_filename(".rgignore");
+        }
         wd.parents(!self.no_ignore_parent);
         wd.threads(self.threads());
         if self.sort_files {
-            wd.sort_by(|a, b| a.cmp(b));
+            wd.sort_by_file_name(|a, b| a.cmp(b));
         }
         wd
     }
@@ -316,66 +347,63 @@ impl Args {
 /// several options/flags.
 struct ArgMatches<'a>(clap::ArgMatches<'a>);
 
-impl<'a> ops::Deref for ArgMatches<'a> {
-    type Target = clap::ArgMatches<'a>;
-    fn deref(&self) -> &clap::ArgMatches<'a> { &self.0 }
-}
-
 impl<'a> ArgMatches<'a> {
     /// Convert the result of parsing CLI arguments into ripgrep's
     /// configuration.
     fn to_args(&self) -> Result<Args> {
         let paths = self.paths();
         let line_number = self.line_number(&paths);
-        let mmap = try!(self.mmap(&paths));
+        let mmap = self.mmap(&paths)?;
         let with_filename = self.with_filename(&paths);
-        let (before_context, after_context) = try!(self.contexts());
+        let (before_context, after_context) = self.contexts()?;
         let quiet = self.is_present("quiet");
         let args = Args {
             paths: paths,
             after_context: after_context,
             before_context: before_context,
-            color: self.color(),
             color_choice: self.color_choice(),
-            colors: try!(self.color_specs()),
+            colors: self.color_specs()?,
             column: self.column(),
             context_separator: self.context_separator(),
             count: self.is_present("count"),
-            encoding: try!(self.encoding()),
+            encoding: self.encoding()?,
             files_with_matches: self.is_present("files-with-matches"),
             files_without_matches: self.is_present("files-without-match"),
             eol: b'\n',
             files: self.is_present("files"),
             follow: self.is_present("follow"),
-            glob_overrides: try!(self.overrides()),
-            grep: try!(self.grep()),
+            glob_overrides: self.overrides()?,
+            grep: self.grep()?,
             heading: self.heading(),
             hidden: self.hidden(),
             ignore_files: self.ignore_files(),
             invert_match: self.is_present("invert-match"),
             line_number: line_number,
+            line_number_width: try!(self.usize_of("line-number-width")),
             line_per_match: self.is_present("vimgrep"),
-            max_columns: try!(self.usize_of("max-columns")),
-            max_count: try!(self.usize_of("max-count")).map(|max| max as u64),
-            max_filesize: try!(self.max_filesize()),
-            maxdepth: try!(self.usize_of("maxdepth")),
+            max_columns: self.usize_of("max-columns")?,
+            max_count: self.usize_of("max-count")?.map(|max| max as u64),
+            max_filesize: self.max_filesize()?,
+            maxdepth: self.usize_of("maxdepth")?,
             mmap: mmap,
             no_ignore: self.no_ignore(),
             no_ignore_parent: self.no_ignore_parent(),
             no_ignore_vcs: self.no_ignore_vcs(),
             no_messages: self.is_present("no-messages"),
             null: self.is_present("null"),
-            path_separator: try!(self.path_separator()),
+            only_matching: self.is_present("only-matching"),
+            path_separator: self.path_separator()?,
             quiet: quiet,
             quiet_matched: QuietMatched::new(quiet),
             replace: self.replace(),
             sort_files: self.is_present("sort-files"),
             stdout_handle: self.stdout_handle(),
             text: self.text(),
-            threads: try!(self.threads()),
+            threads: self.threads()?,
             type_list: self.is_present("type-list"),
-            types: try!(self.types()),
+            types: self.types()?,
             with_filename: with_filename,
+            search_zip_files: self.is_present("search-zip")
         };
         if args.mmap {
             debug!("will try to use memory maps");
@@ -438,7 +466,7 @@ impl<'a> ArgMatches<'a> {
     /// If any part of the pattern isn't valid UTF-8, then an error is
     /// returned.
     fn pattern(&self) -> Result<String> {
-        Ok(try!(self.patterns()).join("|"))
+        Ok(self.patterns()?.join("|"))
     }
 
     /// Get a sequence of all available patterns from the command line.
@@ -446,7 +474,10 @@ impl<'a> ArgMatches<'a> {
     ///
     /// Note that if -F/--fixed-strings is set, then all patterns will be
     /// escaped. Similarly, if -w/--word-regexp is set, then all patterns
-    /// are surrounded by `\b`.
+    /// are surrounded by `\b`, and if -x/--line-regexp is set, then all
+    /// patterns are surrounded by `^...$`. Finally, if --passthru is set,
+    /// the pattern `^` is added to the end (to ensure that it works as
+    /// expected with multiple -e/-f patterns).
     ///
     /// If any pattern is invalid UTF-8, then an error is returned.
     fn patterns(&self) -> Result<Vec<String>> {
@@ -458,13 +489,13 @@ impl<'a> ArgMatches<'a> {
             None => {
                 if self.values_of_os("file").is_none() {
                     if let Some(os_pat) = self.value_of_os("pattern") {
-                        pats.push(try!(self.os_str_pattern(os_pat)));
+                        pats.push(self.os_str_pattern(os_pat)?);
                     }
                 }
             }
             Some(os_pats) => {
                 for os_pat in os_pats {
-                    pats.push(try!(self.os_str_pattern(os_pat)));
+                    pats.push(self.os_str_pattern(os_pat)?);
                 }
             }
         }
@@ -473,35 +504,41 @@ impl<'a> ArgMatches<'a> {
                 if file == "-" {
                     let stdin = io::stdin();
                     for line in stdin.lock().lines() {
-                        pats.push(self.str_pattern(&try!(line)));
+                        pats.push(self.str_pattern(&line?));
                     }
                 } else {
-                    let f = try!(fs::File::open(file));
+                    let f = fs::File::open(file)?;
                     for line in io::BufReader::new(f).lines() {
-                        pats.push(self.str_pattern(&try!(line)));
+                        pats.push(self.str_pattern(&line?));
                     }
                 }
             }
         }
-        if pats.is_empty() {
+        // It's important that this be at the end; otherwise it would always
+        // match first, and we wouldn't get colours in the output
+        if self.is_present("passthru") && !self.is_present("count") {
+            pats.push("^".to_string())
+        } else if pats.is_empty() {
             pats.push(self.empty_pattern())
         }
         Ok(pats)
     }
 
-    /// Converts an OsStr pattern to a String pattern, including word
+    /// Converts an OsStr pattern to a String pattern, including line/word
     /// boundaries or escapes if applicable.
     ///
     /// If the pattern is not valid UTF-8, then an error is returned.
     fn os_str_pattern(&self, pat: &OsStr) -> Result<String> {
-        let s = try!(pattern_to_str(pat));
+        let s = pattern_to_str(pat)?;
         Ok(self.str_pattern(s))
     }
 
-    /// Converts a &str pattern to a String pattern, including word
+    /// Converts a &str pattern to a String pattern, including line/word
     /// boundaries or escapes if applicable.
     fn str_pattern(&self, pat: &str) -> String {
-        let s = self.word_pattern(self.literal_pattern(pat.to_string()));
+        let litpat = self.literal_pattern(pat.to_string());
+        let s = self.line_pattern(self.word_pattern(litpat));
+
         if s.is_empty() {
             self.empty_pattern()
         } else {
@@ -524,7 +561,17 @@ impl<'a> ArgMatches<'a> {
     /// flag is set. Otherwise, the pattern is returned unchanged.
     fn word_pattern(&self, pat: String) -> String {
         if self.is_present("word-regexp") {
-            format!(r"\b{}\b", pat)
+            format!(r"\b(?:{})\b", pat)
+        } else {
+            pat
+        }
+    }
+
+    /// Returns the given pattern as a line pattern if the -x/--line-regexp
+    /// flag is set. Otherwise, the pattern is returned unchanged.
+    fn line_pattern(&self, pat: String) -> String {
+        if self.is_present("line-regexp") {
+            format!(r"^(?:{})$", pat)
         } else {
             pat
         }
@@ -549,8 +596,9 @@ impl<'a> ArgMatches<'a> {
             false
         } else {
             self.is_present("with-filename")
+            || self.is_present("vimgrep")
             || paths.len() > 1
-            || paths.get(0).map_or(false, |p| p.is_dir())
+            || paths.get(0).map_or(false, |p| path_is_dir(p))
         }
     }
 
@@ -581,8 +629,8 @@ impl<'a> ArgMatches<'a> {
     /// `paths` should be a slice of all top-level file paths that ripgrep
     /// will need to search.
     fn mmap(&self, paths: &[PathBuf]) -> Result<bool> {
-        let (before, after) = try!(self.contexts());
-        let enc = try!(self.encoding());
+        let (before, after) = self.contexts()?;
+        let enc = self.encoding()?;
         Ok(if before > 0 || after > 0 || self.is_present("no-mmap") {
             false
         } else if self.is_present("mmap") {
@@ -597,7 +645,7 @@ impl<'a> ArgMatches<'a> {
         } else {
             // If we're only searching a few paths and all of them are
             // files, then memory maps are probably faster.
-            paths.len() <= 10 && paths.iter().all(|p| p.is_file())
+            paths.len() <= 10 && paths.iter().all(|p| path_is_file(p))
         })
     }
 
@@ -606,10 +654,10 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("no-line-number") || self.is_present("count") {
             false
         } else {
-            let only_stdin = paths == &[Path::new("-")];
-            self.is_present("line-number")
+            let only_stdin = paths == [Path::new("-")];
+            (atty::is(atty::Stream::Stdout) && !only_stdin)
+            || self.is_present("line-number")
             || self.is_present("column")
-            || (atty::is(atty::Stream::Stdout) && !only_stdin)
             || self.is_present("pretty")
             || self.is_present("vimgrep")
         }
@@ -623,18 +671,18 @@ impl<'a> ArgMatches<'a> {
     /// Returns true if and only if matches should be grouped with file name
     /// headings.
     fn heading(&self) -> bool {
-        if self.is_present("no-heading") {
+        if self.is_present("no-heading") || self.is_present("vimgrep") {
             false
         } else {
-            self.is_present("heading")
-            || atty::is(atty::Stream::Stdout)
+            atty::is(atty::Stream::Stdout)
+            || self.is_present("heading")
             || self.is_present("pretty")
         }
     }
 
     /// Returns the replacement string as UTF-8 bytes if it exists.
     fn replace(&self) -> Option<Vec<u8>> {
-        self.value_of_lossy("replace").map(|s| s.into_owned().into_bytes())
+        self.value_of_lossy("replace").map(|s| s.into_bytes())
     }
 
     /// Returns the unescaped context separator in UTF-8 bytes.
@@ -672,9 +720,9 @@ impl<'a> ArgMatches<'a> {
     /// If there was a problem parsing the values from the user as an integer,
     /// then an error is returned.
     fn contexts(&self) -> Result<(usize, usize)> {
-        let after = try!(self.usize_of("after-context")).unwrap_or(0);
-        let before = try!(self.usize_of("before-context")).unwrap_or(0);
-        let both = try!(self.usize_of("context")).unwrap_or(0);
+        let after = self.usize_of("after-context")?.unwrap_or(0);
+        let before = self.usize_of("before-context")?.unwrap_or(0);
+        let both = self.usize_of("context")?.unwrap_or(0);
         Ok(if both > 0 {
             (both, both)
         } else {
@@ -682,36 +730,17 @@ impl<'a> ArgMatches<'a> {
         })
     }
 
-    /// Returns true if and only if ripgrep should color its output.
-    fn color(&self) -> bool {
-        let preference = match self.0.value_of_lossy("color") {
-            None => "auto".to_string(),
-            Some(v) => v.into_owned(),
-        };
-        if preference == "always" {
-            true
-        } else if self.is_present("vimgrep") {
-            false
-        } else if preference == "auto" {
-            atty::is(atty::Stream::Stdout) || self.is_present("pretty")
-        } else {
-            false
-        }
-    }
-
     /// Returns the user's color choice based on command line parameters and
     /// environment.
     fn color_choice(&self) -> termcolor::ColorChoice {
-        let preference = match self.0.value_of_lossy("color") {
+        let preference = match self.value_of_lossy("color") {
             None => "auto".to_string(),
-            Some(v) => v.into_owned(),
+            Some(v) => v,
         };
         if preference == "always" {
             termcolor::ColorChoice::Always
         } else if preference == "ansi" {
             termcolor::ColorChoice::AlwaysAnsi
-        } else if self.is_present("vimgrep") {
-            termcolor::ColorChoice::Never
         } else if preference == "auto" {
             if atty::is(atty::Stream::Stdout) || self.is_present("pretty") {
                 termcolor::ColorChoice::Auto
@@ -730,13 +759,16 @@ impl<'a> ArgMatches<'a> {
     fn color_specs(&self) -> Result<ColorSpecs> {
         // Start with a default set of color specs.
         let mut specs = vec![
+            #[cfg(unix)]
             "path:fg:magenta".parse().unwrap(),
+            #[cfg(windows)]
+            "path:fg:cyan".parse().unwrap(),
             "line:fg:green".parse().unwrap(),
             "match:fg:red".parse().unwrap(),
             "match:style:bold".parse().unwrap(),
         ];
         for spec_str in self.values_of_lossy_vec("colors") {
-            specs.push(try!(spec_str.parse()));
+            specs.push(spec_str.parse()?);
         }
         Ok(ColorSpecs::new(&specs))
     }
@@ -749,13 +781,13 @@ impl<'a> ArgMatches<'a> {
     /// A `None` encoding implies that the encoding should be automatically
     /// detected on a per-file basis.
     fn encoding(&self) -> Result<Option<&'static Encoding>> {
-        match self.0.value_of_lossy("encoding") {
+        match self.value_of_lossy("encoding") {
             None => Ok(None),
             Some(label) => {
                 if label == "auto" {
                     return Ok(None);
                 }
-                match Encoding::for_label(label.as_bytes()) {
+                match Encoding::for_label_no_replacement(label.as_bytes()) {
                     Some(enc) => Ok(Some(enc)),
                     None => Err(From::from(
                         format!("unsupported encoding: {}", label))),
@@ -769,7 +801,7 @@ impl<'a> ArgMatches<'a> {
         if self.is_present("sort-files") {
             return Ok(1);
         }
-        let threads = try!(self.usize_of("threads")).unwrap_or(0);
+        let threads = self.usize_of("threads")?.unwrap_or(0);
         Ok(if threads == 0 {
             cmp::min(12, num_cpus::get())
         } else {
@@ -789,19 +821,42 @@ impl<'a> ArgMatches<'a> {
         let casei =
             self.is_present("ignore-case")
             && !self.is_present("case-sensitive");
-        GrepBuilder::new(&try!(self.pattern()))
+        let mut gb = GrepBuilder::new(&self.pattern()?)
             .case_smart(smart)
             .case_insensitive(casei)
-            .line_terminator(b'\n')
-            .build()
-            .map_err(From::from)
+            .line_terminator(b'\n');
+
+        if let Some(limit) = self.dfa_size_limit()? {
+            gb = gb.dfa_size_limit(limit);
+        }
+        if let Some(limit) = self.regex_size_limit()? {
+            gb = gb.size_limit(limit);
+        }
+        gb.build().map_err(|err| {
+            match err {
+                GrepError::Regex(err) => {
+                  let s = format!("{}\n(Hint: Try the --fixed-strings flag \
+                  to search for a literal string.)", err.to_string());
+                  From::from(s)
+                },
+                err => From::from(err)
+            }
+        })
     }
 
     /// Builds the set of glob overrides from the command line flags.
     fn overrides(&self) -> Result<Override> {
-        let mut ovr = OverrideBuilder::new(try!(env::current_dir()));
+        let mut ovr = OverrideBuilder::new(env::current_dir()?);
         for glob in self.values_of_lossy_vec("glob") {
-            try!(ovr.add(&glob));
+            ovr.add(&glob)?;
+        }
+        // this is smelly. In the long run it might make sense
+        // to change overridebuilder to be like globsetbuilder
+        // but this would be a breaking change to the ignore crate
+        // so it is being shelved for now...
+        ovr.case_insensitive(true)?;
+        for glob in self.values_of_lossy_vec("iglob") {
+            ovr.add(&glob)?;
         }
         ovr.build().map_err(From::from)
     }
@@ -814,7 +869,7 @@ impl<'a> ArgMatches<'a> {
             btypes.clear(&ty);
         }
         for def in self.values_of_lossy_vec("type-add") {
-            try!(btypes.add_def(&def));
+            btypes.add_def(&def)?;
         }
         for ty in self.values_of_lossy_vec("type") {
             btypes.select(&ty);
@@ -825,29 +880,62 @@ impl<'a> ArgMatches<'a> {
         btypes.build().map_err(From::from)
     }
 
-    /// Parses the max-filesize argument option into a byte count.
-    fn max_filesize(&self) -> Result<Option<u64>> {
-        use regex::Regex;
-
-        let max_filesize = match self.value_of_lossy("max-filesize") {
+    /// Parses an argument of the form `[0-9]+(KMG)?`.
+    ///
+    /// This always returns the result as a type `u64`. This must be converted
+    /// to the appropriate type by the caller.
+    fn parse_human_readable_size_arg(
+        &self,
+        arg_name: &str,
+    ) -> Result<Option<u64>> {
+        let arg_value = match self.value_of_lossy(arg_name) {
             Some(x) => x,
             None => return Ok(None)
         };
+        let re = regex::Regex::new("^([0-9]+)([KMG])?$").unwrap();
+        let caps =
+            re.captures(&arg_value).ok_or_else(|| {
+                format!("invalid format for {}", arg_name)
+            })?;
 
-        let re = Regex::new("^([0-9]+)([KMG])?$").unwrap();
-        let caps = try!(re.captures(&max_filesize)
-                          .ok_or("invalid format for max-filesize argument"));
-
-        let value = try!(caps[1].parse::<u64>().map_err(|err| err.to_string()));
+        let value = caps[1].parse::<u64>()?;
         let suffix = caps.get(2).map(|x| x.as_str());
 
+        let v_10 = value.checked_mul(1024);
+        let v_20 = v_10.and_then(|x| x.checked_mul(1024));
+        let v_30 = v_20.and_then(|x| x.checked_mul(1024));
+
+        let try_suffix = |x: Option<u64>| {
+            if x.is_some() {
+                Ok(x)
+            } else {
+                Err(From::from(format!("number too large for {}", arg_name)))
+            }
+        };
         match suffix {
             None      => Ok(Some(value)),
-            Some("K") => Ok(Some(value * 1024)),
-            Some("M") => Ok(Some(value * 1024 * 1024)),
-            Some("G") => Ok(Some(value * 1024 * 1024 * 1024)),
-            _ => Err(From::from("invalid suffix for max-filesize argument"))
+            Some("K") => try_suffix(v_10),
+            Some("M") => try_suffix(v_20),
+            Some("G") => try_suffix(v_30),
+            _ => Err(From::from(format!("invalid suffix for {}", arg_name)))
         }
+    }
+
+    /// Parse the dfa-size-limit argument option into a byte count.
+    fn dfa_size_limit(&self) -> Result<Option<usize>> {
+        let r = self.parse_human_readable_size_arg("dfa-size-limit")?;
+        human_readable_to_usize("dfa-size-limit", r)
+    }
+
+    /// Parse the regex-size-limit argument option into a byte count.
+    fn regex_size_limit(&self) -> Result<Option<usize>> {
+        let r = self.parse_human_readable_size_arg("regex-size-limit")?;
+        human_readable_to_usize("regex-size-limit", r)
+    }
+
+    /// Parses the max-filesize argument option into a byte count.
+    fn max_filesize(&self) -> Result<Option<u64>> {
+        self.parse_human_readable_size_arg("max-filesize")
     }
 
     /// Returns true if ignore files should be ignored.
@@ -891,6 +979,35 @@ impl<'a> ArgMatches<'a> {
             None => Ok(None),
             Some(v) => v.parse().map(Some).map_err(From::from),
         }
+    }
+
+    // The following methods mostly dispatch to the underlying clap methods
+    // directly. Methods that would otherwise get a single value will fetch
+    // all values and return the last one. (Clap returns the first one.) We
+    // only define the ones we need.
+
+    fn is_present(&self, name: &str) -> bool {
+        self.0.is_present(name)
+    }
+
+    fn occurrences_of(&self, name: &str) -> u64 {
+        self.0.occurrences_of(name)
+    }
+
+    fn value_of_lossy(&self, name: &str) -> Option<String> {
+        self.values_of_lossy(name).and_then(|mut vals| vals.pop())
+    }
+
+    fn values_of_lossy(&self, name: &str) -> Option<Vec<String>> {
+        self.0.values_of_lossy(name)
+    }
+
+    fn value_of_os(&'a self, name: &str) -> Option<&'a OsStr> {
+        self.values_of_os(name).and_then(|it| it.last())
+    }
+
+    fn values_of_os(&'a self, name: &str) -> Option<clap::OsValues<'a>> {
+        self.0.values_of_os(name)
     }
 }
 
@@ -944,6 +1061,27 @@ impl QuietMatched {
     }
 }
 
+/// Convert the result of a `parse_human_readable_size_arg` call into
+/// a `usize`, failing if the type does not fit.
+fn human_readable_to_usize(
+    arg_name: &str,
+    value: Option<u64>,
+) -> Result<Option<usize>> {
+    use std::usize;
+
+    match value {
+        None => Ok(None),
+        Some(v) => {
+            if v <= usize::MAX as u64 {
+                Ok(Some(v as usize))
+            } else {
+                let msg = format!("number too large for {}", arg_name);
+                Err(From::from(msg))
+            }
+        }
+    }
+}
+
 /// Returns true if and only if stdin is deemed searchable.
 #[cfg(unix)]
 fn stdin_is_readable() -> bool {
@@ -963,4 +1101,45 @@ fn stdin_is_readable() -> bool {
     // On Windows, it's not clear what the possibilities are to me, so just
     // always return true.
     true
+}
+
+/// Returns true if and only if this path points to a directory.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn path_is_dir(path: &Path) -> bool {
+    fs::metadata(path).map(|md| metadata_is_dir(&md)).unwrap_or(false)
+}
+
+/// Returns true if and only if this entry points to a directory.
+#[cfg(not(windows))]
+fn path_is_dir(path: &Path) -> bool {
+    path.is_dir()
+}
+
+/// Returns true if and only if this path points to a file.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn path_is_file(path: &Path) -> bool {
+    !path_is_dir(path)
+}
+
+/// Returns true if and only if this entry points to a directory.
+#[cfg(not(windows))]
+fn path_is_file(path: &Path) -> bool {
+    path.is_file()
+}
+
+/// Returns true if and only if the given metadata points to a directory.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn metadata_is_dir(md: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    use winapi::um::winnt::FILE_ATTRIBUTE_DIRECTORY;
+    md.file_attributes() & FILE_ATTRIBUTE_DIRECTORY != 0
 }

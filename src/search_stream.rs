@@ -264,7 +264,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         while !self.terminate() {
             let upto = self.inp.lastnl;
             self.print_after_context(upto);
-            if !try!(self.fill()) {
+            if !self.fill()? {
                 break;
             }
             while !self.terminate() && self.inp.pos < self.inp.lastnl {
@@ -299,6 +299,15 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
                 }
             }
         }
+        if self.after_context_remaining > 0 {
+            if self.last_printed == self.inp.lastnl {
+                self.fill()?;
+            }
+            let upto = self.inp.lastnl;
+            if upto > 0 {
+                self.print_after_context(upto);
+            }
+        }
         if self.match_count > 0 {
             if self.opts.count {
                 self.printer.path_count(self.path, self.match_count);
@@ -318,16 +327,17 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
 
     #[inline(always)]
     fn fill(&mut self) -> Result<bool, Error> {
-        let mut keep = self.inp.lastnl;
-        if self.opts.before_context > 0 || self.opts.after_context > 0 {
+        let keep = if self.opts.before_context > 0 || self.opts.after_context > 0 {
             let lines = 1 + cmp::max(
                 self.opts.before_context, self.opts.after_context);
-            keep = start_of_previous_lines(
+            start_of_previous_lines(
                 self.opts.eol,
                 &self.inp.buf,
                 self.inp.lastnl.saturating_sub(1),
-                lines);
-        }
+                lines)
+        } else {
+            self.inp.lastnl
+        };
         if keep < self.last_printed {
             self.last_printed -= keep;
         } else {
@@ -339,9 +349,9 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             self.count_lines(keep);
             self.last_line = 0;
         }
-        let ok = try!(self.inp.fill(&mut self.haystack, keep).map_err(|err| {
+        let ok = self.inp.fill(&mut self.haystack, keep).map_err(|err| {
             Error::from_io(err, &self.path)
-        }));
+        })?;
         Ok(ok)
     }
 
@@ -585,8 +595,8 @@ impl InputBuffer {
                 let new_len = cmp::max(min_len, self.buf.len() * 2);
                 self.buf.resize(new_len, 0);
             }
-            let n = try!(rdr.read(
-                &mut self.buf[self.end..self.end + self.read_size]));
+            let n = rdr.read(
+                &mut self.buf[self.end..self.end + self.read_size])?;
             if !self.text {
                 if is_binary(&self.buf[self.end..self.end + n], self.first) {
                     return Ok(false);
@@ -1248,6 +1258,23 @@ fn main() {
     }
 
     #[test]
+    fn after_context_invert_one_max_count_two() {
+        let (count, out) = search_smallcap("Sherlock", SHERLOCK, |s| {
+            s.line_number(true)
+             .invert_match(true)
+             .after_context(1)
+             .max_count(Some(2))
+        });
+        assert_eq!(2, count);
+        assert_eq!(out, "\
+/baz.rs:2:Holmeses, success in the province of detective work must always
+/baz.rs-3-be, to a very large extent, the result of luck. Sherlock Holmes
+/baz.rs:4:can extract a clew from a wisp of straw or a flake of cigar ash;
+/baz.rs-5-but Doctor Watson has to have it taken out for him and dusted,
+");
+    }
+
+    #[test]
     fn after_context_two1() {
         let (count, out) = search_smallcap("Sherlock", SHERLOCK, |s| {
             s.line_number(true).after_context(2)
@@ -1287,6 +1314,23 @@ fn main() {
 /baz.rs-4-can extract a clew from a wisp of straw or a flake of cigar ash;
 --
 /baz.rs:6:and exhibited clearly, with a label attached.
+");
+    }
+
+    #[test]
+    fn after_context_two_max_count_two() {
+        let (count, out) = search_smallcap(
+            "Doctor", SHERLOCK, |s| {
+                s.line_number(true).after_context(2).max_count(Some(2))
+            });
+        assert_eq!(2, count);
+        assert_eq!(out, "\
+/baz.rs:1:For the Doctor Watsons of this world, as opposed to the Sherlock
+/baz.rs-2-Holmeses, success in the province of detective work must always
+/baz.rs-3-be, to a very large extent, the result of luck. Sherlock Holmes
+--
+/baz.rs:5:but Doctor Watson has to have it taken out for him and dusted,
+/baz.rs-6-and exhibited clearly, with a label attached.
 ");
     }
 

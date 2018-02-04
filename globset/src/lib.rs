@@ -22,7 +22,7 @@ This example shows how to match a single glob against a single file path.
 # fn example() -> Result<(), globset::Error> {
 use globset::Glob;
 
-let glob = try!(Glob::new("*.rs")).compile_matcher();
+let glob = Glob::new("*.rs")?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(glob.is_match("foo/bar.rs"));
@@ -39,8 +39,8 @@ semantics. In this example, we prevent wildcards from matching path separators.
 # fn example() -> Result<(), globset::Error> {
 use globset::GlobBuilder;
 
-let glob = try!(GlobBuilder::new("*.rs")
-    .literal_separator(true).build()).compile_matcher();
+let glob = GlobBuilder::new("*.rs")
+    .literal_separator(true).build()?.compile_matcher();
 
 assert!(glob.is_match("foo.rs"));
 assert!(!glob.is_match("foo/bar.rs")); // no longer matches
@@ -59,10 +59,10 @@ use globset::{Glob, GlobSetBuilder};
 let mut builder = GlobSetBuilder::new();
 // A GlobBuilder can be used to configure each glob's match semantics
 // independently.
-builder.add(try!(Glob::new("*.rs")));
-builder.add(try!(Glob::new("src/lib.rs")));
-builder.add(try!(Glob::new("src/**/foo.rs")));
-let set = try!(builder.build());
+builder.add(Glob::new("*.rs")?);
+builder.add(Glob::new("src/lib.rs")?);
+builder.add(Glob::new("src/**/foo.rs")?);
+let set = builder.build()?;
 
 assert_eq!(set.matches("src/bar/baz/foo.rs"), vec![0, 2]);
 # Ok(()) } example().unwrap();
@@ -128,7 +128,16 @@ mod pathutil;
 
 /// Represents an error that can occur when parsing a glob pattern.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Error {
+pub struct Error {
+    /// The original glob provided by the caller.
+    glob: Option<String>,
+    /// The kind of error.
+    kind: ErrorKind,
+}
+
+/// The kind of error that can occur when parsing a glob pattern.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ErrorKind {
     /// Occurs when a use of `**` is invalid. Namely, `**` can only appear
     /// adjacent to a path separator, or the beginning/end of a glob.
     InvalidRecursive,
@@ -151,44 +160,73 @@ pub enum Error {
 
 impl StdError for Error {
     fn description(&self) -> &str {
+        self.kind.description()
+    }
+}
+
+impl Error {
+    /// Return the glob that caused this error, if one exists.
+    pub fn glob(&self) -> Option<&str> {
+        self.glob.as_ref().map(|s| &**s)
+    }
+
+    /// Return the kind of this error.
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+}
+
+impl ErrorKind {
+    fn description(&self) -> &str {
         match *self {
-            Error::InvalidRecursive => {
+            ErrorKind::InvalidRecursive => {
                 "invalid use of **; must be one path component"
             }
-            Error::UnclosedClass => {
+            ErrorKind::UnclosedClass => {
                 "unclosed character class; missing ']'"
             }
-            Error::InvalidRange(_, _) => {
+            ErrorKind::InvalidRange(_, _) => {
                 "invalid character range"
             }
-            Error::UnopenedAlternates => {
+            ErrorKind::UnopenedAlternates => {
                 "unopened alternate group; missing '{' \
                 (maybe escape '}' with '[}]'?)"
             }
-            Error::UnclosedAlternates => {
+            ErrorKind::UnclosedAlternates => {
                 "unclosed alternate group; missing '}' \
                 (maybe escape '{' with '[{]'?)"
             }
-            Error::NestedAlternates => {
+            ErrorKind::NestedAlternates => {
                 "nested alternate groups are not allowed"
             }
-            Error::Regex(ref err) => err,
+            ErrorKind::Regex(ref err) => err,
         }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.glob {
+            None => self.kind.fmt(f),
+            Some(ref glob) => {
+                write!(f, "error parsing glob '{}': {}", glob, self.kind)
+            }
+        }
+    }
+}
+
+impl fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::InvalidRecursive
-            | Error::UnclosedClass
-            | Error::UnopenedAlternates
-            | Error::UnclosedAlternates
-            | Error::NestedAlternates
-            | Error::Regex(_) => {
+            ErrorKind::InvalidRecursive
+            | ErrorKind::UnclosedClass
+            | ErrorKind::UnopenedAlternates
+            | ErrorKind::UnclosedAlternates
+            | ErrorKind::NestedAlternates
+            | ErrorKind::Regex(_) => {
                 write!(f, "{}", self.description())
             }
-            Error::InvalidRange(s, e) => {
+            ErrorKind::InvalidRange(s, e) => {
                 write!(f, "invalid range; '{}' > '{}'", s, e)
             }
         }
@@ -201,12 +239,22 @@ fn new_regex(pat: &str) -> Result<Regex, Error> {
         .size_limit(10 * (1 << 20))
         .dfa_size_limit(10 * (1 << 20))
         .build()
-        .map_err(|err| Error::Regex(err.to_string()))
+        .map_err(|err| {
+            Error {
+                glob: Some(pat.to_string()),
+                kind: ErrorKind::Regex(err.to_string()),
+            }
+        })
 }
 
 fn new_regex_set<I, S>(pats: I) -> Result<RegexSet, Error>
         where S: AsRef<str>, I: IntoIterator<Item=S> {
-    RegexSet::new(pats).map_err(|err| Error::Regex(err.to_string()))
+    RegexSet::new(pats).map_err(|err| {
+        Error {
+            glob: None,
+            kind: ErrorKind::Regex(err.to_string()),
+        }
+    })
 }
 
 type Fnv = hash::BuildHasherDefault<fnv::FnvHasher>;
@@ -364,8 +412,8 @@ impl GlobSet {
                 GlobSetMatchStrategy::Suffix(suffixes.suffix()),
                 GlobSetMatchStrategy::Prefix(prefixes.prefix()),
                 GlobSetMatchStrategy::RequiredExtension(
-                    try!(required_exts.build())),
-                GlobSetMatchStrategy::Regex(try!(regexes.regex_set())),
+                    required_exts.build()?),
+                GlobSetMatchStrategy::Regex(regexes.regex_set()?),
             ],
         })
     }
@@ -719,7 +767,7 @@ impl MultiStrategyBuilder {
 
     fn regex_set(self) -> Result<RegexSetStrategy, Error> {
         Ok(RegexSetStrategy {
-            matcher: try!(new_regex_set(self.literals)),
+            matcher: new_regex_set(self.literals)?,
             map: self.map,
         })
     }
@@ -744,7 +792,7 @@ impl RequiredExtensionStrategyBuilder {
         for (ext, regexes) in self.0.into_iter() {
             exts.insert(ext.clone(), vec![]);
             for (global_index, regex) in regexes {
-                let compiled = try!(new_regex(&regex));
+                let compiled = new_regex(&regex)?;
                 exts.get_mut(&ext).unwrap().push((global_index, compiled));
             }
         }

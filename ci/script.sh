@@ -15,26 +15,16 @@ disable_cross_doctests() {
     fi
 }
 
-run_test_suite() {
-    cargo clean --target $TARGET --verbose
-    cargo build --target $TARGET --verbose
-    cargo test --target $TARGET --verbose
-    cargo build --target $TARGET --verbose --manifest-path grep/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path grep/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path globset/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path globset/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path ignore/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path ignore/Cargo.toml
-    cargo build --target $TARGET --verbose --manifest-path termcolor/Cargo.toml
-    cargo test --target $TARGET --verbose --manifest-path termcolor/Cargo.toml
+main() {
+    # disable_cross_doctests
+    cargo build --target "${TARGET}" --verbose --all
+    if [ "$(architecture)" = "amd64" ] || [ "$(architecture)" = "i386" ]; then
+        cargo test --target "${TARGET}" --verbose --all
+        "$( dirname "${0}" )/test_complete.sh"
+    fi
 
     # sanity check the file type
     file target/$TARGET/debug/rg
-}
-
-main() {
-    # disable_cross_doctests
-    run_test_suite
 }
 
 main

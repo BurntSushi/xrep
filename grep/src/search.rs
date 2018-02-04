@@ -102,9 +102,9 @@ impl GrepBuilder {
 
     /// Whether to enable smart case search or not (disabled by default).
     ///
-    /// Smart case uses case insensitive search if the regex is contains all
-    /// lowercase literal characters. Otherwise, a case sensitive search is
-    /// used instead.
+    /// Smart case uses case insensitive search if the pattern contains only
+    /// lowercase characters (ignoring any characters which immediately follow
+    /// a '\'). Otherwise, a case sensitive search is used instead.
     ///
     /// Enabling the case_insensitive flag overrides this.
     pub fn case_smart(mut self, yes: bool) -> GrepBuilder {
@@ -141,11 +141,11 @@ impl GrepBuilder {
     /// If there was a problem parsing or compiling the regex with the given
     /// options, then an error is returned.
     pub fn build(self) -> Result<Grep> {
-        let expr = try!(self.parse());
+        let expr = self.parse()?;
         let literals = LiteralSets::create(&expr);
-        let re = try!(self.regex(&expr));
+        let re = self.regex(&expr)?;
         let required = match literals.to_regex_builder() {
-            Some(builder) => Some(try!(self.regex_build(builder))),
+            Some(builder) => Some(self.regex_build(builder)?),
             None => {
                 match strip_unicode_word_boundaries(&expr) {
                     None => None,
@@ -186,19 +186,17 @@ impl GrepBuilder {
     /// the line terminator.
     fn parse(&self) -> Result<syntax::Expr> {
         let expr =
-            try!(syntax::ExprBuilder::new()
-                 .allow_bytes(true)
-                 .unicode(true)
-                 .case_insensitive(try!(self.is_case_insensitive()))
-                 .parse(&self.pattern));
-        let expr = try!(nonl::remove(expr, self.opts.line_terminator));
+            syntax::ExprBuilder::new()
+            .allow_bytes(true)
+            .unicode(true)
+            .case_insensitive(self.is_case_insensitive()?)
+            .parse(&self.pattern)?;
+        let expr = nonl::remove(expr, self.opts.line_terminator)?;
         debug!("regex ast:\n{:#?}", expr);
         Ok(expr)
     }
 
     /// Determines whether the case insensitive flag should be enabled or not.
-    ///
-    /// An error is returned if the regex could not be parsed.
     fn is_case_insensitive(&self) -> Result<bool> {
         if self.opts.case_insensitive {
             return Ok(true);
@@ -206,12 +204,7 @@ impl GrepBuilder {
         if !self.opts.case_smart {
             return Ok(false);
         }
-        let expr =
-            try!(syntax::ExprBuilder::new()
-                 .allow_bytes(true)
-                 .unicode(true)
-                 .parse(&self.pattern));
-        Ok(!has_uppercase_literal(&expr))
+        Ok(!has_uppercase_literal(&self.pattern))
     }
 }
 
@@ -317,38 +310,26 @@ impl<'b, 's> Iterator for Iter<'b, 's> {
     }
 }
 
-fn has_uppercase_literal(expr: &Expr) -> bool {
-    use syntax::Expr::*;
-    fn byte_is_upper(b: u8) -> bool { b'A' <= b && b <= b'Z' }
-    match *expr {
-        Literal { ref chars, casei } => {
-            casei || chars.iter().any(|c| c.is_uppercase())
+/// Determine whether the pattern contains an uppercase character which should
+/// negate the effect of the smart-case option.
+///
+/// Ideally we would be able to check the AST in order to correctly handle
+/// things like '\p{Ll}' and '\p{Lu}' (which should be treated as explicitly
+/// cased), but we don't currently have that option. For now, our 'good enough'
+/// solution is to simply perform a semi-naïve scan of the input pattern and
+/// ignore all characters following a '\'. The ExprBuilder will handle any
+/// actual errors, and this at least lets us support the most common cases,
+/// like 'foo\w' and 'foo\S', in an intuitive manner.
+fn has_uppercase_literal(pattern: &str) -> bool {
+    let mut chars = pattern.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            chars.next();
+        } else if c.is_uppercase() {
+            return true;
         }
-        LiteralBytes { ref bytes, casei } => {
-            casei || bytes.iter().any(|&b| byte_is_upper(b))
-        }
-        Class(ref ranges) => {
-            for r in ranges {
-                if r.start.is_uppercase() || r.end.is_uppercase() {
-                    return true;
-                }
-            }
-            false
-        }
-        ClassBytes(ref ranges) => {
-            for r in ranges {
-                if byte_is_upper(r.start) || byte_is_upper(r.end) {
-                    return true;
-                }
-            }
-            false
-        }
-        Group { ref e, .. } => has_uppercase_literal(e),
-        Repeat { ref e, .. } => has_uppercase_literal(e),
-        Concat(ref es) => es.iter().any(has_uppercase_literal),
-        Alternate(ref es) => es.iter().any(has_uppercase_literal),
-        _ => false,
     }
+    false
 }
 
 #[cfg(test)]
@@ -358,7 +339,7 @@ mod tests {
     use memchr::{memchr, memrchr};
     use regex::bytes::Regex;
 
-    use super::{GrepBuilder, Match};
+    use super::{GrepBuilder, Match, has_uppercase_literal};
 
     static SHERLOCK: &'static [u8] = include_bytes!("./data/sherlock.txt");
 
@@ -394,5 +375,21 @@ mod tests {
         let got = grep_lines("Sherlock Holmes", SHERLOCK);
         assert_eq!(expected.len(), got.len());
         assert_eq!(expected, got);
+    }
+
+    #[test]
+    fn pattern_case() {
+        assert_eq!(has_uppercase_literal(&"".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"Foo".to_string()), true);
+        assert_eq!(has_uppercase_literal(&"foO".to_string()), true);
+        assert_eq!(has_uppercase_literal(&"foo\\\\".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo\\w".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo\\S".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo\\p{Ll}".to_string()), true);
+        assert_eq!(has_uppercase_literal(&"foo[a-z]".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo[A-Z]".to_string()), true);
+        assert_eq!(has_uppercase_literal(&"foo[\\S\\t]".to_string()), false);
+        assert_eq!(has_uppercase_literal(&"foo\\\\S".to_string()), true);
     }
 }

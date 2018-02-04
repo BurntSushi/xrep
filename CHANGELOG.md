@@ -1,3 +1,159 @@
+0.7.1 (2017-10-22)
+==================
+This is a patch release of ripgrep that includes a fix to very bad regression
+introduced in ripgrep 0.7.0.
+
+Bug fixes:
+
+* [BUG #648](https://github.com/BurntSushi/ripgrep/issues/648):
+  Fix a bug where it was very easy to exceed standard file descriptor limits.
+
+
+0.7.0 (2017-10-20)
+==================
+This is a new minor version release of ripgrep that includes mostly bug fixes.
+
+ripgrep continues to require Rust 1.17, and there are no known breaking changes
+introduced in this release.
+
+Feature enhancements:
+
+* Added or improved file type filtering for config & license files, Elm,
+  Purescript, Standard ML, sh, systemd, Terraform
+* [FEATURE #593](https://github.com/BurntSushi/ripgrep/pull/593):
+  Using both `-o/--only-matching` and `-r/--replace` does the right thing.
+
+Bug fixes:
+
+* [BUG #200](https://github.com/BurntSushi/ripgrep/issues/200):
+  ripgrep will stop when its pipe is closed.
+* [BUG #402](https://github.com/BurntSushi/ripgrep/issues/402):
+  Fix context printing bug when the `-m/--max-count` flag is used.
+* [BUG #521](https://github.com/BurntSushi/ripgrep/issues/521):
+  Fix interaction between `-r/--replace` and terminal colors.
+* [BUG #559](https://github.com/BurntSushi/ripgrep/issues/559):
+  Ignore test that tried reading a non-UTF-8 file path on macOS.
+* [BUG #599](https://github.com/BurntSushi/ripgrep/issues/599):
+  Fix color escapes on empty matches.
+* [BUG #600](https://github.com/BurntSushi/ripgrep/issues/600):
+  Avoid expensive (on Windows) file handle check when using --files.
+* [BUG #618](https://github.com/BurntSushi/ripgrep/issues/618):
+  Clarify installation instructions for Ubuntu users.
+* [BUG #633](https://github.com/BurntSushi/ripgrep/issues/633):
+  Faster symlink loop checking on Windows.
+
+
+0.6.0 (2017-08-23)
+==================
+This is a new minor version release of ripgrep that includes many bug fixes
+and a few new features such as `--iglob` and `-x/--line-regexp`.
+
+Note that this release increases the minimum supported Rust version from 1.12
+to 1.17.
+
+Feature enhancements:
+
+* Added or improved file type filtering for BitBake, C++, Cabal, cshtml, Julia,
+  Make, msbuild, QMake, Yocto
+* [FEATURE #163](https://github.com/BurntSushi/ripgrep/issues/163):
+  Add an `--iglob` flag that is like `-g/--glob`, but matches globs
+  case insensitively.
+* [FEATURE #520](https://github.com/BurntSushi/ripgrep/pull/518):
+  Add `-x/--line-regexp` flag, which requires a match to span an entire line.
+* [FEATURE #551](https://github.com/BurntSushi/ripgrep/pull/551),
+  [FEATURE #554](https://github.com/BurntSushi/ripgrep/pull/554):
+  `ignore`: add new `matched_path_or_any_parents` method.
+
+Bug fixes:
+
+* [BUG #342](https://github.com/BurntSushi/ripgrep/issues/342):
+  Fix invisible text in some PowerShell environments by changing the
+  default color scheme on Windows.
+* [BUG #413](https://github.com/BurntSushi/ripgrep/issues/413):
+  Release binaries on Unix are now `strip`'d by default. This decreases
+  binary size by an order of magnitude.
+* [BUG #483](https://github.com/BurntSushi/ripgrep/issues/483):
+  When `--quiet` is passed, `--files` should be quiet.
+* [BUG #488](https://github.com/BurntSushi/ripgrep/pull/488):
+  When `--vimgrep` is passed, `--with-filename` should be enabled
+  automatically.
+* [BUG #493](https://github.com/BurntSushi/ripgrep/issues/493):
+  Fix another bug in the implementation of the `-o/--only-matching`
+  flag.
+* [BUG #499](https://github.com/BurntSushi/ripgrep/pull/499):
+  Permit certain flags to override others.
+* [BUG #523](https://github.com/BurntSushi/ripgrep/pull/523):
+  `wincolor`: Re-fetch Windows console on all calls.
+* [BUG #523](https://github.com/BurntSushi/ripgrep/issues/524):
+  `--version` now shows enabled compile-time features.
+* [BUG #532](https://github.com/BurntSushi/ripgrep/issues/532),
+  [BUG #536](https://github.com/BurntSushi/ripgrep/pull/536),
+  [BUG #538](https://github.com/BurntSushi/ripgrep/pull/538),
+  [BUG #540](https://github.com/BurntSushi/ripgrep/pull/540),
+  [BUG #560](https://github.com/BurntSushi/ripgrep/pull/560),
+  [BUG #565](https://github.com/BurntSushi/ripgrep/pull/565):
+  Improve zsh completion.
+* [BUG #578](https://github.com/BurntSushi/ripgrep/pull/578):
+  Enable SIMD for `encoding_rs` when appropriate.
+* [BUG #580](https://github.com/BurntSushi/ripgrep/issues/580):
+  Fix `-w/--word-regexp` in the presence of capturing groups.
+* [BUG #581](https://github.com/BurntSushi/ripgrep/issues/581):
+  Document that ripgrep may terminate unexpectedly when searching via
+  memory maps (which can happen using default settings).
+
+Friends of ripgrep:
+
+I'd like to give a big Thank You to @okdana for their recent hard work on
+ripgrep. This includes new features like `--line-regexp`, heroic effort on
+zsh auto-completion and thinking through some thorny argv issues with me.
+
+I'd also like to thank @ericbn for their work on improving ripgrep's argv
+parsing by allowing some flags to override others.
+
+Thanks @okdana and @ericbn!
+
+
+0.5.2 (2017-05-11)
+==================
+Feature enhancements:
+
+* Added or improved file type filtering for Nix.
+* [FEATURE #362](https://github.com/BurntSushi/ripgrep/issues/362):
+  Add `--regex-size-limit` and `--dfa-size-limit` flags.
+* [FEATURE #444](https://github.com/BurntSushi/ripgrep/issues/444):
+  Improve error messages for invalid globs.
+
+Bug fixes:
+
+* [BUG #442](https://github.com/BurntSushi/ripgrep/issues/442):
+  Fix line wrapping in `--help` output.
+* [BUG #451](https://github.com/BurntSushi/ripgrep/issues/451):
+  Fix bug with duplicate output when using `-o/--only-matching` flag.
+
+
+0.5.1 (2017-04-09)
+==================
+Feature enhancements:
+
+* Added or improved file type filtering for vim.
+* [FEATURE #34](https://github.com/BurntSushi/ripgrep/issues/34):
+  Add a `-o/--only-matching` flag.
+* [FEATURE #377](https://github.com/BurntSushi/ripgrep/issues/377):
+  Column numbers can now be customized with a color. (The default is
+  no color.)
+* [FEATURE #419](https://github.com/BurntSushi/ripgrep/issues/419):
+  Added `-0` short flag option for `--null`.
+
+Bug fixes:
+
+* [BUG #381](https://github.com/BurntSushi/ripgrep/issues/381):
+  Include license text in all subcrates.
+* [BUG #418](https://github.com/BurntSushi/ripgrep/issues/418),
+  [BUG #426](https://github.com/BurntSushi/ripgrep/issues/426),
+  [BUG #439](https://github.com/BurntSushi/ripgrep/issues/439):
+  Fix a few bugs with `-h/--help` output.
+
+
 0.5.0 (2017-03-12)
 ==================
 This is a new minor version release of ripgrep that includes one minor breaking

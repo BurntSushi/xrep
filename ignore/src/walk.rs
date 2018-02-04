@@ -1,5 +1,5 @@
 use std::cmp;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fmt;
 use std::fs::{self, FileType, Metadata};
 use std::io;
@@ -11,7 +11,8 @@ use std::time::Duration;
 use std::vec;
 
 use crossbeam::sync::MsQueue;
-use walkdir::{self, WalkDir, WalkDirIterator, is_same_file};
+use same_file::Handle;
+use walkdir::{self, WalkDir};
 
 use dir::{Ignore, IgnoreBuilder};
 use gitignore::GitignoreBuilder;
@@ -36,8 +37,8 @@ impl DirEntry {
     }
 
     /// Whether this entry corresponds to a symbolic link or not.
-    pub fn path_is_symbolic_link(&self) -> bool {
-        self.dent.path_is_symbolic_link()
+    pub fn path_is_symlink(&self) -> bool {
+        self.dent.path_is_symlink()
     }
 
     /// Returns true if and only if this entry corresponds to stdin.
@@ -86,6 +87,11 @@ impl DirEntry {
     /// file.
     pub fn error(&self) -> Option<&Error> {
         self.err.as_ref()
+    }
+
+    /// Returns true if and only if this entry points to a directory.
+    fn is_dir(&self) -> bool {
+        self.dent.is_dir()
     }
 
     fn new_stdin() -> DirEntry {
@@ -137,12 +143,12 @@ impl DirEntryInner {
         }
     }
 
-    fn path_is_symbolic_link(&self) -> bool {
+    fn path_is_symlink(&self) -> bool {
         use self::DirEntryInner::*;
         match *self {
             Stdin => false,
-            Walkdir(ref x) => x.path_is_symbolic_link(),
-            Raw(ref x) => x.path_is_symbolic_link(),
+            Walkdir(ref x) => x.path_is_symlink(),
+            Raw(ref x) => x.path_is_symlink(),
         }
     }
 
@@ -199,12 +205,31 @@ impl DirEntryInner {
 
     #[cfg(unix)]
     fn ino(&self) -> Option<u64> {
+        use walkdir::DirEntryExt;
         use self::DirEntryInner::*;
         match *self {
             Stdin => None,
             Walkdir(ref x) => Some(x.ino()),
             Raw(ref x) => Some(x.ino()),
         }
+    }
+
+    /// Returns true if and only if this entry points to a directory.
+    ///
+    /// This works around a bug in Rust's standard library:
+    /// https://github.com/rust-lang/rust/issues/46484
+    #[cfg(windows)]
+    fn is_dir(&self) -> bool {
+        self.metadata().map(|md| metadata_is_dir(&md)).unwrap_or(false)
+    }
+
+    /// Returns true if and only if this entry points to a directory.
+    ///
+    /// This works around a bug in Rust's standard library:
+    /// https://github.com/rust-lang/rust/issues/46484
+    #[cfg(not(windows))]
+    fn is_dir(&self) -> bool {
+        self.file_type().map(|ft| ft.is_dir()).unwrap_or(false)
     }
 }
 
@@ -244,7 +269,7 @@ impl DirEntryRaw {
         &self.path
     }
 
-    fn path_is_symbolic_link(&self) -> bool {
+    fn path_is_symlink(&self) -> bool {
         self.ty.is_symlink() || self.follow_link
     }
 
@@ -277,13 +302,13 @@ impl DirEntryRaw {
         depth: usize,
         ent: &fs::DirEntry,
     ) -> Result<DirEntryRaw, Error> {
-        let ty = try!(ent.file_type().map_err(|err| {
+        let ty = ent.file_type().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
             Error::WithDepth {
                 depth: depth,
                 err: Box::new(err),
             }
-        }));
+        })?;
         Ok(DirEntryRaw::from_entry_os(depth, ent, ty))
     }
 
@@ -320,9 +345,9 @@ impl DirEntryRaw {
 
     #[cfg(not(unix))]
     fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
-        let md = try!(fs::metadata(&pb).map_err(|err| {
+        let md = fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
-        }));
+        })?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -335,9 +360,9 @@ impl DirEntryRaw {
     fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
-        let md = try!(fs::metadata(&pb).map_err(|err| {
+        let md = fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
-        }));
+        })?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -380,16 +405,16 @@ impl DirEntryRaw {
 /// is: `.ignore`, `.gitignore`, `.git/info/exclude`, global gitignore and
 /// finally explicitly added ignore files. Note that precedence between
 /// different types of ignore files is not impacted by the directory hierarchy;
-/// any `.ignore` file overrides all `.gitignore` files. Within each
-/// precedence level, more nested ignore files have a higher precedence over
-/// less nested ignore files.
-/// * Third, if the previous step yields an ignore match, than all matching
-/// is stopped and the path is skipped.. If it yields a whitelist match, then
-/// process continues. A whitelist match can be overridden by a later matcher.
+/// any `.ignore` file overrides all `.gitignore` files. Within each precedence
+/// level, more nested ignore files have a higher precedence than less nested
+/// ignore files.
+/// * Third, if the previous step yields an ignore match, then all matching
+/// is stopped and the path is skipped. If it yields a whitelist match, then
+/// matching continues. A whitelist match can be overridden by a later matcher.
 /// * Fourth, unless the path is a directory, the file type matcher is run on
-/// the path. As above, if it's an ignore match, then all matching is stopped
-/// and the path is skipped. If it's a whitelist match, then matching
-/// continues.
+/// the path. As above, if it yields an ignore match, then all matching is
+/// stopped and the path is skipped. If it yields a whitelist match, then
+/// matching continues.
 /// * Fifth, if the path hasn't been whitelisted and it is hidden, then the
 /// path is skipped.
 /// * Sixth, unless the path is a directory, the size of the file is compared
@@ -404,7 +429,9 @@ pub struct WalkBuilder {
     max_depth: Option<usize>,
     max_filesize: Option<u64>,
     follow_links: bool,
-    sorter: Option<Arc<Fn(&OsString, &OsString) -> cmp::Ordering + 'static>>,
+    sorter: Option<Arc<
+        Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
+    >>,
     threads: usize,
 }
 
@@ -452,13 +479,15 @@ impl WalkBuilder {
                 (p.to_path_buf(), None)
             } else {
                 let mut wd = WalkDir::new(p);
-                wd = wd.follow_links(follow_links || p.is_file());
+                wd = wd.follow_links(follow_links || path_is_file(p));
                 if let Some(max_depth) = max_depth {
                     wd = wd.max_depth(max_depth);
                 }
                 if let Some(ref cmp) = cmp {
                     let cmp = cmp.clone();
-                    wd = wd.sort_by(move |a, b| cmp(a, b));
+                    wd = wd.sort_by(move |a, b| {
+                        cmp(a.file_name(), b.file_name())
+                    });
                 }
                 (p.to_path_buf(), Some(WalkEventIter::from(wd)))
             }
@@ -532,7 +561,7 @@ impl WalkBuilder {
         self
     }
 
-    /// Add an ignore file to the matcher.
+    /// Add a global ignore file to the matcher.
     ///
     /// This has lower precedence than all other sources of ignore rules.
     ///
@@ -549,6 +578,20 @@ impl WalkBuilder {
             Err(err) => { errs.push(err); }
         }
         errs.into_error_option()
+    }
+
+    /// Add a custom ignore file name
+    ///
+    /// These ignore files have higher precedence than all other ignore files.
+    ///
+    /// When specifying multiple names, earlier names have lower precedence than
+    /// later names.
+    pub fn add_custom_ignore_filename<S: AsRef<OsStr>>(
+        &mut self,
+        file_name: S
+    ) -> &mut WalkBuilder {
+        self.ig_builder.add_custom_ignore_filename(file_name);
+        self
     }
 
     /// Add an override matcher.
@@ -569,6 +612,29 @@ impl WalkBuilder {
     pub fn types(&mut self, types: Types) -> &mut WalkBuilder {
         self.ig_builder.types(types);
         self
+    }
+
+    /// Enables all the standard ignore filters.
+    ///
+    /// This toggles, as a group, all the filters that are enabled by default:
+    ///
+    /// - [hidden()](#method.hidden)
+    /// - [parents()](#method.parents)
+    /// - [ignore()](#method.ignore)
+    /// - [git_ignore()](#method.git_ignore)
+    /// - [git_global()](#method.git_global)
+    /// - [git_exclude()](#method.git_exclude)
+    ///
+    /// They may still be toggled individually after calling this function.
+    ///
+    /// This is (by definition) enabled by default.
+    pub fn standard_filters(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.hidden(yes)
+            .parents(yes)
+            .ignore(yes)
+            .git_ignore(yes)
+            .git_global(yes)
+            .git_exclude(yes)
     }
 
     /// Enables ignoring hidden files.
@@ -610,6 +676,8 @@ impl WalkBuilder {
     /// does not exist or does not specify `core.excludesFile`, then
     /// `$XDG_CONFIG_HOME/git/ignore` is read. If `$XDG_CONFIG_HOME` is not
     /// set or is empty, then `$HOME/.config/git/ignore` is used instead.
+    ///
+    /// This is enabled by default.
     pub fn git_global(&mut self, yes: bool) -> &mut WalkBuilder {
         self.ig_builder.git_global(yes);
         self
@@ -637,7 +705,7 @@ impl WalkBuilder {
         self
     }
 
-    /// Set a function for sorting directory entries.
+    /// Set a function for sorting directory entries by file name.
     ///
     /// If a compare function is set, the resulting iterator will return all
     /// paths in sorted order. The compare function will be called to compare
@@ -645,8 +713,9 @@ impl WalkBuilder {
     /// entry.
     ///
     /// Note that this is not used in the parallel iterator.
-    pub fn sort_by<F>(&mut self, cmp: F) -> &mut WalkBuilder
-            where F: Fn(&OsString, &OsString) -> cmp::Ordering + 'static {
+    pub fn sort_by_file_name<F>(&mut self, cmp: F) -> &mut WalkBuilder
+    where F: Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
+    {
         self.sorter = Some(Arc::new(cmp));
         self
     }
@@ -682,7 +751,7 @@ impl Walk {
             return false;
         }
 
-        let is_dir = ent.file_type().is_dir();
+        let is_dir = walkdir_entry_is_dir(ent);
         let max_size = self.max_filesize;
         let should_skip_path = skip_path(&self.ig, ent.path(), is_dir);
         let should_skip_filesize = if !is_dir && max_size.is_some() {
@@ -711,7 +780,7 @@ impl Iterator for Walk {
                         }
                         Some((path, Some(it))) => {
                             self.it = Some(it);
-                            if self.parents && path.is_dir() {
+                            if self.parents && path_is_dir(&path) {
                                 let (ig, err) = self.ig_root.add_parents(path);
                                 self.ig = ig;
                                 if let Some(err) = err {
@@ -727,7 +796,7 @@ impl Iterator for Walk {
             };
             match ev {
                 Err(err) => {
-                    return Some(Err(Error::from(err)));
+                    return Some(Err(Error::from_walkdir(err)));
                 }
                 Ok(WalkEvent::Exit) => {
                     self.ig = self.ig.parent().unwrap();
@@ -763,7 +832,7 @@ impl Iterator for Walk {
 /// the entire contents of a directory have been enumerated.
 struct WalkEventIter {
     depth: usize,
-    it: walkdir::Iter,
+    it: walkdir::IntoIter,
     next: Option<Result<walkdir::DirEntry, walkdir::Error>>,
 }
 
@@ -801,7 +870,7 @@ impl Iterator for WalkEventIter {
             None => None,
             Some(Err(err)) => Some(Err(err)),
             Some(Ok(dent)) => {
-                if dent.file_type().is_dir() {
+                if walkdir_entry_is_dir(&dent) {
                     self.depth += 1;
                     Some(Ok(WalkEvent::Dir(dent)))
                 } else {
@@ -954,7 +1023,7 @@ struct Work {
 impl Work {
     /// Returns true if and only if this work item is a directory.
     fn is_dir(&self) -> bool {
-        self.dent.file_type().map_or(false, |t| t.is_dir())
+        self.dent.is_dir()
     }
 
     /// Adds ignore rules for parent directories.
@@ -1128,13 +1197,13 @@ impl Worker {
                     return (self.f)(Err(err));
                 }
             };
-            if dent.file_type().map_or(false, |ft| ft.is_dir()) {
+            if dent.is_dir() {
                 if let Err(err) = check_symlink_loop(ig, dent.path(), depth) {
                     return (self.f)(Err(err));
                 }
             }
         }
-        let is_dir = dent.file_type().map_or(false, |ft| ft.is_dir());
+        let is_dir = dent.is_dir();
         let max_size = self.max_filesize;
         let should_skip_path = skip_path(ig, dent.path(), is_dir);
         let should_skip_filesize = if !is_dir && max_size.is_some() {
@@ -1276,11 +1345,14 @@ fn check_symlink_loop(
     child_path: &Path,
     child_depth: usize,
 ) -> Result<(), Error> {
+    let hchild = Handle::from_path(child_path).map_err(|err| {
+        Error::from(err).with_path(child_path).with_depth(child_depth)
+    })?;
     for ig in ig_parent.parents().take_while(|ig| !ig.is_absolute_parent()) {
-        let same = try!(is_same_file(ig.path(), child_path).map_err(|err| {
+        let h = Handle::from_path(ig.path()).map_err(|err| {
             Error::from(err).with_path(child_path).with_depth(child_depth)
-        }));
-        if same {
+        })?;
+        if hchild == h {
             return Err(Error::Loop {
                 ancestor: ig.path().to_path_buf(),
                 child: child_path.to_path_buf(),
@@ -1325,6 +1397,62 @@ fn skip_path(ig: &Ignore, path: &Path, is_dir: bool) -> bool {
     } else {
         false
     }
+}
+
+/// Returns true if and only if this path points to a directory.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn path_is_dir(path: &Path) -> bool {
+    fs::metadata(path).map(|md| metadata_is_dir(&md)).unwrap_or(false)
+}
+
+/// Returns true if and only if this entry points to a directory.
+#[cfg(not(windows))]
+fn path_is_dir(path: &Path) -> bool {
+    path.is_dir()
+}
+
+/// Returns true if and only if this path points to a file.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn path_is_file(path: &Path) -> bool {
+    !path_is_dir(path)
+}
+
+/// Returns true if and only if this entry points to a directory.
+#[cfg(not(windows))]
+fn path_is_file(path: &Path) -> bool {
+    path.is_file()
+}
+
+/// Returns true if and only if the given walkdir entry points to a directory.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn walkdir_entry_is_dir(dent: &walkdir::DirEntry) -> bool {
+    dent.metadata().map(|md| metadata_is_dir(&md)).unwrap_or(false)
+}
+
+/// Returns true if and only if the given walkdir entry points to a directory.
+#[cfg(not(windows))]
+fn walkdir_entry_is_dir(dent: &walkdir::DirEntry) -> bool {
+    dent.file_type().is_dir()
+}
+
+/// Returns true if and only if the given metadata points to a directory.
+///
+/// This works around a bug in Rust's standard library:
+/// https://github.com/rust-lang/rust/issues/46484
+#[cfg(windows)]
+fn metadata_is_dir(md: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    use winapi::um::winnt::FILE_ATTRIBUTE_DIRECTORY;
+    md.file_attributes() & FILE_ATTRIBUTE_DIRECTORY != 0
 }
 
 #[cfg(test)]
@@ -1439,6 +1567,22 @@ mod tests {
         assert_paths(td.path(), &WalkBuilder::new(td.path()), &[
             "x", "x/y", "x/y/foo", "a", "a/b", "a/b/foo", "a/b/c",
         ]);
+    }
+
+    #[test]
+    fn custom_ignore() {
+        let td = TempDir::new("walk-test-").unwrap();
+        let custom_ignore = ".customignore";
+        mkdirp(td.path().join("a"));
+        wfile(td.path().join(custom_ignore), "foo");
+        wfile(td.path().join("foo"), "");
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("bar"), "");
+        wfile(td.path().join("a/bar"), "");
+
+        let mut builder = WalkBuilder::new(td.path());
+        builder.add_custom_ignore_filename(&custom_ignore);
+        assert_paths(td.path(), &builder, &["bar", "a", "a/bar"]);
     }
 
     #[test]

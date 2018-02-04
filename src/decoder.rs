@@ -32,7 +32,7 @@ impl Bom {
     }
 }
 
-/// BomPeeker wraps `R` and satisfies the `io::Read` interface while also
+/// `BomPeeker` wraps `R` and satisfies the `io::Read` interface while also
 /// providing a peek at the BOM if one exists. Peeking at the BOM does not
 /// advance the reader.
 struct BomPeeker<R> {
@@ -62,7 +62,7 @@ impl<R: io::Read> BomPeeker<R> {
         }
         self.bom = Some(Bom { bytes: [0; 3], len: 0 });
         let mut buf = [0u8; 3];
-        let bom_len = try!(read_full(&mut self.rdr, &mut buf));
+        let bom_len = read_full(&mut self.rdr, &mut buf)?;
         self.bom = Some(Bom { bytes: buf, len: bom_len });
         Ok(self.bom.unwrap())
     }
@@ -71,7 +71,7 @@ impl<R: io::Read> BomPeeker<R> {
 impl<R: io::Read> io::Read for BomPeeker<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.nread < 3 {
-            let bom = try!(self.peek_bom());
+            let bom = self.peek_bom()?;
             let bom = bom.as_slice();
             if self.nread < bom.len() {
                 let rest = &bom[self.nread..];
@@ -81,13 +81,13 @@ impl<R: io::Read> io::Read for BomPeeker<R> {
                 return Ok(len);
             }
         }
-        let nread = try!(self.rdr.read(buf));
+        let nread = self.rdr.read(buf)?;
         self.nread += nread;
         Ok(nread)
     }
 }
 
-/// Like io::Read::read_exact, except it never returns UnexpectedEof and
+/// Like `io::Read::read_exact`, except it never returns `UnexpectedEof` and
 /// instead returns the number of bytes read if EOF is seen before filling
 /// `buf`.
 fn read_full<R: io::Read>(
@@ -112,12 +112,12 @@ fn read_full<R: io::Read>(
 
 /// A reader that transcodes to UTF-8. The source encoding is determined by
 /// inspecting the BOM from the stream read from `R`, if one exists. If a
-/// UTF-16 BOM exists, then the source stream is trancoded to UTF-8 with
+/// UTF-16 BOM exists, then the source stream is transcoded to UTF-8 with
 /// invalid UTF-16 sequences translated to the Unicode replacement character.
 /// In all other cases, the underlying reader is passed through unchanged.
 ///
 /// `R` is the type of the underlying reader and `B` is the type of an internal
-/// buffer used to store the results of trancoding.
+/// buffer used to store the results of transcoding.
 ///
 /// Note that not all methods on `io::Read` work with this implementation.
 /// For example, the `bytes` adapter method attempts to read a single byte at
@@ -196,7 +196,7 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
         }
         self.pos = 0;
         self.buflen +=
-            try!(self.rdr.read(&mut self.buf.as_mut()[self.buflen..]));
+            self.rdr.read(&mut self.buf.as_mut()[self.buflen..])?;
         Ok(())
     }
 
@@ -219,7 +219,7 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
             return Ok(0);
         }
         if self.pos >= self.buflen {
-            try!(self.fill());
+            self.fill()?;
         }
         let mut nwrite = 0;
         loop {
@@ -235,7 +235,7 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
             }
             // Otherwise, we know that our internal buffer has insufficient
             // data to transcode at least one char, so we attempt to refill it.
-            try!(self.fill());
+            self.fill()?;
             // Quit on EOF.
             if self.buflen == 0 {
                 self.pos = 0;
@@ -251,7 +251,7 @@ impl<R: io::Read, B: AsMut<[u8]>> DecodeReader<R, B> {
 
     #[inline(never)] // impacts perf...
     fn detect(&mut self) -> io::Result<()> {
-        let bom = try!(self.rdr.peek_bom());
+        let bom = self.rdr.peek_bom()?;
         self.decoder = bom.decoder();
         Ok(())
     }
@@ -261,7 +261,7 @@ impl<R: io::Read, B: AsMut<[u8]>> io::Read for DecodeReader<R, B> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.first {
             self.first = false;
-            try!(self.detect());
+            self.detect()?;
         }
         if self.decoder.is_none() {
             return self.rdr.read(buf);
@@ -447,7 +447,8 @@ mod tests {
     test_trans_simple!(trans_simple_utf16be, "utf-16be", b"\x04\x16", "Ж");
     test_trans_simple!(trans_simple_chinese, "chinese", b"\xA7\xA8", "Ж");
     test_trans_simple!(trans_simple_korean, "korean", b"\xAC\xA8", "Ж");
-    test_trans_simple!(trans_simple_big5_hkscs, "big5-hkscs", b"\xC7\xFA", "Ж");
+    test_trans_simple!(
+        trans_simple_big5_hkscs, "big5-hkscs", b"\xC7\xFA", "Ж");
     test_trans_simple!(trans_simple_gbk, "gbk", b"\xA7\xA8", "Ж");
     test_trans_simple!(trans_simple_sjis, "sjis", b"\x84\x47", "Ж");
     test_trans_simple!(trans_simple_eucjp, "euc-jp", b"\xA7\xA8", "Ж");

@@ -14,8 +14,8 @@ enum State {
 /// Unescapes a string given on the command line. It supports a limited set of
 /// escape sequences:
 ///
-/// * \t, \r and \n are mapped to their corresponding ASCII bytes.
-/// * \xZZ hexadecimal escapes are mapped to their byte.
+/// * `\t`, `\r` and `\n` are mapped to their corresponding ASCII bytes.
+/// * `\xZZ` hexadecimal escapes are mapped to their byte.
 pub fn unescape(s: &str) -> Vec<u8> {
     use self::State::*;
 
