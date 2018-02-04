@@ -35,7 +35,6 @@ members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
 [dependencies]
 atty = "0.2.2"
 bytecount = "0.3.1"
-clap = "2.26"
 encoding_rs = "0.7"
 grep = { version = "0.1.7", path = "grep" }
 ignore = { version = "0.3.1", path = "ignore" }
@@ -50,13 +49,22 @@ same-file = "1"
 termcolor = { version = "0.3.3", path = "termcolor" }
 globset = { version = "0.2.1", path = "globset" }
 
+[dependencies.clap]
+version = "2.26"
+default-features = false
+features = ["suggestions", "color"]
+
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"
 features = ["std", "winnt"]
 
 [build-dependencies]
-clap = "2.26"
 lazy_static = "1"
+
+[build-dependencies.clap]
+version = "2.26"
+default-features = false
+features = ["suggestions", "color"]
 
 [features]
 avx-accel = ["bytecount/avx-accel"]
