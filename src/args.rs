@@ -381,8 +381,8 @@ impl<'a> ArgMatches<'a> {
             line_number: line_number,
             line_number_width: try!(self.usize_of("line-number-width")),
             line_per_match: self.is_present("vimgrep"),
-            max_columns: self.usize_of("max-columns")?,
-            max_count: self.usize_of("max-count")?.map(|max| max as u64),
+            max_columns: self.usize_of_nonzero("max-columns")?,
+            max_count: self.usize_of("max-count")?.map(|n| n as u64),
             max_filesize: self.max_filesize()?,
             maxdepth: self.usize_of("maxdepth")?,
             mmap: mmap,
@@ -969,6 +969,24 @@ impl<'a> ArgMatches<'a> {
     /// present.
     fn values_of_lossy_vec(&self, name: &str) -> Vec<String> {
         self.values_of_lossy(name).unwrap_or_else(Vec::new)
+    }
+
+    /// Safely reads an arg value with the given name, and if it's present,
+    /// tries to parse it as a usize value.
+    ///
+    /// If the number is zero, then it is considered absent and `None` is
+    /// returned.
+    fn usize_of_nonzero(&self, name: &str) -> Result<Option<usize>> {
+        match self.value_of_lossy(name) {
+            None => Ok(None),
+            Some(v) => v.parse().map_err(From::from).map(|n| {
+                if n == 0 {
+                    None
+                } else {
+                    Some(n)
+                }
+            }),
+        }
     }
 
     /// Safely reads an arg value with the given name, and if it's present,

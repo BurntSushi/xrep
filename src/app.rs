@@ -1034,6 +1034,8 @@ fn flag_max_columns(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Don't print lines longer than this limit in bytes. Longer lines are omitted,
 and only the number of matches in that line is printed.
+
+When this flag is omitted or is set to 0, then it has no effect.
 ");
     let arg = RGArg::flag("max-columns", "NUM").short("M")
         .help(SHORT).long_help(LONG)
