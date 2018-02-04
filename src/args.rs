@@ -656,7 +656,8 @@ impl<'a> ArgMatches<'a> {
                 } else if sep.len() > 1 {
                     Err(From::from(format!(
                         "A path separator must be exactly one byte, but \
-                         the given separator is {} bytes.", sep.len())))
+                         the given separator `{}` is {} bytes.",
+                         String::from_utf8_lossy(&sep), sep.len())))
                 } else {
                     Ok(Some(sep[0]))
                 }
