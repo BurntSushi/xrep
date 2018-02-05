@@ -1155,6 +1155,7 @@ mod tests {
     matches!(matchrec22, ".*/**", ".abc/abc");
     matches!(matchrec23, "foo/**", "foo");
     matches!(matchrec24, "**/foo/bar", "foo/bar");
+    matches!(matchrec25, "some/*/needle.txt", "some/one/needle.txt");
 
     matches!(matchrange1, "a[0-9]b", "a0b");
     matches!(matchrange2, "a[0-9]b", "a9b");
@@ -1243,6 +1244,9 @@ mod tests {
     nmatches!(matchnot27, "a[^0-9]b", "a0b");
     nmatches!(matchnot28, "a[^0-9]b", "a9b");
     nmatches!(matchnot29, "[^-]", "-");
+    nmatches!(matchnot30, "some/*/needle.txt", "some/needle.txt");
+    nmatches!(matchrec31, "some/*/needle.txt", "some/one/two/needle.txt");
+    nmatches!(matchrec32, "some/*/needle.txt", "some/one/two/three/needle.txt");
 
     macro_rules! extract {
         ($which:ident, $name:ident, $pat:expr, $expect:expr) => {
