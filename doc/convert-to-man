@@ -1,5 +1,0 @@
-#!/bin/sh -e
-
-pandoc -s -f markdown-smart -t man rg.1.md -o rg.1
-sed -i.bak 's/\.TH.*/.TH "rg" "1"/g' rg.1
-rm -f rg.1.bak # BSD `sed` requires the creation of a back-up file

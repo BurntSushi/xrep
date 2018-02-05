@@ -11,6 +11,8 @@ addons:
       - zsh
       # Needed for testing decompression search.
       - xz-utils
+      # For generating man page.
+      - asciidoc
 matrix:
   fast_finish: true
   include:

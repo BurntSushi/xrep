@@ -1,0 +1,136 @@
+rg(1)
+=====
+
+Name
+----
+rg - recursively search current directory for lines matching a pattern
+
+
+Synopsis
+--------
+*rg* [_OPTIONS_] _PATTERN_ [_PATH_...]
+
+*rg* [_OPTIONS_] [*-e* _PATTERN_...] [*-f* _PATH_...] [_PATH_...]
+
+*rg* [_OPTIONS_] *--files* [_PATH_...]
+
+*rg* [_OPTIONS_] *--type-list*
+
+*rg* [_OPTIONS_] *--help*
+
+*rg* [_OPTIONS_] *--version*
+
+
+DESCRIPTION
+-----------
+ripgrep (rg) recursively searches your current directory for a regex pattern.
+By default, ripgrep will respect your `.gitignore` and automatically skip
+hidden files/directories and binary files.
+
+ripgrep's regex engine uses finite automata and guarantees linear time
+searching. Because of this, features like backreferences and arbitrary
+lookaround are not supported.
+
+
+POSITIONAL ARGUMENTS
+--------------------
+_PATTERN_::
+  A regular expression used for searching. To match a pattern beginning with a
+  dash, use the -e/--regexp option.
+
+_PATH_::
+  A file or directory to search. Directories are searched recursively. Paths
+  specified expicitly on the command line override glob and ignore rules.
+
+
+OPTIONS
+-------
+{OPTIONS}
+
+
+EXIT STATUS
+-----------
+If ripgrep finds a match, then the exit status of the program is 0. If no match
+could be found, then the exit status is non-zero.
+
+
+CONFIGURATION FILES
+-------------------
+ripgrep supports reading configuration files that change ripgrep's default
+behavior. The format of the configuration file is an "rc" style and is very
+simple. It is defined by two rules:
+
+    1. Every line is a shell argument, after trimming ASCII whitespace.
+    2. Lines starting with _#_ (optionally preceded by any amount of
+       ASCII whitespace) are ignored.
+
+ripgrep will look for a single configuration file if and only if the
+_RIPGREP_CONFIG_PATH_ environment variable is set and is non-empty.
+ripgrep will parse shell arguments from this file on startup and will
+behave as if the arguments in this file were prepended to any explicit
+arguments given to ripgrep on the command line.
+
+For example, if your ripgreprc file contained a single line:
+
+    --smart-case
+
+then the following command
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo
+
+would behave identically to the following command
+
+    rg --smart-case foo
+
+ripgrep also provides a flag, *--no-config*, that when present will suppress
+any and all support for configuration. This includes any future support
+for auto-loading configuration files from pre-determined paths.
+
+Conflicts between configuration files and explicit arguments are handled
+exactly like conflicts in the same command line invocation. That is,
+this command:
+
+    RIPGREP_CONFIG_PATH=wherever/.ripgreprc rg foo --case-sensitive
+
+is exactly equivalent to
+
+    rg --smart-case foo --case-sensitive
+
+in which case, the *--case-sensitive* flag would override the *--smart-case*
+flag.
+
+
+SHELL COMPLETION
+----------------
+Shell completion files are included in the release tarball for Bash, Fish, Zsh
+and PowerShell.
+
+For *bash*, move `rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
+or `/etc/bash_completion.d/`.
+
+For *fish*, move `rg.fish` to `$HOME/.config/fish/completions`.
+
+
+CAVEATS
+-------
+ripgrep may abort unexpectedly when using default settings if it searches a
+file that is simultaneously truncated. This behavior can be avoided by passing
+the --no-mmap flag which will forcefully disable the use of memory maps in all
+cases.
+
+
+VERSION
+-------
+{VERSION}
+
+
+HOMEPAGE
+--------
+https://github.com/BurntSushi/ripgrep
+
+Please report bugs and feature requests in the issue tracker.
+
+
+AUTHORS
+-------
+Andrew Gallant <jamslam@gmail.com>

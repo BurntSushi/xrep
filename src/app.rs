@@ -57,7 +57,7 @@ pub fn app() -> App<'static, 'static> {
     // 'static, but we need to build the version string dynamically. We can
     // fake the 'static lifetime with lazy_static.
     lazy_static! {
-        static ref LONG_VERSION: String = long_version();
+        static ref LONG_VERSION: String = long_version(None);
     }
 
     let mut app = App::new("ripgrep")
@@ -78,7 +78,11 @@ pub fn app() -> App<'static, 'static> {
 }
 
 /// Return the "long" format of ripgrep's version string.
-fn long_version() -> String {
+///
+/// If a revision hash is given, then it is used. If one isn't given, then
+/// the RIPGREP_BUILD_GIT_HASH env var is inspect for it. If that isn't set,
+/// then a revision hash is not included in the version string returned.
+pub fn long_version(revision_hash: Option<&str>) -> String {
     // Let's say whether faster CPU instructions are enabled or not.
     let mut features = vec![];
     if cfg!(feature = "simd-accel") {
@@ -93,7 +97,7 @@ fn long_version() -> String {
     }
     // Do we have a git hash?
     // (Yes, if ripgrep was built on a machine with `git` installed.)
-    let hash = match option_env!("RIPGREP_BUILD_GIT_HASH") {
+    let hash = match revision_hash.or(option_env!("RIPGREP_BUILD_GIT_HASH")) {
         None => String::new(),
         Some(githash) => format!(" (rev {})", githash),
     };
@@ -113,26 +117,26 @@ type Arg = clap::Arg<'static, 'static>;
 /// use of clap.
 #[allow(dead_code)]
 #[derive(Clone)]
-struct RGArg {
+pub struct RGArg {
     /// The underlying clap argument.
     claparg: Arg,
     /// The name of this argument. This is always present and is the name
     /// used in the code to find the value of an argument at runtime.
-    name: &'static str,
+    pub name: &'static str,
     /// A short documentation string describing this argument. This string
     /// should fit on a single line and be a complete sentence.
     ///
     /// This is shown in the `-h` output.
-    doc_short: &'static str,
+    pub doc_short: &'static str,
     /// A longer documentation string describing this argument. This usually
     /// starts with the contents of `doc_short`. This is also usually many
     /// lines, potentially paragraphs, and may contain examples and additional
     /// prose.
     ///
     /// This is shown in the `--help` output.
-    doc_long: &'static str,
+    pub doc_long: &'static str,
     /// The type of this argument.
-    kind: RGArgKind,
+    pub kind: RGArgKind,
 }
 
 /// The kind of a ripgrep argument.
@@ -149,7 +153,7 @@ struct RGArg {
 /// why; the state we do capture is motivated by use cases (like generating
 /// documentation).
 #[derive(Clone)]
-enum RGArgKind {
+pub enum RGArgKind {
     /// A positional argument.
     Positional {
         /// The name of the value used in the `-h/--help` output. By
@@ -476,7 +480,8 @@ macro_rules! long {
     ($lit:expr) => { concat!($lit, " ") }
 }
 
-fn all_args_and_flags() -> Vec<RGArg> {
+/// Generate a sequence of all positional and flag arguments.
+pub fn all_args_and_flags() -> Vec<RGArg> {
     let mut args = vec![];
     // The positional arguments must be defined first and in order.
     arg_pattern(&mut args);
