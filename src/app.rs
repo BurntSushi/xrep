@@ -1468,7 +1468,7 @@ Show all supported file types and their corresponding globs.
         .help(SHORT).long_help(LONG)
         // This also technically conflicts with PATTERN, but the first file
         // path will actually be in PATTERN.
-        .conflicts(&["file", "files", "PATTERN", "regexp"]);
+        .conflicts(&["file", "files", "pattern", "regexp"]);
     args.push(arg);
 }
 
