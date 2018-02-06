@@ -1,5 +1,4 @@
 language: rust
-cache:    cargo
 env:
   global:
     - PROJECT_NAME: ripgrep
@@ -7,12 +6,16 @@ env:
 addons:
   apt:
     packages:
+      # For generating man page.
+      - libxslt1-dev
+      - asciidoc
+      - docbook-xsl
+      - xsltproc
+      - libxml2-utils
       # Needed for completion-function test.
       - zsh
       # Needed for testing decompression search.
       - xz-utils
-      # For generating man page.
-      - asciidoc
 matrix:
   fast_finish: true
   include:

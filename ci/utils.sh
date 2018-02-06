@@ -13,17 +13,6 @@ host() {
     esac
 }
 
-gcc_prefix() {
-    case "$TARGET" in
-        arm*-gnueabihf)
-            echo arm-linux-gnueabihf-
-            ;;
-        *)
-            return
-            ;;
-    esac
-}
-
 architecture() {
     case "$TARGET" in
         x86_64-*)
@@ -41,9 +30,41 @@ architecture() {
     esac
 }
 
+gcc_prefix() {
+    case "$(architecture)" in
+        armhf)
+            echo arm-linux-gnueabihf-
+            ;;
+        *)
+            return
+            ;;
+    esac
+}
+
 is_ssse3_target() {
-    case "$TARGET" in
-        x86_64*)  return 0 ;;
-        *)        return 1 ;;
+    case "$(architecture)" in
+        amd64) return 0 ;;
+        *)     return 1 ;;
+    esac
+}
+
+is_x86() {
+    case "$(architecture)" in
+      amd64|i386) return 0 ;;
+      *)          return 1 ;;
+    esac
+}
+
+is_arm() {
+    case "$(architecture)" in
+        armhf) return 0 ;;
+        *)     return 1 ;;
+    esac
+}
+
+is_linux() {
+    case "$TRAVIS_OS_NAME" in
+        linux) return 0 ;;
+        *)     return 1 ;;
     esac
 }
