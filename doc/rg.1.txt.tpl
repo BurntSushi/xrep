@@ -10,7 +10,9 @@ Synopsis
 --------
 *rg* [_OPTIONS_] _PATTERN_ [_PATH_...]
 
-*rg* [_OPTIONS_] [*-e* _PATTERN_...] [*-f* _PATH_...] [_PATH_...]
+*rg* [_OPTIONS_] *-e* _PATTERN_... [_PATH_...]
+
+*rg* [_OPTIONS_] *-f* _PATH_... [_PATH_...]
 
 *rg* [_OPTIONS_] *--files* [_PATH_...]
 
@@ -30,6 +32,20 @@ hidden files/directories and binary files.
 ripgrep's regex engine uses finite automata and guarantees linear time
 searching. Because of this, features like backreferences and arbitrary
 lookaround are not supported.
+
+
+REGEX SYNTAX
+------------
+ripgrep uses Rust's regex engine, which documents its syntax:
+https://docs.rs/regex/0.2.5/regex/#syntax
+
+ripgrep uses byte-oriented regexes, which has some additional documentation:
+https://docs.rs/regex/0.2.5/regex/bytes/index.html#syntax
+
+To a first approximation, ripgrep uses Perl-like regexes without look-around or
+backreferences. This makes them very similar to the "extended" (ERE) regular
+expressions supported by `egrep`, but with a few additional features like
+Unicode character classes.
 
 
 POSITIONAL ARGUMENTS
@@ -105,10 +121,12 @@ SHELL COMPLETION
 Shell completion files are included in the release tarball for Bash, Fish, Zsh
 and PowerShell.
 
-For *bash*, move `rg.bash-completion` to `$XDG_CONFIG_HOME/bash_completion`
+For *bash*, move `rg.bash` to `$XDG_CONFIG_HOME/bash_completion`
 or `/etc/bash_completion.d/`.
 
 For *fish*, move `rg.fish` to `$HOME/.config/fish/completions`.
+
+For *zsh*, move `_rg` to one of your `$fpath` directories.
 
 
 CAVEATS

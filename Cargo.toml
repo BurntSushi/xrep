@@ -36,6 +36,7 @@ members = ["grep", "globset", "ignore", "termcolor", "wincolor"]
 atty = "0.2.2"
 bytecount = "0.3.1"
 encoding_rs = "0.7"
+globset = { version = "0.2.1", path = "globset" }
 grep = { version = "0.1.7", path = "grep" }
 ignore = { version = "0.3.1", path = "ignore" }
 lazy_static = "1"
@@ -47,7 +48,6 @@ num_cpus = "1"
 regex = "0.2.4"
 same-file = "1"
 termcolor = { version = "0.3.3", path = "termcolor" }
-globset = { version = "0.2.1", path = "globset" }
 
 [dependencies.clap]
 version = "2.29.4"

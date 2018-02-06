@@ -13,14 +13,12 @@ use clap::{self, App, AppSettings};
 
 const ABOUT: &str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.
+By default, ripgrep will respect your `.gitignore` and automatically skip
+hidden files/directories and binary files.
 
 ripgrep's regex engine uses finite automata and guarantees linear time
 searching. Because of this, features like backreferences and arbitrary
 lookaround are not supported.
-
-Note that ripgrep may abort unexpectedly when using default settings if it
-searches a file that is simultaneously truncated. This behavior can be avoided
-by passing the --no-mmap flag.
 
 ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
 configuration file. The file can specify one shell argument per line. Lines
@@ -857,9 +855,9 @@ fn flag_files_without_match(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Only print the paths that contain zero matches.";
     const LONG: &str = long!("\
 Only print the paths that contain zero matches. This inverts/negates the
---file-with-matches flag.
+--files-with-matches flag.
 
-This overrides --file-with-matches.
+This overrides --files-with-matches.
 ");
     let arg = RGArg::switch("files-without-match")
         .help(SHORT).long_help(LONG)
@@ -900,7 +898,7 @@ This flag can be disabled with --no-follow.
 }
 
 fn flag_glob(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Include or exclude files and directories.";
+    const SHORT: &str = "Include or exclude files.";
     const LONG: &str = long!("\
 Include or exclude files and directories for searching that match the given
 glob. This always overrides any other ignore logic. Multiple glob flags may be
@@ -964,7 +962,7 @@ This flag can be disabled with --no-hidden.
 
 fn flag_iglob(args: &mut Vec<RGArg>) {
     const SHORT: &str =
-        "Include or exclude files and directories case insensitively.";
+        "Include or exclude files case insensitively.";
     const LONG: &str = long!("\
 Include or exclude files and directories for searching that match the given
 glob. This always overrides any other ignore logic. Multiple glob flags may be
