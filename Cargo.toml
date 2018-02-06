@@ -30,7 +30,7 @@ name = "integration"
 path = "tests/tests.rs"
 
 [workspace]
-members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
+members = ["grep", "globset", "ignore", "termcolor", "wincolor"]
 
 [dependencies]
 atty = "0.2.2"
@@ -50,7 +50,7 @@ termcolor = { version = "0.3.3", path = "termcolor" }
 globset = { version = "0.2.1", path = "globset" }
 
 [dependencies.clap]
-version = "2.26"
+version = "2.29.4"
 default-features = false
 features = ["suggestions", "color"]
 
@@ -62,7 +62,7 @@ features = ["std", "winnt"]
 lazy_static = "1"
 
 [build-dependencies.clap]
-version = "2.26"
+version = "2.29.4"
 default-features = false
 features = ["suggestions", "color"]
 

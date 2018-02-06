@@ -1166,6 +1166,49 @@ clean!(regression_493, " 're ", "input.txt", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, " 're \n");
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/553
+sherlock!(regression_553_switch, "sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-i");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+
+    // This repeats the `-i` flag.
+    cmd.arg("-i");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(regression_553_flag, "world|attached",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-C").arg("1");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+Holmeses, success in the province of detective work must always
+--
+but Doctor Watson has to have it taken out for him and dusted,
+and exhibited clearly, with a label attached.
+";
+    assert_eq!(lines, expected);
+
+    cmd.arg("-C").arg("0");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+and exhibited clearly, with a label attached.
+";
+    assert_eq!(lines, expected);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/599
 clean!(regression_599, "^$", "input.txt", |wd: WorkDir, mut cmd: Command| {
     wd.create("input.txt", "\n\ntest\n");

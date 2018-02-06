@@ -994,7 +994,7 @@ impl<'a> ArgMatches<'a> {
     }
 
     fn value_of_lossy(&self, name: &str) -> Option<String> {
-        self.values_of_lossy(name).and_then(|mut vals| vals.pop())
+        self.0.value_of_lossy(name).map(|s| s.into_owned())
     }
 
     fn values_of_lossy(&self, name: &str) -> Option<Vec<String>> {
@@ -1002,7 +1002,7 @@ impl<'a> ArgMatches<'a> {
     }
 
     fn value_of_os(&'a self, name: &str) -> Option<&'a OsStr> {
-        self.values_of_os(name).and_then(|it| it.last())
+        self.0.value_of_os(name)
     }
 
     fn values_of_os(&'a self, name: &str) -> Option<clap::OsValues<'a>> {

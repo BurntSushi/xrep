@@ -67,6 +67,7 @@ pub fn app() -> App<'static, 'static> {
         .about(ABOUT)
         .max_term_width(100)
         .setting(AppSettings::UnifiedHelpMessage)
+        .setting(AppSettings::AllArgsOverrideSelf)
         .usage(USAGE)
         .template(TEMPLATE)
         .help_message("Prints help information. Use --help for more details.");
@@ -250,8 +251,7 @@ impl RGArg {
     /// inspect the number of times the switch is used.
     fn switch(long_name: &'static str) -> RGArg {
         let claparg = Arg::with_name(long_name)
-            .long(long_name)
-            .multiple(true);
+            .long(long_name);
         RGArg {
             claparg: claparg,
             name: long_name,
@@ -280,7 +280,6 @@ impl RGArg {
             .long(long_name)
             .value_name(value_name)
             .takes_value(true)
-            .multiple(true)
             .number_of_values(1);
         RGArg {
             claparg: claparg,
@@ -351,11 +350,8 @@ impl RGArg {
         // document it distinct for each different kind. See RGArgKind docs.
         match self.kind {
             RGArgKind::Positional { ref mut multiple, .. } => {
-                self.claparg = self.claparg.multiple(true);
                 *multiple = true;
             }
-            // We don't need to modify clap's state in the following cases
-            // because all switches and flags always have `multiple` enabled.
             RGArgKind::Switch { ref mut multiple, .. } => {
                 *multiple = true;
             }
@@ -363,6 +359,7 @@ impl RGArg {
                 *multiple = true;
             }
         }
+        self.claparg = self.claparg.multiple(true);
         self
     }
 
