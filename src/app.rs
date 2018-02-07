@@ -856,7 +856,8 @@ This overrides --file-without-match.
 fn flag_files_without_match(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Only print the paths that contain zero matches.";
     const LONG: &str = long!("\
-Only print the paths that contain zero matches.
+Only print the paths that contain zero matches. This inverts/negates the
+--file-with-matches flag.
 
 This overrides --file-with-matches.
 ");
