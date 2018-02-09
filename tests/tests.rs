@@ -1879,6 +1879,22 @@ fn files() {
             || lines == path("dir/file\nfile\n"));
 }
 
+// See: https://github.com/BurntSushi/ripgrep/pull/783
+#[test]
+fn ignore_trailing_line() {
+    let wd = WorkDir::new("ignore_trailing_line");
+    wd.create("foo", "foo");
+    wd.create("bar", "bar");
+    wd.create("patterns.txt", "foo\n\n");
+
+    let mut cmd = wd.command();
+    cmd.arg("--file").arg("patterns.txt")
+        .arg("--glob").arg("!patterns.txt");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "foo:foo\n".to_string());
+}
+
 // See: https://github.com/BurntSushi/ripgrep/issues/64
 #[test]
 fn regression_64() {
