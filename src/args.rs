@@ -511,6 +511,9 @@ impl<'a> ArgMatches<'a> {
                     for line in io::BufReader::new(f).lines() {
                         pats.push(self.str_pattern(&line?));
                     }
+                    if Some(&self.str_pattern("")) == pats.last() {
+                        pats.pop();
+                    }
                 }
             }
         }
