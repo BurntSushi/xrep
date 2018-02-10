@@ -22,6 +22,14 @@ install_targets() {
     fi
 }
 
+install_osx_dependencies() {
+    if ! is_osx; then
+      return
+    fi
+
+    brew install asciidoc
+}
+
 configure_cargo() {
     local prefix=$(gcc_prefix)
     if [ -n "${prefix}" ]; then
@@ -44,6 +52,7 @@ EOF
 }
 
 main() {
+    install_osx_dependencies
     install_rustup
     install_targets
     configure_cargo

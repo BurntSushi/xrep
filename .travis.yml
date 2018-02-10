@@ -73,7 +73,7 @@ before_deploy: ci/before_deploy.sh
 deploy:
   provider: releases
   file_glob: true
-  file: deployment/${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.*
+  file: deployment/${PROJECT_NAME}-${TRAVIS_TAG}-${TARGET}.tar.gz
   skip_cleanup: true
   on:
     condition: $TRAVIS_RUST_VERSION = nightly

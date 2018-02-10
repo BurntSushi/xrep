@@ -31,6 +31,11 @@ fn main() {
         }
     };
     fs::create_dir_all(&outdir).unwrap();
+
+    let stamp_path = Path::new(&outdir).join("ripgrep-stamp");
+    if let Err(err) = File::create(&stamp_path) {
+        panic!("failed to write {}: {}", stamp_path.display(), err);
+    }
     if let Err(err) = generate_man_page(&outdir) {
         eprintln!("failed to generate man page: {}", err);
     }
@@ -65,6 +70,10 @@ fn generate_man_page<P: AsRef<Path>>(outdir: P) -> io::Result<()> {
         eprintln!("Error from running 'a2x': {}", err);
         return Ok(());
     }
+    // 1. Read asciidoc template.
+    // 2. Interpolate template with auto-generated docs.
+    // 3. Save interpolation to disk.
+    // 4. Use a2x (part of asciidoc) to convert to man page.
     let outdir = outdir.as_ref();
     let cwd = env::current_dir()?;
     let tpl_path = cwd.join("doc").join("rg.1.txt.tpl");

@@ -2,6 +2,20 @@
 
 # Various utility functions used through CI.
 
+# Finds Cargo's `OUT_DIR` directory from the most recent build.
+#
+# This requires one parameter corresponding to the target directory
+# to search for the build output.
+cargo_out_dir() {
+    # This works by finding the most recent stamp file, which is produced by
+    # every ripgrep build.
+    target_dir="$1"
+    find "$target_dir" -name ripgrep-stamp -print0 \
+      | xargs -0 ls -t \
+      | head -n1 \
+      | xargs dirname
+}
+
 host() {
     case "$TRAVIS_OS_NAME" in
         linux)
@@ -66,5 +80,12 @@ is_linux() {
     case "$TRAVIS_OS_NAME" in
         linux) return 0 ;;
         *)     return 1 ;;
+    esac
+}
+
+is_osx() {
+    case "$TRAVIS_OS_NAME" in
+        osx) return 0 ;;
+        *)   return 1 ;;
     esac
 }
