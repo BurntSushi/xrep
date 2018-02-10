@@ -1293,7 +1293,18 @@ impl ColorSpec {
 /// on Windows using the console. If they are used on Windows, then they are
 /// silently ignored and no colors will be emitted.
 ///
-/// Note that this set may expand over time.
+/// This set may expand over time.
+///
+/// This type has a `FromStr` impl that can parse colors from their human
+/// readable form. The format is as follows:
+///
+/// 1. Any of the explicitly listed colors in English. They are matched
+///    case insensitively.
+/// 2. A single 8-bit integer, in either decimal or hexadecimal format.
+/// 3. A triple of 8-bit integers separated by a comma, where each integer is
+///    in decimal or hexadecimal format.
+///
+/// Hexadecimal numbers are written with a `0x` prefix.
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Color {
@@ -1311,9 +1322,9 @@ pub enum Color {
     __Nonexhaustive,
 }
 
-#[cfg(windows)]
 impl Color {
     /// Translate this color to a wincolor::Color.
+    #[cfg(windows)]
     fn to_windows(&self) -> Option<wincolor::Color> {
         match *self {
             Color::Black => Some(wincolor::Color::Black),
@@ -1327,6 +1338,68 @@ impl Color {
             Color::Ansi256(_) => None,
             Color::Rgb(_, _, _) => None,
             Color::__Nonexhaustive => unreachable!(),
+        }
+    }
+
+    /// Parses a numeric color string, either ANSI or RGB.
+    fn from_str_numeric(s: &str) -> Result<Color, ParseColorError> {
+        // The "ansi256" format is a single number (decimal or hex)
+        // corresponding to one of 256 colors.
+        //
+        // The "rgb" format is a triple of numbers (decimal or hex) delimited
+        // by a comma corresponding to one of 256^3 colors.
+
+        fn parse_number(s: &str) -> Option<u8> {
+            use std::u8;
+
+            if s.starts_with("0x") {
+                u8::from_str_radix(&s[2..], 16).ok()
+            } else {
+                u8::from_str_radix(s, 10).ok()
+            }
+        }
+
+        let codes: Vec<&str> = s.split(',').collect();
+        if codes.len() == 1 {
+            if let Some(n) = parse_number(&codes[0]) {
+                Ok(Color::Ansi256(n))
+            } else {
+                if s.chars().all(|c| c.is_digit(16)) {
+                    Err(ParseColorError {
+                        kind: ParseColorErrorKind::InvalidAnsi256,
+                        given: s.to_string(),
+                    })
+                } else {
+                    Err(ParseColorError {
+                        kind: ParseColorErrorKind::InvalidName,
+                        given: s.to_string(),
+                    })
+                }
+            }
+        } else if codes.len() == 3 {
+            let mut v = vec![];
+            for code in codes {
+                let n = parse_number(code).ok_or_else(|| {
+                    ParseColorError {
+                        kind: ParseColorErrorKind::InvalidRgb,
+                        given: s.to_string(),
+                    }
+                })?;
+                v.push(n);
+            }
+            Ok(Color::Rgb(v[0], v[1], v[2]))
+        } else {
+            Err(if s.contains(",") {
+                ParseColorError {
+                    kind: ParseColorErrorKind::InvalidRgb,
+                    given: s.to_string(),
+                }
+            } else {
+                ParseColorError {
+                    kind: ParseColorErrorKind::InvalidName,
+                    given: s.to_string(),
+                }
+            })
         }
     }
 }
@@ -1373,13 +1446,13 @@ impl fmt::Display for ParseColorError {
             }
             InvalidAnsi256 => {
                 write!(f, "unrecognized ansi256 color number, \
-                           should be '[0-255]', but is '{}'",
+                           should be '[0-255]' (or a hex number), but is '{}'",
                            self.given)
             }
             InvalidRgb => {
                 write!(f, "unrecognized RGB color triple, \
-                           should be '[0-255],[0-255],[0-255]', but is '{}'",
-                           self.given)
+                           should be '[0-255],[0-255],[0-255]' (or a hex \
+                           triple), but is '{}'", self.given)
             }
         }
     }
@@ -1398,52 +1471,7 @@ impl FromStr for Color {
             "magenta" => Ok(Color::Magenta),
             "yellow" => Ok(Color::Yellow),
             "white" => Ok(Color::White),
-            _ => {
-                // - Ansi256: '[0-255]'
-                // - Rgb:     '[0-255],[0-255],[0-255]'
-                let codes: Vec<&str> = s.split(',').collect();
-                if codes.len() == 1 {
-                    if let Ok(n) = codes[0].parse::<u8>() {
-                        Ok(Color::Ansi256(n))
-                    } else {
-                        if s.chars().all(|c| c.is_digit(10)) {
-                            Err(ParseColorError {
-                                kind: ParseColorErrorKind::InvalidAnsi256,
-                                given: s.to_string(),
-                            })
-                        } else {
-                            Err(ParseColorError {
-                                kind: ParseColorErrorKind::InvalidName,
-                                given: s.to_string(),
-                            })
-                        }
-                    }
-                } else if codes.len() == 3 {
-                    let mut v = vec![];
-                    for code in codes {
-                        let n = code.parse::<u8>().map_err(|_| {
-                            ParseColorError {
-                                kind: ParseColorErrorKind::InvalidRgb,
-                                given: s.to_string(),
-                            }
-                        })?;
-                        v.push(n);
-                    }
-                    Ok(Color::Rgb(v[0], v[1], v[2]))
-                } else {
-                    Err(if s.contains(",") {
-                        ParseColorError {
-                            kind: ParseColorErrorKind::InvalidRgb,
-                            given: s.to_string(),
-                        }
-                    } else {
-                        ParseColorError {
-                            kind: ParseColorErrorKind::InvalidName,
-                            given: s.to_string(),
-                        }
-                    })
-                }
-            }
+            _ => Color::from_str_numeric(s),
         }
     }
 }
@@ -1550,9 +1578,11 @@ mod tests {
         let color = "7".parse::<Color>();
         assert_eq!(color, Ok(Color::Ansi256(7)));
 
-        // In range of standard color codes
         let color = "32".parse::<Color>();
         assert_eq!(color, Ok(Color::Ansi256(32)));
+
+        let color = "0xFF".parse::<Color>();
+        assert_eq!(color, Ok(Color::Ansi256(0xFF)));
     }
 
     #[test]
@@ -1571,6 +1601,12 @@ mod tests {
 
         let color = "0,128,255".parse::<Color>();
         assert_eq!(color, Ok(Color::Rgb(0, 128, 255)));
+
+        let color = "0x0,0x0,0x0".parse::<Color>();
+        assert_eq!(color, Ok(Color::Rgb(0, 0, 0)));
+
+        let color = "0x33,0x66,0xFF".parse::<Color>();
+        assert_eq!(color, Ok(Color::Rgb(0x33, 0x66, 0xFF)));
     }
 
     #[test]

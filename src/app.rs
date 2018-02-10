@@ -696,12 +696,17 @@ the background color for line numbers to yellow:
 
 Extended colors can be used for {value} when the terminal supports ANSI color
 sequences. These are specified as either 'x' (256-color) or 'x,x,x' (24-bit
-truecolor) where x is a number between 0 and 255 inclusive.
+truecolor) where x is a number between 0 and 255 inclusive. x may be given as
+a normal decimal number or a hexadecimal number, which is prefixed by `0x`.
 
 For example, the following command will change the match background color to
 that represented by the rgb value (0,128,255):
 
     rg --colors 'match:bg:0,128,255'
+
+or, equivalently,
+
+    rg --colors 'match:bg:0x0,0x80,0xFF'
 
 Note that the the intense and nointense style flags will have no effect when
 used alongside these extended color codes.
