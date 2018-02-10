@@ -239,7 +239,7 @@ impl io::Write for IoStandardStream {
     }
 }
 
-/// Same rigmarole for the locked variants of the standard streams.
+// Same rigmarole for the locked variants of the standard streams.
 
 enum IoStandardStreamLock<'a> {
     StdoutLock(io::StdoutLock<'a>),
@@ -328,14 +328,17 @@ impl StandardStream {
     /// the `WriteColor` trait.
     #[cfg(windows)]
     fn create(sty: StandardStreamType, choice: ColorChoice) -> StandardStream {
-        let con = match sty {
+        let mut con = match sty {
             StandardStreamType::Stdout => wincolor::Console::stdout(),
             StandardStreamType::Stderr => wincolor::Console::stderr(),
         };
         let is_win_console = con.is_ok();
+        let is_console_virtual = con.as_mut().map(|con| {
+            con.set_virtual_terminal_processing(true).is_ok()
+        }).unwrap_or(false);
         let wtr =
             if choice.should_attempt_color() {
-                if choice.should_ansi() {
+                if choice.should_ansi() || is_console_virtual {
                     WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
                 } else if let Ok(console) = con {
                     WriterInner::Windows {
@@ -612,10 +615,18 @@ impl BufferWriter {
     /// the buffers themselves.
     #[cfg(windows)]
     fn create(sty: StandardStreamType, choice: ColorChoice) -> BufferWriter {
-        let con = match sty {
+        let mut con = match sty {
             StandardStreamType::Stdout => wincolor::Console::stdout(),
             StandardStreamType::Stderr => wincolor::Console::stderr(),
-        }.ok().map(Mutex::new);
+        }.ok();
+        let is_console_virtual = con.as_mut().map(|con| {
+            con.set_virtual_terminal_processing(true).is_ok()
+        }).unwrap_or(false);
+        // If we can enable ANSI on Windows, then we don't need the console
+        // anymore.
+        if is_console_virtual {
+            con = None;
+        }
         let stream = LossyStandardStream::new(IoStandardStream::new(sty))
             .is_console(con.is_some());
         BufferWriter {
@@ -623,7 +634,7 @@ impl BufferWriter {
             printed: AtomicBool::new(false),
             separator: None,
             color_choice: choice,
-            console: con,
+            console: con.map(Mutex::new),
         }
     }
 

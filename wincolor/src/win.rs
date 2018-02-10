@@ -130,17 +130,23 @@ impl Console {
         &mut self,
         yes: bool,
     ) -> io::Result<()> {
-        let mut lpmode = 0;
+        let vt = wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        let mut old_mode = 0;
         let handle = unsafe { processenv::GetStdHandle(self.handle_id) };
-        if unsafe { consoleapi::GetConsoleMode(handle, &mut lpmode) } == 0 {
+        if unsafe { consoleapi::GetConsoleMode(handle, &mut old_mode) } == 0 {
             return Err(io::Error::last_os_error());
         }
-        if yes {
-            lpmode |= wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        } else {
-            lpmode &= !wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        let new_mode =
+            if yes {
+                old_mode | vt
+            } else {
+                old_mode & !vt
+            };
+        if old_mode == new_mode {
+            return Ok(());
         }
-        if unsafe { consoleapi::SetConsoleMode(handle, lpmode) } == 0 {
+        if unsafe { consoleapi::SetConsoleMode(handle, new_mode) } == 0 {
             return Err(io::Error::last_os_error());
         }
         Ok(())
