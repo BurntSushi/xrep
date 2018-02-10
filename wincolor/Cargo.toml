@@ -16,5 +16,6 @@ license = "Unlicense/MIT"
 name = "wincolor"
 bench = false
 
-[dependencies]
-winapi = { version = "0.3", features = ["minwindef", "processenv", "winbase", "wincon"] }
+[dependencies.winapi]
+version = "0.3"
+features = ["consoleapi", "minwindef", "processenv", "winbase", "wincon"]
