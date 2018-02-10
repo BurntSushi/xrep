@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# export RUSTFLAGS="-C target-feature=+ssse3"
-# cargo build --release --features 'simd-accel'
-
-export RUSTFLAGS="-C target-cpu=native"
-cargo build --release --features 'simd-accel avx-accel'
-# cargo build --release --features 'simd-accel avx-accel' --target x86_64-unknown-linux-musl
