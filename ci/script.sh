@@ -7,9 +7,6 @@ set -ex
 . "$(dirname $0)/utils.sh"
 
 main() {
-    # Travis sometimes caches the target directory, which makes testing the
-    # output of cargo a little trickier. So just wipe it.
-    cargo clean
     # Test a normal debug build.
     cargo build --target "$TARGET" --verbose --all
 
