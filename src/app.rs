@@ -684,10 +684,10 @@ provided multiple times. Settings are applied iteratively. Colors are limited
 to one of eight choices: red, blue, green, cyan, magenta, yellow, white and
 black. Styles are limited to nobold, bold, nointense or intense.
 
-The format of the flag is {type}:{attribute}:{value}. {type} should be one of
-path, line, column or match. {attribute} can be fg, bg or style. {value} is
-either a color (for fg and bg) or a text style. A special format, {type}:none,
-will clear all color settings for {type}.
+The format of the flag is `{type}:{attribute}:{value}`. `{type}` should be
+one of path, line, column or match. `{attribute}` can be fg, bg or style.
+`{value}` is either a color (for fg and bg) or a text style. A special format,
+`{type}:none`, will clear all color settings for `{type}`.
 
 For example, the following command will change the match color to magenta and
 the background color for line numbers to yellow:

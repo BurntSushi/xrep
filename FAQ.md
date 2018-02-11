@@ -6,6 +6,8 @@
 * [Does ripgrep have a man page?](#manpage)
 * [Does ripgrep have support for shell auto-completion?](#complete)
 * [How do I use lookaround and/or backreferences?](#fancy)
+* [How do I configure ripgrep's colors?](#colors)
+* [How do I enable true colors on Windows?](#truecolors-windows)
 * [How do I stop ripgrep from messing up colors when I kill it?](#stop-ripgrep)
 * [How can I get results in a consistent order?](#order)
 * [How do I search files that aren't UTF-8?](#encoding)
@@ -24,7 +26,8 @@
 Does ripgrep support configuration files?
 </h3>
 
-Yes. See the [guide's section on configuration files](#configuration-file).
+Yes. See the
+[guide's section on configuration files](GUIDE.md#configuration-file).
 
 
 <h3 name="changelog">
@@ -158,6 +161,102 @@ finite automata engines, so ripgrep does not provide these features.
 If a production quality regular expression engine with these features is ever
 written in Rust, then it is possible ripgrep will provide it as an opt-in
 feature.
+
+
+<h3 name="colors">
+How do I configure ripgrep's colors?
+</h3>
+
+ripgrep has two flags related to colors:
+
+* `--color` controls *when* to use colors.
+* `--colors` controls *which* colors to use.
+
+The `--color` flag accepts one of the following possible values: `never`,
+`auto`, `always` or `ansi`. The `auto` value is the default and will cause
+ripgrep to only enable colors when it is printing to a terminal. But if you
+pipe ripgrep to a file or some other process, then it will suppress colors.
+
+The --colors` flag is a bit more complicated. The general format is:
+
+```
+--colors '{type}:{attribute}:{value}'
+```
+
+* `{type}` should be one of `path`, `line`, `column` or `match`. Each of these
+  correspond to the four different types of things that ripgrep will add color
+  to in its output. Select the type whose color you want to change.
+* `{attribute}` should be one of `fg`, `bg` or `style`, corresponding to
+  foreground color, background color, or miscellaneous styling (such as whether
+  to bold the output or not).
+* `{value}` is determined by the value of `{attribute}`. If `{attribute}` is
+  `style`, then `{value}` should be one of `nobold`, `bold`, `nointense` or
+  `intense`. If `{attribute}` is `fg` or `bg`, then `{value}` should be a
+  color.
+
+A color is specified by either one of eight of English names, a single 256-bit
+number or an RGB triple (with over 16 million possible values, or "true
+color").
+
+The color names are `red`, `blue`, `green`, `cyan`, `magenta`, `yellow`,
+`white` or `black`.
+
+A single 256-bit number is a value in the range 0-255 (inclusive). It can
+either be in decimal format (e.g., `62`) or hexadecimal format (e.g., `0x3E`).
+
+An RGB triple corresponds to three numbers (decimal or hexadecimal) separated
+by commas.
+
+As a special case, `--colors '{type}:none'` will clear all colors and styles
+associated with `{type}`, which lets you start with a clean slate (instead of
+building on top of ripgrep's default color settings).
+
+Here's an example that makes highlights the matches with a nice blue background
+with bolded white text:
+
+```
+$ rg somepattern \
+    --colors 'match:none' \
+    --colors 'match:bg:0x33,0x66,0xFF' \
+    --colors 'match:fg:white' \
+    --colors 'match:style:bold'
+```
+
+Colors are an ideal candidate to set in your
+[configuration file](GUIDE.md#configuration-file). See the
+[question on emulating The Silver Searcher's output style](#silver-searcher-output)
+for an example specific to colors.
+
+
+<h3 name="truecolors-windows">
+How do I enable true colors on Windows?
+</h3>
+
+First, see the previous question's
+[answer on configuring colors](#colors).
+
+Secondly, coloring on Windows is a bit complicated. If you're using a terminal
+like Cygwin, then it's likely true color support already works out of the box.
+However, if you are using a normal Windows console (`cmd` or `PowerShell`) and
+a version of Windows prior to 10, then there is no known way to get true
+color support. If you are on Windows 10 and using a Windows console, then
+true colors should work out of the box with one caveat: you might need to
+clear ripgrep's default color settings first. That is, instead of this:
+
+```
+$ rg somepattern --colors 'match:fg:0x33,0x66,0xFF'
+```
+
+you should do this
+
+```
+$ rg somepattern --colors 'match:none' --colors 'match:fg:0x33,0x66,0xFF'
+```
+
+This is because ripgrep might set the default style for `match` to `bold`, and
+it seems like Windows 10's VT100 support doesn't permit bold and true color
+ANSI escapes to be used simultaneously. The work-around above will clear
+ripgrep's default styling, allowing you to craft it exactly as desired.
 
 
 <h3 name="stop-ripgrep">
