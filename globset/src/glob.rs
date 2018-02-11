@@ -1,4 +1,3 @@
-use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::hash;
 use std::iter;
@@ -28,7 +27,7 @@ pub enum MatchStrategy {
     BasenameLiteral(String),
     /// A pattern matches if and only if the file path's extension matches this
     /// literal string.
-    Extension(OsString),
+    Extension(String),
     /// A pattern matches if and only if this prefix literal is a prefix of the
     /// candidate file path.
     Prefix(String),
@@ -47,7 +46,7 @@ pub enum MatchStrategy {
     /// extension. Note that this is a necessary but NOT sufficient criterion.
     /// Namely, if the extension matches, then a full regex search is still
     /// required.
-    RequiredExtension(OsString),
+    RequiredExtension(String),
     /// A regex needs to be used for matching.
     Regex,
 }
@@ -154,7 +153,7 @@ impl GlobStrategic {
                 lit.as_bytes() == &*candidate.basename
             }
             MatchStrategy::Extension(ref ext) => {
-                candidate.ext == ext
+                ext.as_bytes() == &*candidate.ext
             }
             MatchStrategy::Prefix(ref pre) => {
                 starts_with(pre.as_bytes(), byte_path)
@@ -166,7 +165,8 @@ impl GlobStrategic {
                 ends_with(suffix.as_bytes(), byte_path)
             }
             MatchStrategy::RequiredExtension(ref ext) => {
-                candidate.ext == ext && self.re.is_match(byte_path)
+                let ext = ext.as_bytes();
+                &*candidate.ext == ext && self.re.is_match(byte_path)
             }
             MatchStrategy::Regex => self.re.is_match(byte_path),
         }
@@ -295,7 +295,7 @@ impl Glob {
     /// std::path::Path::extension returns. Namely, this extension includes
     /// the '.'. Also, paths like `.rs` are considered to have an extension
     /// of `.rs`.
-    fn ext(&self) -> Option<OsString> {
+    fn ext(&self) -> Option<String> {
         if self.opts.case_insensitive {
             return None;
         }
@@ -319,11 +319,11 @@ impl Glob {
             Some(&Token::Literal('.')) => {}
             _ => return None,
         }
-        let mut lit = OsStr::new(".").to_os_string();
+        let mut lit = ".".to_string();
         for t in self.tokens[start + 2..].iter() {
             match *t {
                 Token::Literal('.') | Token::Literal('/') => return None,
-                Token::Literal(c) => lit.push(c.to_string()),
+                Token::Literal(c) => lit.push(c),
                 _ => return None,
             }
         }
@@ -337,7 +337,7 @@ impl Glob {
     /// This is like `ext`, but returns an extension even if it isn't sufficent
     /// to imply a match. Namely, if an extension is returned, then it is
     /// necessary but not sufficient for a match.
-    fn required_ext(&self) -> Option<OsString> {
+    fn required_ext(&self) -> Option<String> {
         if self.opts.case_insensitive {
             return None;
         }
@@ -360,7 +360,7 @@ impl Glob {
             None
         } else {
             ext.reverse();
-            Some(OsString::from(ext.into_iter().collect::<String>()))
+            Some(ext.into_iter().collect())
         }
     }
 
@@ -927,8 +927,6 @@ fn ends_with(needle: &[u8], haystack: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::{OsStr, OsString};
-
     use {GlobSetBuilder, ErrorKind};
     use super::{Glob, GlobBuilder, Token};
     use super::Token::*;
@@ -1021,7 +1019,6 @@ mod tests {
     }
 
     fn s(string: &str) -> String { string.to_string() }
-    fn os(string: &str) -> OsString { OsStr::new(string).to_os_string() }
 
     fn class(s: char, e: char) -> Token {
         Class { negated: false, ranges: vec![(s, e)] }
@@ -1319,19 +1316,19 @@ mod tests {
         Literal('f'), Literal('o'), ZeroOrMore, Literal('o'),
     ]), SLASHLIT);
 
-    ext!(extract_ext1, "**/*.rs", Some(os(".rs")));
+    ext!(extract_ext1, "**/*.rs", Some(s(".rs")));
     ext!(extract_ext2, "**/*.rs.bak", None);
-    ext!(extract_ext3, "*.rs", Some(os(".rs")));
+    ext!(extract_ext3, "*.rs", Some(s(".rs")));
     ext!(extract_ext4, "a*.rs", None);
     ext!(extract_ext5, "/*.c", None);
     ext!(extract_ext6, "*.c", None, SLASHLIT);
-    ext!(extract_ext7, "*.c", Some(os(".c")));
+    ext!(extract_ext7, "*.c", Some(s(".c")));
 
-    required_ext!(extract_req_ext1, "*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext2, "/foo/bar/*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext3, "/foo/bar/*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext4, "/foo/bar/.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext5, ".rs", Some(os(".rs")));
+    required_ext!(extract_req_ext1, "*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext2, "/foo/bar/*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext3, "/foo/bar/*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext4, "/foo/bar/.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext5, ".rs", Some(s(".rs")));
     required_ext!(extract_req_ext6, "./rs", None);
     required_ext!(extract_req_ext7, "foo", None);
     required_ext!(extract_req_ext8, ".foo/", None);
