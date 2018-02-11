@@ -104,7 +104,7 @@ pub trait WriteColor: io::Write {
     fn reset(&mut self) -> io::Result<()>;
 }
 
-impl<'a, T: WriteColor> WriteColor for &'a mut T {
+impl<'a, T: ?Sized + WriteColor> WriteColor for &'a mut T {
     fn supports_color(&self) -> bool { (&**self).supports_color() }
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         (&mut **self).set_color(spec)
