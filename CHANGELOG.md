@@ -1,4 +1,4 @@
-0.8.0 (2017-02-11)
+0.8.0 (2018-02-11)
 ==================
 This is a new minor version releae of ripgrep that satisfies several popular
 feature requests (config files, search compressed files, true colors), fixes
