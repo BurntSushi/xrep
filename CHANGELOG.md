@@ -47,7 +47,7 @@ Feature enhancements:
   Add extended or "true" color support. Works in Windows 10!
   [See the FAQ for details.](FAQ.md#colors)
 * [FEATURE #539](https://github.com/BurntSushi/ripgrep/issues/539):
-  Search gzip, bsip2, lzma or xz files when given `-z/--search-zip` flag.
+  Search gzip, bzip2, lzma or xz files when given `-z/--search-zip` flag.
 * [FEATURE #544](https://github.com/BurntSushi/ripgrep/issues/544):
   Add support for line number alignment via a new `--line-number-width` flag.
 * [FEATURE #654](https://github.com/BurntSushi/ripgrep/pull/654):
