@@ -1770,6 +1770,49 @@ be, to a very large extent, the result of luck. Sherlock Holmes
     assert_eq!(lines, expected);
 });
 
+sherlock!(feature_411_single_threaded_search_stats, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("2 matches"), true);
+    assert_eq!(lines.contains("1 files contained matches"), true);
+    assert_eq!(lines.contains("1 files searched"), true);
+    assert_eq!(lines.contains("seconds"), true);
+});
+
+#[test]
+fn feature_411_parallel_search_stats() {
+    let wd = WorkDir::new("feature_411");
+    wd.create("sherlock_1", hay::SHERLOCK);
+    wd.create("sherlock_2", hay::SHERLOCK);
+
+    let mut cmd = wd.command();
+    cmd.arg("--stats");
+    cmd.arg("Sherlock");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("4 matches"), true);
+    assert_eq!(lines.contains("2 files contained matches"), true);
+    assert_eq!(lines.contains("2 files searched"), true);
+    assert_eq!(lines.contains("seconds"), true);
+}
+
+sherlock!(feature_411_ignore_stats_1, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--files-with-matches");
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("seconds"), false);
+});
+
+sherlock!(feature_411_ignore_stats_2, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--files-without-match");
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("seconds"), false);
+});
+
 #[test]
 fn feature_740_passthru() {
     let wd = WorkDir::new("feature_740");
