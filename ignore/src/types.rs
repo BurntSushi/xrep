@@ -274,6 +274,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("twig", &["*.twig"]),
     ("vala", &["*.vala"]),
     ("vb", &["*.vb"]),
+    ("vhdl", &["*.vhd", "*.vhdl"]),
     ("vim", &["*.vim"]),
     ("vimscript", &["*.vim"]),
     ("wiki", &["*.mediawiki", "*.wiki"]),
