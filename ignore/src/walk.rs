@@ -1581,6 +1581,10 @@ mod tests {
         wfile(td.path().join("a/bar"), "");
 
         let mut builder = WalkBuilder::new(td.path());
+        builder.ignore(false);
+        builder.git_ignore(false);
+        builder.git_global(false);
+        builder.git_exclude(false);
         builder.add_custom_ignore_filename(&custom_ignore);
         assert_paths(td.path(), &builder, &["bar", "a", "a/bar"]);
     }
