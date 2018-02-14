@@ -190,10 +190,10 @@ The --colors` flag is a bit more complicated. The general format is:
 * `{attribute}` should be one of `fg`, `bg` or `style`, corresponding to
   foreground color, background color, or miscellaneous styling (such as whether
   to bold the output or not).
-* `{value}` is determined by the value of `{attribute}`. If `{attribute}` is
-  `style`, then `{value}` should be one of `nobold`, `bold`, `nointense` or
-  `intense`. If `{attribute}` is `fg` or `bg`, then `{value}` should be a
-  color.
+* `{value}` is determined by the value of `{attribute}`. If
+  `{attribute}` is `style`, then `{value}` should be one of `nobold`,
+  `bold`, `nointense`, `intense`, `nounderline` or `underline`. If
+  `{attribute}` is `fg` or `bg`, then `{value}` should be a color.
 
 A color is specified by either one of eight of English names, a single 256-bit
 number or an RGB triple (with over 16 million possible values, or "true

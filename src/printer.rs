@@ -555,7 +555,8 @@ impl fmt::Display for Error {
             }
             Error::UnrecognizedStyle(ref name) => {
                 write!(f, "Unrecognized style attribute '{}'. Choose from: \
-                           nobold, bold, nointense, intense.", name)
+                           nobold, bold, nointense, intense, nounderline, \
+                           underline.", name)
             }
             Error::InvalidFormat(ref original) => {
                 write!(
@@ -627,7 +628,8 @@ pub struct ColorSpecs {
 /// Valid colors are `black`, `blue`, `green`, `red`, `cyan`, `magenta`,
 /// `yellow`, `white`.
 ///
-/// Valid style instructions are `nobold`, `bold`, `intense`, `nointense`.
+/// Valid style instructions are `nobold`, `bold`, `intense`, `nointense`,
+/// `underline`, `nounderline`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Spec {
     ty: OutType,
@@ -668,6 +670,8 @@ enum Style {
     NoBold,
     Intense,
     NoIntense,
+    Underline,
+    NoUnderline
 }
 
 impl ColorSpecs {
@@ -727,6 +731,8 @@ impl SpecValue {
                     Style::NoBold => { cspec.set_bold(false); }
                     Style::Intense => { cspec.set_intense(true); }
                     Style::NoIntense => { cspec.set_intense(false); }
+                    Style::Underline => { cspec.set_underline(true); }
+                    Style::NoUnderline => { cspec.set_underline(false); }
                 }
             }
         }
@@ -806,6 +812,8 @@ impl FromStr for Style {
             "nobold" => Ok(Style::NoBold),
             "intense" => Ok(Style::Intense),
             "nointense" => Ok(Style::NoIntense),
+            "underline" => Ok(Style::Underline),
+            "nounderline" => Ok(Style::NoUnderline),
             _ => Err(Error::UnrecognizedStyle(s.to_string())),
         }
     }
@@ -857,6 +865,12 @@ mod tests {
         assert_eq!(spec, Spec {
             ty: OutType::Match,
             value: SpecValue::Style(Style::Intense),
+        });
+
+        let spec: Spec = "match:style:underline".parse().unwrap();
+        assert_eq!(spec, Spec {
+            ty: OutType::Match,
+            value: SpecValue::Style(Style::Underline),
         });
 
         let spec: Spec = "line:none".parse().unwrap();

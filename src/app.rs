@@ -682,7 +682,8 @@ fn flag_colors(args: &mut Vec<RGArg>) {
 This flag specifies color settings for use in the output. This flag may be
 provided multiple times. Settings are applied iteratively. Colors are limited
 to one of eight choices: red, blue, green, cyan, magenta, yellow, white and
-black. Styles are limited to nobold, bold, nointense or intense.
+black. Styles are limited to nobold, bold, nointense, intense, nounderline
+or underline.
 
 The format of the flag is `{type}:{attribute}:{value}`. `{type}` should be
 one of path, line, column or match. `{attribute}` can be fg, bg or style.

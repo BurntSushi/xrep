@@ -980,6 +980,9 @@ impl<W: io::Write> WriteColor for Ansi<W> {
         if spec.bold {
             self.write_str("\x1B[1m")?;
         }
+        if spec.underline {
+            self.write_str("\x1B[4m")?;
+        }
         Ok(())
     }
 
@@ -1212,6 +1215,7 @@ pub struct ColorSpec {
     bg_color: Option<Color>,
     bold: bool,
     intense: bool,
+    underline: bool,
 }
 
 impl ColorSpec {
@@ -1251,6 +1255,19 @@ impl ColorSpec {
         self
     }
 
+    /// Get whether this is underline or not.
+    ///
+    /// Note that the underline setting has no effect in a Windows console.
+    pub fn underline(&self) -> bool { self.underline }
+
+    /// Set whether the text is underlined or not.
+    ///
+    /// Note that the underline setting has no effect in a Windows console.
+    pub fn set_underline(&mut self, yes: bool) -> &mut ColorSpec {
+        self.underline = yes;
+        self
+    }
+
     /// Get whether this is intense or not.
     pub fn intense(&self) -> bool { self.intense }
 
@@ -1262,7 +1279,8 @@ impl ColorSpec {
 
     /// Returns true if this color specification has no colors or styles.
     pub fn is_none(&self) -> bool {
-        self.fg_color.is_none() && self.bg_color.is_none() && !self.bold
+        self.fg_color.is_none() && self.bg_color.is_none()
+            && !self.bold && !self.underline
     }
 
     /// Clears this color specification so that it has no color/style settings.
@@ -1270,6 +1288,7 @@ impl ColorSpec {
         self.fg_color = None;
         self.bg_color = None;
         self.bold = false;
+        self.underline = false;
     }
 
     /// Writes this color spec to the given Windows console.

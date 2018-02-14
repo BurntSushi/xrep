@@ -1152,7 +1152,8 @@ clean!(regression_428_unrecognized_style, "Sherlok", ".",
     let output = cmd.output().unwrap();
     let err = String::from_utf8_lossy(&output.stderr);
     let expected = "\
-Unrecognized style attribute ''. Choose from: nobold, bold, nointense, intense.
+Unrecognized style attribute ''. Choose from: nobold, bold, nointense, intense, \
+nounderline, underline.
 ";
     assert_eq!(err, expected);
 });

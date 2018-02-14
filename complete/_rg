@@ -125,7 +125,7 @@ _rg() {
 
         [[ "${state}" == 'style' ]] &&
         _values -S ':' 'style value' \
-          bold nobold intense nointense && return 0
+          bold nobold intense nointense underline nounderline && return 0
         ;;
 
       typespec)
