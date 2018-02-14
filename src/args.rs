@@ -52,6 +52,7 @@ pub struct Args {
     hidden: bool,
     ignore_files: Vec<PathBuf>,
     invert_match: bool,
+    machine_readable: bool,
     line_number: bool,
     line_per_match: bool,
     line_number_width: Option<usize>,
@@ -185,6 +186,7 @@ impl Args {
             .line_per_match(self.line_per_match)
             .null(self.null)
             .only_matching(self.only_matching)
+            .machine_readable(self.machine_readable)
             .path_separator(self.path_separator)
             .with_filename(self.with_filename)
             .max_columns(self.max_columns)
@@ -378,6 +380,7 @@ impl<'a> ArgMatches<'a> {
             hidden: self.hidden(),
             ignore_files: self.ignore_files(),
             invert_match: self.is_present("invert-match"),
+            machine_readable: self.is_present("machine-readable"),
             line_number: line_number,
             line_number_width: try!(self.usize_of("line-number-width")),
             line_per_match: self.is_present("vimgrep"),

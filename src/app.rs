@@ -532,6 +532,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_ignore_case(&mut args);
     flag_ignore_file(&mut args);
     flag_invert_match(&mut args);
+    flag_machine_readable(&mut args);
     flag_line_number(&mut args);
     flag_line_number_width(&mut args);
     flag_line_regexp(&mut args);
@@ -1023,6 +1024,16 @@ fn flag_invert_match(args: &mut Vec<RGArg>) {
 Invert matching. Show lines that do not match the given patterns.
 ");
     let arg = RGArg::switch("invert-match").short("v")
+        .help(SHORT).long_help(LONG);
+    args.push(arg);
+}
+
+fn flag_machine_readable(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Machine Readable output.";
+    const LONG: &str = long!("\
+Machine Readable output, for integration with external tools.
+");
+    let arg = RGArg::switch("machine-readable")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }

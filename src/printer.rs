@@ -64,6 +64,8 @@ impl<'r> Replacer for CountingReplacer<'r> {
 /// to fix this, but printers are only ever used for writes to stdout or
 /// writes to memory, neither of which commonly fail.
 pub struct Printer<W> {
+    /// Whether to write machine readable output
+    machine_readable: bool,
     /// The underlying writer.
     wtr: W,
     /// Whether anything has been printed to wtr yet.
@@ -109,6 +111,7 @@ impl<W: WriteColor> Printer<W> {
     /// Create a new printer that writes to wtr with the given color settings.
     pub fn new(wtr: W) -> Printer<W> {
         Printer {
+            machine_readable: false,
             wtr: wtr,
             has_printed: false,
             column: false,
@@ -165,6 +168,12 @@ impl<W: WriteColor> Printer<W> {
     /// N.B. If with_filename is false, then this setting has no effect.
     pub fn heading(mut self, yes: bool) -> Printer<W> {
         self.heading = yes;
+        self
+    }
+
+    /// Print only the matched (non-empty) parts of a matching line
+    pub fn machine_readable(mut self, yes: bool) -> Printer<W> {
+        self.machine_readable = yes;
         self
     }
 
@@ -307,6 +316,20 @@ impl<W: WriteColor> Printer<W> {
         match_start: usize,
         match_end: usize,
     ) {
+        if self.machine_readable {
+            self.write_path(path);
+            self.write_path_sep(b':');
+            if let Some(line_number) = line_number {
+                self.line_number(line_number, b':');
+            }
+            self.column_number(match_start as u64 + 1, b':');
+            self.column_number((start + match_start) as u64 + 1, b':');
+            self.column_number((match_end-match_start) as u64 + 1, b':');
+            self.write(&buf[start + match_start..start + match_end]);
+            self.write_path_sep(b':');
+            self.write_path_eol();
+            return;
+        }
         if self.heading && self.with_filename && !self.has_printed {
             self.write_file_sep();
             self.write_path(path);
