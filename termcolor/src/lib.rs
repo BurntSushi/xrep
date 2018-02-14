@@ -1252,9 +1252,23 @@ impl ColorSpec {
     }
 
     /// Get whether this is intense or not.
+    ///
+    /// On Unix-like systems, this will output the ANSI escape sequence
+    /// that will print a high-intensity version of the color
+    /// specified.
+    ///
+    /// On Windows systems, this will output the ANSI escape sequence
+    /// that will print a brighter version of the color specified.
     pub fn intense(&self) -> bool { self.intense }
 
     /// Set whether the text is intense or not.
+    ///
+    /// On Unix-like systems, this will output the ANSI escape sequence
+    /// that will print a high-intensity version of the color
+    /// specified.
+    ///
+    /// On Windows systems, this will output the ANSI escape sequence
+    /// that will print a brighter version of the color specified.
     pub fn set_intense(&mut self, yes: bool) -> &mut ColorSpec {
         self.intense = yes;
         self
