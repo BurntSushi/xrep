@@ -848,7 +848,7 @@ fn flag_files_with_matches(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Only print the paths with at least one match.
 
-This overrides --file-without-match.
+This overrides --files-without-match.
 ");
     let arg = RGArg::switch("files-with-matches").short("l")
         .help(SHORT).long_help(LONG)
