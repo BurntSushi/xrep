@@ -1000,13 +1000,12 @@ This flag overrides -s/--case-sensitive and -S/--smart-case.
 fn flag_ignore_file(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Specify additional ignore files.";
     const LONG: &str = long!("\
-Specifies a path to one or more files that specify a list of ignore rules, 
-of the same format as .ignore and .gitignore. These patterns are
-applied after the patterns found in .gitignore and .ignore are applied. Ignore
-patterns should be in the gitignore format and are matched relative to the
-current working directory. Multiple additional ignore files can be specified
-by using the --ignore-file flag several times. When specifying multiple ignore
-files, earlier files have lower precedence than later files.
+Specifies a path to one or more .gitignore format rules files. These patterns
+are applied after the patterns found in .gitignore and .ignore are applied 
+and are matched relative to the current working directory. Multiple additional 
+ignore files can be specified by using the --ignore-file flag several times. 
+When specifying multiple ignore files, earlier files have lower precedence 
+than later files.
 
 If you are looking for a way to include or exclude files and directories
 directly on the command line, then used -g instead.
