@@ -1000,7 +1000,8 @@ This flag overrides -s/--case-sensitive and -S/--smart-case.
 fn flag_ignore_file(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Specify additional ignore files.";
     const LONG: &str = long!("\
-Specify one or more files which contain ignore patterns. These patterns are
+Specifies a path to one or more files that specify a list of ignore rules, 
+of the same format as .ignore and .gitignore. These patterns are
 applied after the patterns found in .gitignore and .ignore are applied. Ignore
 patterns should be in the gitignore format and are matched relative to the
 current working directory. Multiple additional ignore files can be specified
