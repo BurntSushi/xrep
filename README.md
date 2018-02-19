@@ -250,7 +250,7 @@ ripgrep is not in the official Debian or Ubuntu repositories.
 
 ```
 $ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.8.0/ripgrep_0.8.0_amd64.deb
-$ sudo dpkg -i ripgrep-0.8.0_amd64.deb
+$ sudo dpkg -i ripgrep_0.8.0_amd64.deb
 ```
 
 If you're an **Ubuntu** user, ripgrep can be installed from the `snap` store.
