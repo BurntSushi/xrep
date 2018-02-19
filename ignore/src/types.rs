@@ -122,6 +122,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("csharp", &["*.cs"]),
     ("cshtml", &["*.cshtml"]),
     ("css", &["*.css", "*.scss"]),
+    ("csv", &["*.csv"]),
     ("cython", &["*.pyx"]),
     ("dart", &["*.dart"]),
     ("d", &["*.d"]),
