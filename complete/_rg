@@ -44,6 +44,7 @@ _rg() {
     '(-i -s -S --case-sensitive --ignore-case --smart-case)'{-i,--ignore-case}'[search case-insensitively]'
     '--ignore-file=[specify additional ignore file]:file:_files'
     '(-v --invert-match)'{-v,--invert-match}'[invert matching]'
+    '(-v --machine-readable)'{-v,--machine-readable}'[machine readable]'
     '(-n -N --line-number --no-line-number)'{-n,--line-number}'[show line numbers]'
     '(-N --no-line-number)--line-number-width=[specify width of displayed line number]:number of columns'
     '(-w -x --line-regexp --word-regexp)'{-x,--line-regexp}'[only show matches surrounded by line boundaries]'
