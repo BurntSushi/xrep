@@ -21,7 +21,7 @@ pub struct BufferSearcher<'a, W: 'a> {
     grep: &'a Grep,
     path: &'a Path,
     buf: &'a [u8],
-    match_count: u64,
+    match_line_count: u64,
     line_count: Option<u64>,
     last_line: usize,
 }
@@ -39,7 +39,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
             grep: grep,
             path: path,
             buf: buf,
-            match_count: 0,
+            match_line_count: 0,
             line_count: None,
             last_line: 0,
         }
@@ -118,7 +118,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
             return 0;
         }
 
-        self.match_count = 0;
+        self.match_line_count = 0;
         self.line_count = if self.opts.line_number { Some(0) } else { None };
         let mut last_end = 0;
         for m in self.grep.iter(self.buf) {
@@ -128,29 +128,29 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
                 self.print_match(m.start(), m.end());
             }
             last_end = m.end();
-            if self.opts.terminate(self.match_count) {
+            if self.opts.terminate(self.match_line_count) {
                 break;
             }
         }
-        if self.opts.invert_match && !self.opts.terminate(self.match_count) {
+        if self.opts.invert_match && !self.opts.terminate(self.match_line_count) {
             let upto = self.buf.len();
             self.print_inverted_matches(last_end, upto);
         }
-        if self.opts.count && self.match_count > 0 {
-            self.printer.path_count(self.path, self.match_count);
+        if self.opts.count && self.match_line_count > 0 {
+            self.printer.path_count(self.path, self.match_line_count);
         }
-        if self.opts.files_with_matches && self.match_count > 0 {
+        if self.opts.files_with_matches && self.match_line_count > 0 {
             self.printer.path(self.path);
         }
-        if self.opts.files_without_matches && self.match_count == 0 {
+        if self.opts.files_without_matches && self.match_line_count == 0 {
             self.printer.path(self.path);
         }
-        self.match_count
+        self.match_line_count
     }
 
     #[inline(always)]
     pub fn print_match(&mut self, start: usize, end: usize) {
-        self.match_count += 1;
+        self.match_line_count += 1;
         if self.opts.skip_matches() {
             return;
         }
@@ -166,7 +166,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         debug_assert!(self.opts.invert_match);
         let mut it = IterLines::new(self.opts.eol, start);
         while let Some((s, e)) = it.next(&self.buf[..end]) {
-            if self.opts.terminate(self.match_count) {
+            if self.opts.terminate(self.match_line_count) {
                 return;
             }
             self.print_match(s, e);
