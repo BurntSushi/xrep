@@ -402,6 +402,20 @@ sherlock!(count, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, expected);
 });
 
+sherlock!(count_matches, "the", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--count-matches");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "sherlock:4\n";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(count_matches_inverted, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--count-matches").arg("--invert-match");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "sherlock:4\n";
+    assert_eq!(lines, expected);
+});
+
 sherlock!(files_with_matches, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--files-with-matches");
     let lines: String = wd.stdout(&mut cmd);

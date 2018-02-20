@@ -40,6 +40,7 @@ pub struct Args {
     column: bool,
     context_separator: Vec<u8>,
     count: bool,
+    count_matches: bool,
     encoding: Option<&'static Encoding>,
     files_with_matches: bool,
     files_without_matches: bool,
@@ -199,6 +200,7 @@ impl Args {
     pub fn file_separator(&self) -> Option<Vec<u8>> {
         let contextless =
             self.count
+            || self.count_matches
             || self.files_with_matches
             || self.files_without_matches;
         let use_heading_sep = self.heading && !contextless;
@@ -260,6 +262,7 @@ impl Args {
             .after_context(self.after_context)
             .before_context(self.before_context)
             .count(self.count)
+            .count_matches(self.count_matches)
             .encoding(self.encoding)
             .files_with_matches(self.files_with_matches)
             .files_without_matches(self.files_without_matches)
@@ -356,6 +359,7 @@ impl<'a> ArgMatches<'a> {
         let mmap = self.mmap(&paths)?;
         let with_filename = self.with_filename(&paths);
         let (before_context, after_context) = self.contexts()?;
+        let (count, count_matches) = self.counts();
         let quiet = self.is_present("quiet");
         let args = Args {
             paths: paths,
@@ -365,7 +369,8 @@ impl<'a> ArgMatches<'a> {
             colors: self.color_specs()?,
             column: self.column(),
             context_separator: self.context_separator(),
-            count: self.is_present("count"),
+            count: count,
+            count_matches: count_matches,
             encoding: self.encoding()?,
             files_with_matches: self.is_present("files-with-matches"),
             files_without_matches: self.is_present("files-without-match"),
@@ -727,6 +732,22 @@ impl<'a> ArgMatches<'a> {
         } else {
             (before, after)
         })
+    }
+
+    /// Returns whether the -c/--count or the --count-matches flags were
+    /// passed from the command line.
+    ///
+    /// If --count-matches and --invert-match were passed in, behave
+    /// as if --count and --invert-match were passed in (i.e. rg will
+    /// count inverted matches as per existing behavior).
+    fn counts(&self) -> (bool, bool) {
+        let count = self.is_present("count");
+        let count_matches = self.is_present("count-matches");
+        let invert_matches = self.is_present("invert-match");
+        if count_matches && invert_matches {
+            return (true, false);
+        }
+        (count, count_matches)
     }
 
     /// Returns the user's color choice based on command line parameters and

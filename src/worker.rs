@@ -34,6 +34,7 @@ struct Options {
     after_context: usize,
     before_context: usize,
     count: bool,
+    count_matches: bool,
     files_with_matches: bool,
     files_without_matches: bool,
     eol: u8,
@@ -54,6 +55,7 @@ impl Default for Options {
             after_context: 0,
             before_context: 0,
             count: false,
+            count_matches: false,
             files_with_matches: false,
             files_without_matches: false,
             eol: b'\n',
@@ -111,6 +113,15 @@ impl WorkerBuilder {
     /// Disabled by default.
     pub fn count(mut self, yes: bool) -> Self {
         self.opts.count = yes;
+        self
+    }
+
+    /// If enabled, searching will print the count of individual matches
+    /// instead of each match.
+    ///
+    /// Disabled by default.
+    pub fn count_matches(mut self, yes: bool) -> Self {
+        self.opts.count_matches = yes;
         self
     }
 
@@ -284,6 +295,7 @@ impl Worker {
             .after_context(self.opts.after_context)
             .before_context(self.opts.before_context)
             .count(self.opts.count)
+            .count_matches(self.opts.count_matches)
             .files_with_matches(self.opts.files_with_matches)
             .files_without_matches(self.opts.files_without_matches)
             .eol(self.opts.eol)
@@ -323,6 +335,7 @@ impl Worker {
         let searcher = BufferSearcher::new(printer, &self.grep, path, buf);
         Ok(searcher
             .count(self.opts.count)
+            .count_matches(self.opts.count_matches)
             .files_with_matches(self.opts.files_with_matches)
             .files_without_matches(self.opts.files_without_matches)
             .eol(self.opts.eol)

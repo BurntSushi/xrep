@@ -68,6 +68,7 @@ pub struct Searcher<'a, R, W: 'a> {
     path: &'a Path,
     haystack: R,
     match_line_count: u64,
+    match_count: Option<u64>,
     line_count: Option<u64>,
     last_match: Match,
     last_printed: usize,
@@ -81,6 +82,7 @@ pub struct Options {
     pub after_context: usize,
     pub before_context: usize,
     pub count: bool,
+    pub count_matches: bool,
     pub files_with_matches: bool,
     pub files_without_matches: bool,
     pub eol: u8,
@@ -97,6 +99,7 @@ impl Default for Options {
             after_context: 0,
             before_context: 0,
             count: false,
+            count_matches: false,
             files_with_matches: false,
             files_without_matches: false,
             eol: b'\n',
@@ -111,11 +114,11 @@ impl Default for Options {
 }
 
 impl Options {
-    /// Several options (--quiet, --count, --files-with-matches,
+    /// Several options (--quiet, --count, --count-matches, --files-with-matches,
     /// --files-without-match) imply that we shouldn't ever display matches.
     pub fn skip_matches(&self) -> bool {
         self.count || self.files_with_matches || self.files_without_matches
-        || self.quiet
+        || self.quiet || self.count_matches
     }
 
     /// Some options (--quiet, --files-with-matches, --files-without-match)
@@ -164,6 +167,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             path: path,
             haystack: haystack,
             match_line_count: 0,
+            match_count: None,
             line_count: None,
             last_match: Match::default(),
             last_printed: 0,
@@ -191,6 +195,15 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
     /// Disabled by default.
     pub fn count(mut self, yes: bool) -> Self {
         self.opts.count = yes;
+        self
+    }
+
+    /// If enabled, searching will print the count of individual matches
+    /// instead of each match.
+    ///
+    /// Disabled by default.
+   pub fn count_matches(mut self, yes: bool) -> Self {
+        self.opts.count_matches = yes;
         self
     }
 
@@ -259,6 +272,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         self.inp.reset();
         self.match_line_count = 0;
         self.line_count = if self.opts.line_number { Some(0) } else { None };
+        self.match_count = if self.opts.count_matches { Some(0) } else { None };
         self.last_match = Match::default();
         self.after_context_remaining = 0;
         while !self.terminate() {
@@ -311,6 +325,8 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         if self.match_line_count > 0 {
             if self.opts.count {
                 self.printer.path_count(self.path, self.match_line_count);
+            } else if self.opts.count_matches {
+                self.printer.path_count(self.path, self.match_count.unwrap());
             } else if self.opts.files_with_matches {
                 self.printer.path(self.path);
             }
@@ -411,6 +427,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
     #[inline(always)]
     fn print_match(&mut self, start: usize, end: usize) {
         self.match_line_count += 1;
+        self.count_individual_matches(start, end);
         if self.opts.skip_matches() {
             return;
         }
@@ -444,6 +461,15 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         if (self.last_printed == 0 && before > 0)
             || self.last_printed < before {
             self.printer.context_separate();
+        }
+    }
+
+    #[inline(always)]
+    fn count_individual_matches(&mut self, start: usize, end: usize) {
+        if let Some(ref mut count) = self.match_count {
+            for _ in self.grep.regex().find_iter(&self.inp.buf[start..end]) {
+                *count += 1;
+            }
         }
     }
 
@@ -1004,6 +1030,13 @@ fn main() {
             "Sherlock", SHERLOCK, |s| s.count(true));
         assert_eq!(2, count);
         assert_eq!(out, "/baz.rs:2\n");
+    }
+
+    #[test]
+    fn count_matches() {
+        let (_, out) = search_smallcap(
+            "the", SHERLOCK, |s| s.count_matches(true));
+        assert_eq!(out, "/baz.rs:4\n");
     }
 
     #[test]
