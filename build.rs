@@ -58,8 +58,13 @@ fn git_revision_hash() -> Option<String> {
     let result = process::Command::new("git")
         .args(&["rev-parse", "--short=10", "HEAD"])
         .output();
-    result.ok().map(|output| {
-        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    result.ok().and_then(|output| {
+        let v = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if v.is_empty() {
+            None
+        } else {
+            Some(v)
+        }
     })
 }
 
