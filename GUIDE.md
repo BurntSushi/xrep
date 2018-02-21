@@ -58,6 +58,10 @@ $ rg fast README.md
 129:  optimizations to make searching very fast.
 ```
 
+(**Note:** If you see an error message from ripgrep saying that it didn't
+search any files, then re-run ripgrep with the `--debug` flag. One likely cause
+of this is that you have a `*` rule in a `$HOME/.gitignore` file.)
+
 So what happened here? ripgrep read the contents of `README.md`, and for each
 line that contained `fast`, ripgrep printed it to your terminal. ripgrep also
 included the line number for each line by default. If your terminal supports
