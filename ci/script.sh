@@ -23,6 +23,13 @@ main() {
     # sanity check the file type
     file target/"$TARGET"/debug/rg
 
+    # Check that we've generated man page and other shell completions.
+    outdir="$(cargo_out_dir "target/$TARGET/debug")"
+    file "$outdir/rg.bash"
+    file "$outdir/rg.fish"
+    file "$outdir/_rg.ps1"
+    file "$outdir/rg.1"
+
     # Apparently tests don't work on arm, so just bail now. I guess we provide
     # ARM releases on a best effort basis?
     if is_arm; then
@@ -31,15 +38,6 @@ main() {
 
     # Test that zsh completions are in sync with ripgrep's actual args.
     "$(dirname "${0}")/test_complete.sh"
-
-    # Check that we've generated man page and other shell completions.
-    outdir="$(cargo_out_dir "target/$TARGET/debug")"
-    file "$outdir/rg.bash"
-    file "$outdir/rg.fish"
-    file "$outdir/_rg.ps1"
-    # N.B. man page isn't generated on ARM cross-compile, but we gave up
-    # long before this anyway.
-    file "$outdir/rg.1"
 
     # Run tests for ripgrep and all sub-crates.
     cargo test --target "$TARGET" --verbose --all

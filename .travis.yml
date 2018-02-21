@@ -41,6 +41,12 @@ matrix:
           - binutils-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
+          # For generating man page.
+          - libxslt1-dev
+          - asciidoc
+          - docbook-xsl
+          - xsltproc
+          - libxml2-utils
     # Beta channel. We enable these to make sure there are no regressions in
     # Rust beta releases.
     - os: linux
@@ -67,6 +73,12 @@ matrix:
           - binutils-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
+          # For generating man page.
+          - libxslt1-dev
+          - asciidoc
+          - docbook-xsl
+          - xsltproc
+          - libxml2-utils
 install: ci/install.sh
 script: ci/script.sh
 before_deploy: ci/before_deploy.sh
