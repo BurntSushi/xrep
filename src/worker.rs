@@ -33,6 +33,7 @@ struct Options {
     encoding: Option<&'static Encoding>,
     after_context: usize,
     before_context: usize,
+    byte_offset: bool,
     count: bool,
     files_with_matches: bool,
     files_without_matches: bool,
@@ -53,6 +54,7 @@ impl Default for Options {
             encoding: None,
             after_context: 0,
             before_context: 0,
+            byte_offset: false,
             count: false,
             files_with_matches: false,
             files_without_matches: false,
@@ -103,6 +105,16 @@ impl WorkerBuilder {
     /// is zero.
     pub fn before_context(mut self, count: usize) -> Self {
         self.opts.before_context = count;
+        self
+    }
+
+    /// If enabled, searching will print a 0-based offset of the
+    /// matching line (or the actual match if -o is specified) before
+    /// printing the line itself.
+    ///
+    /// Disabled by default.
+    pub fn byte_offset(mut self, yes: bool) -> Self {
+        self.opts.byte_offset = yes;
         self
     }
 
@@ -283,6 +295,7 @@ impl Worker {
         searcher
             .after_context(self.opts.after_context)
             .before_context(self.opts.before_context)
+            .byte_offset(self.opts.byte_offset)
             .count(self.opts.count)
             .files_with_matches(self.opts.files_with_matches)
             .files_without_matches(self.opts.files_without_matches)
@@ -322,6 +335,7 @@ impl Worker {
         }
         let searcher = BufferSearcher::new(printer, &self.grep, path, buf);
         Ok(searcher
+            .byte_offset(self.opts.byte_offset)
             .count(self.opts.count)
             .files_with_matches(self.opts.files_with_matches)
             .files_without_matches(self.opts.files_without_matches)

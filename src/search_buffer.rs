@@ -23,6 +23,7 @@ pub struct BufferSearcher<'a, W: 'a> {
     buf: &'a [u8],
     match_count: u64,
     line_count: Option<u64>,
+    buffer_offset: Option<usize>,
     last_line: usize,
 }
 
@@ -41,8 +42,19 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
             buf: buf,
             match_count: 0,
             line_count: None,
+            buffer_offset: None,
             last_line: 0,
         }
+    }
+
+    /// If enabled, searching will print a 0-based offset of the
+    /// matching line (or the actual match if -o is specified) before
+    /// printing the line itself.
+    ///
+    /// Disabled by default.
+    pub fn byte_offset(mut self, yes: bool) -> Self {
+        self.opts.byte_offset = yes;
+        self
     }
 
     /// If enabled, searching will print a count instead of each match.
@@ -120,6 +132,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
 
         self.match_count = 0;
         self.line_count = if self.opts.line_number { Some(0) } else { None };
+        self.buffer_offset = if self.opts.byte_offset { Some(0) } else { None };
         let mut last_end = 0;
         for m in self.grep.iter(self.buf) {
             if self.opts.invert_match {
@@ -158,7 +171,7 @@ impl<'a, W: WriteColor> BufferSearcher<'a, W> {
         self.add_line(end);
         self.printer.matched(
             self.grep.regex(), self.path, self.buf,
-            start, end, self.line_count);
+            start, end, self.line_count, self.buffer_offset);
     }
 
     #[inline(always)]
@@ -268,6 +281,29 @@ and exhibited clearly, with a label attached.\
         assert_eq!(out, "\
 /baz.rs:1:For the Doctor Watsons of this world, as opposed to the Sherlock
 /baz.rs:3:be, to a very large extent, the result of luck. Sherlock Holmes
+");
+    }
+
+    #[test]
+    fn byte_offset() {
+        let (_, out) = search(
+            "Sherlock", SHERLOCK, |s| s.byte_offset(true));
+        assert_eq!(out, "\
+/baz.rs:0:For the Doctor Watsons of this world, as opposed to the Sherlock
+/baz.rs:129:be, to a very large extent, the result of luck. Sherlock Holmes
+");
+    }
+
+    #[test]
+    fn byte_offset_inverted() {
+        let (_, out) = search("Sherlock", SHERLOCK, |s| {
+            s.invert_match(true).byte_offset(true)
+        });
+        assert_eq!(out, "\
+/baz.rs:65:Holmeses, success in the province of detective work must always
+/baz.rs:193:can extract a clew from a wisp of straw or a flake of cigar ash;
+/baz.rs:258:but Doctor Watson has to have it taken out for him and dusted,
+/baz.rs:321:and exhibited clearly, with a label attached.
 ");
     }
 

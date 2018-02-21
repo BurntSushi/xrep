@@ -35,6 +35,7 @@ pub struct Args {
     paths: Vec<PathBuf>,
     after_context: usize,
     before_context: usize,
+    byte_offset: bool,
     color_choice: termcolor::ColorChoice,
     colors: ColorSpecs,
     column: bool,
@@ -259,6 +260,7 @@ impl Args {
         WorkerBuilder::new(self.grep())
             .after_context(self.after_context)
             .before_context(self.before_context)
+            .byte_offset(self.byte_offset)
             .count(self.count)
             .encoding(self.encoding)
             .files_with_matches(self.files_with_matches)
@@ -361,6 +363,7 @@ impl<'a> ArgMatches<'a> {
             paths: paths,
             after_context: after_context,
             before_context: before_context,
+            byte_offset: self.is_present("byte-offset"),
             color_choice: self.color_choice(),
             colors: self.color_specs()?,
             column: self.column(),

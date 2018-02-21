@@ -69,6 +69,7 @@ pub struct Searcher<'a, R, W: 'a> {
     haystack: R,
     match_count: u64,
     line_count: Option<u64>,
+    buffer_offset: Option<usize>,
     last_match: Match,
     last_printed: usize,
     last_line: usize,
@@ -80,6 +81,7 @@ pub struct Searcher<'a, R, W: 'a> {
 pub struct Options {
     pub after_context: usize,
     pub before_context: usize,
+    pub byte_offset: bool,
     pub count: bool,
     pub files_with_matches: bool,
     pub files_without_matches: bool,
@@ -96,6 +98,7 @@ impl Default for Options {
         Options {
             after_context: 0,
             before_context: 0,
+            byte_offset: false,
             count: false,
             files_with_matches: false,
             files_without_matches: false,
@@ -165,6 +168,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             haystack: haystack,
             match_count: 0,
             line_count: None,
+            buffer_offset: None,
             last_match: Match::default(),
             last_printed: 0,
             last_line: 0,
@@ -183,6 +187,16 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
     /// is zero.
     pub fn before_context(mut self, count: usize) -> Self {
         self.opts.before_context = count;
+        self
+    }
+
+    /// If enabled, searching will print a 0-based offset of the
+    /// matching line (or the actual match if -o is specified) before
+    /// printing the line itself.
+    ///
+    /// Disabled by default.
+    pub fn byte_offset(mut self, yes: bool) -> Self {
+        self.opts.byte_offset = yes;
         self
     }
 
@@ -259,6 +273,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         self.inp.reset();
         self.match_count = 0;
         self.line_count = if self.opts.line_number { Some(0) } else { None };
+        self.buffer_offset = if self.opts.byte_offset { Some(0) } else { None };
         self.last_match = Match::default();
         self.after_context_remaining = 0;
         while !self.terminate() {
@@ -349,6 +364,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
             self.count_lines(keep);
             self.last_line = 0;
         }
+        self.count_buffer_offset(keep);
         let ok = self.inp.fill(&mut self.haystack, keep).map_err(|err| {
             Error::from_io(err, &self.path)
         })?;
@@ -419,7 +435,7 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         self.add_line(end);
         self.printer.matched(
             self.grep.regex(), self.path,
-            &self.inp.buf, start, end, self.line_count);
+            &self.inp.buf, start, end, self.line_count, self.buffer_offset);
         self.last_printed = end;
         self.after_context_remaining = self.opts.after_context;
     }
@@ -444,6 +460,13 @@ impl<'a, R: io::Read, W: WriteColor> Searcher<'a, R, W> {
         if (self.last_printed == 0 && before > 0)
             || self.last_printed < before {
             self.printer.context_separate();
+        }
+    }
+
+    #[inline(always)]
+    fn count_buffer_offset(&mut self, buf_last_end: usize) {
+        if let Some(ref mut buffer_offset) = self.buffer_offset {
+            *buffer_offset += buf_last_end;
         }
     }
 
@@ -1004,6 +1027,41 @@ fn main() {
             "Sherlock", SHERLOCK, |s| s.count(true));
         assert_eq!(2, count);
         assert_eq!(out, "/baz.rs:2\n");
+    }
+
+    #[test]
+    fn byte_offset() {
+        let (_, out) = search_smallcap(
+            "Sherlock", SHERLOCK, |s| s.byte_offset(true));
+        assert_eq!(out, "\
+/baz.rs:0:For the Doctor Watsons of this world, as opposed to the Sherlock
+/baz.rs:129:be, to a very large extent, the result of luck. Sherlock Holmes
+");
+    }
+
+    #[test]
+    fn byte_offset_with_before_context() {
+        let (_, out) = search_smallcap("dusted", SHERLOCK, |s| {
+            s.line_number(true).byte_offset(true).before_context(2)
+        });
+        assert_eq!(out, "\
+/baz.rs-3-be, to a very large extent, the result of luck. Sherlock Holmes
+/baz.rs-4-can extract a clew from a wisp of straw or a flake of cigar ash;
+/baz.rs:5:258:but Doctor Watson has to have it taken out for him and dusted,
+");
+    }
+
+    #[test]
+    fn byte_offset_inverted() {
+        let (_, out) = search_smallcap("Sherlock", SHERLOCK, |s| {
+            s.invert_match(true).byte_offset(true)
+        });
+        assert_eq!(out, "\
+/baz.rs:65:Holmeses, success in the province of detective work must always
+/baz.rs:193:can extract a clew from a wisp of straw or a flake of cigar ash;
+/baz.rs:258:but Doctor Watson has to have it taken out for him and dusted,
+/baz.rs:321:and exhibited clearly, with a label attached.
+");
     }
 
     #[test]

@@ -25,6 +25,7 @@ _rg() {
     '*--colors=[specify color settings and styles]: :->colorspec'
     '--column[show column numbers]'
     '(-A -B -C --after-context --before-context --context)'{-C+,--context=}'[specify lines to show before and after each match]:number of lines'
+    '(-b --byte-offset)'{-b,--byte-offset}'[print the 0-based byte offset for each matching line]'
     '--context-separator=[specify string used to separate non-continuous context lines in output]:separator'
     '(-c --count --passthrough --passthru)'{-c,--count}'[only show count of matches for each file]'
     '--debug[show debug messages]'
