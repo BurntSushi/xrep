@@ -249,6 +249,14 @@ struct DirEntryRaw {
     /// The underlying inode number (Unix only).
     #[cfg(unix)]
     ino: u64,
+    /// The underlying metadata (Windows only). We store this on Windows
+    /// because this comes for free while reading a directory.
+    ///
+    /// We use this to determine whether an entry is a directory or not, which
+    /// works around a bug in Rust's standard library:
+    /// https://github.com/rust-lang/rust/issues/46484
+    #[cfg(windows)]
+    metadata: fs::Metadata,
 }
 
 impl fmt::Debug for DirEntryRaw {
@@ -274,6 +282,20 @@ impl DirEntryRaw {
     }
 
     fn metadata(&self) -> Result<Metadata, Error> {
+        self.metadata_internal()
+    }
+
+    #[cfg(windows)]
+    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
+        if self.follow_link {
+            fs::metadata(&self.path)
+        } else {
+            Ok(self.metadata.clone())
+        }.map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
+    }
+
+    #[cfg(not(windows))]
+    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
         if self.follow_link {
             fs::metadata(&self.path)
         } else {
@@ -309,21 +331,29 @@ impl DirEntryRaw {
                 err: Box::new(err),
             }
         })?;
-        Ok(DirEntryRaw::from_entry_os(depth, ent, ty))
+        DirEntryRaw::from_entry_os(depth, ent, ty)
     }
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     fn from_entry_os(
         depth: usize,
         ent: &fs::DirEntry,
         ty: fs::FileType,
-    ) -> DirEntryRaw {
-        DirEntryRaw {
+    ) -> Result<DirEntryRaw, Error> {
+        let md = ent.metadata().map_err(|err| {
+            let err = Error::Io(io::Error::from(err)).with_path(ent.path());
+            Error::WithDepth {
+                depth: depth,
+                err: Box::new(err),
+            }
+        })?;
+        Ok(DirEntryRaw {
             path: ent.path(),
             ty: ty,
             follow_link: false,
             depth: depth,
-        }
+            metadata: md,
+        })
     }
 
     #[cfg(unix)]
@@ -331,16 +361,16 @@ impl DirEntryRaw {
         depth: usize,
         ent: &fs::DirEntry,
         ty: fs::FileType,
-    ) -> DirEntryRaw {
+    ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::DirEntryExt;
 
-        DirEntryRaw {
+        Ok(DirEntryRaw {
             path: ent.path(),
             ty: ty,
             follow_link: false,
             depth: depth,
             ino: ent.ino(),
-        }
+        })
     }
 
     #[cfg(not(unix))]
@@ -353,6 +383,7 @@ impl DirEntryRaw {
             ty: md.file_type(),
             follow_link: true,
             depth: depth,
+            metadata: md,
         })
     }
 
