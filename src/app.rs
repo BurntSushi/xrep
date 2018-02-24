@@ -557,6 +557,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_search_zip(&mut args);
     flag_smart_case(&mut args);
     flag_sort_files(&mut args);
+    flag_stats(&mut args);
     flag_text(&mut args);
     flag_threads(&mut args);
     flag_type(&mut args);
@@ -1445,6 +1446,23 @@ This flag can be disabled with --no-sort-files.
     let arg = RGArg::switch("no-sort-files")
         .hidden()
         .overrides("sort-files");
+    args.push(arg);
+}
+
+fn flag_stats(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Print statistics about this ripgrep search.";
+    const LONG: &str = long!("\
+Print statistics about this ripgrep search. When this flag is present,
+ripgrep will print the following stats at the end of the search: total
+no. of matches, no. of files with matches, no. of files searched, and
+the time taken for the entire search to complete.
+
+Note that this flag has no effect if --files, --files-with-matches or
+--files-without-match is passed.");
+
+    let arg = RGArg::switch("stats")
+        .help(SHORT).long_help(LONG);
+
     args.push(arg);
 }
 

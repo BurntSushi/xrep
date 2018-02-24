@@ -77,7 +77,8 @@ pub struct Args {
     type_list: bool,
     types: Types,
     with_filename: bool,
-    search_zip_files: bool
+    search_zip_files: bool,
+    stats: bool
 }
 
 impl Args {
@@ -216,6 +217,12 @@ impl Args {
     /// Returns true if the given arguments are known to never produce a match.
     pub fn never_match(&self) -> bool {
         self.max_count == Some(0)
+    }
+
+
+    /// Returns whether ripgrep should track stats for this run
+    pub fn stats(&self) -> bool {
+        self.stats
     }
 
     /// Create a new writer for single-threaded searching with color support.
@@ -403,7 +410,8 @@ impl<'a> ArgMatches<'a> {
             type_list: self.is_present("type-list"),
             types: self.types()?,
             with_filename: with_filename,
-            search_zip_files: self.is_present("search-zip")
+            search_zip_files: self.is_present("search-zip"),
+            stats: self.stats()
         };
         if args.mmap {
             debug!("will try to use memory maps");
@@ -793,6 +801,19 @@ impl<'a> ArgMatches<'a> {
                 }
             }
         }
+    }
+
+    /// Returns whether status should be tracked for this run of ripgrep
+
+    /// This is automatically disabled if we're asked to only list the
+    /// files that wil be searched, files with matches or files
+    /// without matches.
+    fn stats(&self) -> bool {
+        if self.is_present("files-with-matches") ||
+           self.is_present("files-without-match") {
+               return false;
+        }
+        self.is_present("stats")
     }
 
     /// Returns the approximate number of threads that ripgrep should use.
