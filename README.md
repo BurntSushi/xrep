@@ -203,6 +203,12 @@ If you're a **Windows Chocolatey** user, then you can install ripgrep from the [
 $ choco install ripgrep
 ```
 
+If you're a **Windows Scoop** user, then you can install ripgrep from the [official bucket](https://github.com/lukesampson/scoop/blob/master/bucket/ripgrep.json):
+
+```
+$ scoop install ripgrep
+```
+
 If you're an **Arch Linux** user, then you can install ripgrep from the official repos:
 
 ```
