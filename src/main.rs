@@ -88,13 +88,13 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
     let bufwtr = Arc::new(args.buffer_writer());
     let quiet_matched = args.quiet_matched();
     let paths_searched = Arc::new(AtomicUsize::new(0));
-    let match_count = Arc::new(AtomicUsize::new(0));
+    let match_line_count = Arc::new(AtomicUsize::new(0));
 
     args.walker_parallel().run(|| {
         let args = Arc::clone(args);
         let quiet_matched = quiet_matched.clone();
         let paths_searched = paths_searched.clone();
-        let match_count = match_count.clone();
+        let match_line_count = match_line_count.clone();
         let bufwtr = Arc::clone(&bufwtr);
         let mut buf = bufwtr.buffer();
         let mut worker = args.worker();
@@ -125,7 +125,7 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
                     } else {
                         worker.run(&mut printer, Work::DirEntry(dent))
                     };
-                match_count.fetch_add(count as usize, Ordering::SeqCst);
+                match_line_count.fetch_add(count as usize, Ordering::SeqCst);
                 if quiet_matched.set_match(count > 0) {
                     return Quit;
                 }
@@ -141,7 +141,7 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
             eprint_nothing_searched();
         }
     }
-    Ok(match_count.load(Ordering::SeqCst) as u64)
+    Ok(match_line_count.load(Ordering::SeqCst) as u64)
 }
 
 fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
@@ -149,7 +149,7 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
     let mut stdout = stdout.lock();
     let mut worker = args.worker();
     let mut paths_searched: u64 = 0;
-    let mut match_count = 0;
+    let mut match_line_count = 0;
     for result in args.walker() {
         let dent = match get_or_log_dir_entry(
             result,
@@ -161,7 +161,7 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
             Some(dent) => dent,
         };
         let mut printer = args.printer(&mut stdout);
-        if match_count > 0 {
+        if match_line_count > 0 {
             if args.quiet() {
                 break;
             }
@@ -170,7 +170,7 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
             }
         }
         paths_searched += 1;
-        match_count +=
+        match_line_count +=
             if dent.is_stdin() {
                 worker.run(&mut printer, Work::Stdin)
             } else {
@@ -182,7 +182,7 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
             eprint_nothing_searched();
         }
     }
-    Ok(match_count)
+    Ok(match_line_count)
 }
 
 fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
