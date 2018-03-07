@@ -194,7 +194,7 @@ optimizations) by utilizing a custom tap:
 
 ```
 $ brew tap burntsushi/ripgrep https://github.com/BurntSushi/ripgrep.git
-$ brew install burntsushi/ripgrep/ripgrep-bin
+$ brew install ripgrep-bin
 ```
 
 If you're a **Windows Chocolatey** user, then you can install ripgrep from the [official repo](https://chocolatey.org/packages/ripgrep):
