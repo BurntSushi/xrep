@@ -260,8 +260,13 @@ If you're an **Ubuntu** user, ripgrep can be installed from the `snap` store.
 * If you get permission errors when running ripgrep after installation, try
   uninstalling and then re-installing with the `--classic` flag.
 
+For the latest stable release:
 ```
 $ sudo snap install rg
+```
+For the most recent release candidate:
+```
+$ sudo snap install --candidate rg
 ```
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
