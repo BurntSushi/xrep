@@ -509,6 +509,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     // Flags can be defined in any order, but we do it alphabetically.
     flag_after_context(&mut args);
     flag_before_context(&mut args);
+    flag_byte_offset(&mut args);
     flag_case_sensitive(&mut args);
     flag_color(&mut args);
     flag_colors(&mut args);
@@ -631,6 +632,18 @@ This overrides the --context flag.
         .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
+    args.push(arg);
+}
+
+fn flag_byte_offset(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Print the 0-based byte offset for each matching line.";
+    const LONG: &str = long!("\
+Print the 0-based byte offset within the input file
+before each line of output. If -o (--only-matching) is
+specified, print the offset of the matching part itself.
+");
+    let arg = RGArg::switch("byte-offset").short("b")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 

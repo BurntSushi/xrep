@@ -395,6 +395,16 @@ sherlock!(csglob, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "file2.html:Sherlock\n");
 });
 
+sherlock!(byte_offset_only_matching, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-b").arg("-o");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:56:Sherlock
+sherlock:177:Sherlock
+";
+    assert_eq!(lines, expected);
+});
+
 sherlock!(count, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--count");
     let lines: String = wd.stdout(&mut cmd);
