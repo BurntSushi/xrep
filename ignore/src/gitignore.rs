@@ -477,6 +477,7 @@ impl GitignoreBuilder {
             GlobBuilder::new(&glob.actual)
                 .literal_separator(literal_separator)
                 .case_insensitive(self.case_insensitive)
+                .backslash_escape(true)
                 .build()
                 .map_err(|err| {
                     Error::Glob {
@@ -635,6 +636,9 @@ mod tests {
     ignored!(ig35, "./.", ".a/b", ".a/b");
     ignored!(ig36, "././", ".a/b", ".a/b");
     ignored!(ig37, "././.", ".a/b", ".a/b");
+    ignored!(ig38, ROOT, "\\[", "[");
+    ignored!(ig39, ROOT, "\\?", "?");
+    ignored!(ig40, ROOT, "\\*", "*");
 
     not_ignored!(ignot1, ROOT, "amonths", "months");
     not_ignored!(ignot2, ROOT, "monthsa", "months");

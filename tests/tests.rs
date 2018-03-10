@@ -800,11 +800,7 @@ clean!(regression_25, "test", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/30
 clean!(regression_30, "test", ".", |wd: WorkDir, mut cmd: Command| {
-    if cfg!(windows) {
-        wd.create(".gitignore", "vendor/**\n!vendor\\manifest");
-    } else {
-        wd.create(".gitignore", "vendor/**\n!vendor/manifest");
-    }
+    wd.create(".gitignore", "vendor/**\n!vendor/manifest");
     wd.create_dir("vendor");
     wd.create("vendor/manifest", "test");
 

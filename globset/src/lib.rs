@@ -154,6 +154,8 @@ pub enum ErrorKind {
     /// Occurs when an alternating group is nested inside another alternating
     /// group, e.g., `{{a,b},{c,d}}`.
     NestedAlternates,
+    /// Occurs when an unescaped '\' is found at the end of a glob.
+    DanglingEscape,
     /// An error associated with parsing or compiling a regex.
     Regex(String),
 }
@@ -199,6 +201,9 @@ impl ErrorKind {
             ErrorKind::NestedAlternates => {
                 "nested alternate groups are not allowed"
             }
+            ErrorKind::DanglingEscape => {
+                "dangling '\\'"
+            }
             ErrorKind::Regex(ref err) => err,
         }
     }
@@ -223,6 +228,7 @@ impl fmt::Display for ErrorKind {
             | ErrorKind::UnopenedAlternates
             | ErrorKind::UnclosedAlternates
             | ErrorKind::NestedAlternates
+            | ErrorKind::DanglingEscape
             | ErrorKind::Regex(_) => {
                 write!(f, "{}", self.description())
             }
