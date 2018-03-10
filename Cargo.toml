@@ -45,7 +45,7 @@ log = "0.4"
 memchr = "2"
 memmap = "0.6"
 num_cpus = "1"
-regex = "0.2.4"
+regex = "0.2.9"
 same-file = "1"
 termcolor = { version = "0.3.4", path = "termcolor" }
 
@@ -67,12 +67,13 @@ default-features = false
 features = ["suggestions", "color"]
 
 [features]
-avx-accel = ["bytecount/avx-accel"]
+avx-accel = ["bytecount/avx-accel", "regex/unstable"]
 simd-accel = [
   "bytecount/simd-accel",
-  "regex/simd-accel",
   "encoding_rs/simd-accel",
+  "regex/unstable",
 ]
+unstable = ["regex/unstable"]
 
 [profile.release]
 debug = true

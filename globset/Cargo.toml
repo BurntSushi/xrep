@@ -23,7 +23,7 @@ aho-corasick = "0.6.0"
 fnv = "1.0"
 log = "0.4"
 memchr = "2"
-regex = "0.2.1"
+regex = "0.2.9"
 
 [dev-dependencies]
 glob = "0.2"

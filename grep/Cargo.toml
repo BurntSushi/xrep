@@ -15,5 +15,5 @@ license = "Unlicense/MIT"
 [dependencies]
 log = "0.4"
 memchr = "2"
-regex = "0.2.1"
+regex = "0.2.9"
 regex-syntax = "0.4.0"

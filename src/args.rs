@@ -599,7 +599,7 @@ impl<'a> ArgMatches<'a> {
         // This would normally just be an empty string, which works on its
         // own, but if the patterns are joined in a set of alternations, then
         // you wind up with `foo|`, which is invalid.
-        self.word_pattern("z{0}".to_string())
+        self.word_pattern("(?:z{0})*".to_string())
     }
 
     /// Returns true if and only if file names containing each match should

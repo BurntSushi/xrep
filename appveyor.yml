@@ -50,8 +50,7 @@ test_script:
 
 before_deploy:
   # Generate artifacts for release
-  # TODO(burntsushi): How can we enable SSSE3 on Windows?
-  - cargo build --release
+  - cargo build --release --features unstable
   - mkdir staging
   - copy target\release\rg.exe staging
   - ps: copy target\release\build\ripgrep-*\out\_rg.ps1 staging

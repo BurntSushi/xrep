@@ -8,12 +8,7 @@ set -ex
 
 # Generate artifacts for release
 mk_artifacts() {
-    if is_ssse3_target; then
-        RUSTFLAGS="-C target-feature=+ssse3" \
-        cargo build --target "$TARGET" --release --features simd-accel
-    else
-        cargo build --target "$TARGET" --release
-    fi
+    cargo build --target "$TARGET" --release --features unstable
 }
 
 mk_tarball() {

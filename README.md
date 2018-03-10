@@ -286,6 +286,14 @@ If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 $ cargo install ripgrep
 ```
 
+If you're using Rust nightly, then use
+
+```
+$ cargo install ripgrep --features unstable
+```
+
+to get SIMD optimizations.
+
 ripgrep isn't currently in any other package repositories.
 [I'd like to change that](https://github.com/BurntSushi/ripgrep/issues/10).
 
@@ -312,7 +320,8 @@ RUSTFLAGS="-C target-cpu=native" cargo build --release --features 'simd-accel av
 ```
 
 If your machine doesn't support AVX instructions, then simply remove
-`avx-accel` from the features list. Similarly for SIMD.
+`avx-accel` from the features list. Similarly for SIMD (which corresponds
+roughly to SSE instructions).
 
 
 ### Running tests
