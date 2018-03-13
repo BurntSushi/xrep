@@ -1,3 +1,42 @@
+0.9.0 (TBD)
+===========
+This is a new minor version release of ripgrep that mostly contains bug fixes.
+
+Releases provided on Github for `x86` and `x86_64` will now work on all target
+CPUs, and will also automatically take advantage of features found on modern
+CPUs (such as AVX2) for additional optimizations.
+
+**BREAKING CHANGES**:
+
+* When `--count` and `--only-matching` are provided simultaneously, the
+  behavior of ripgrep is as if the `--count-matches` flag was given. That is,
+  the total number of matches is reported, where there may be multiple matches
+  per line. Previously, the behavior of ripgrep was to report the total number
+  of matching lines. (Note that this behavior diverges from the behavior of
+  GNU grep.)
+
+Feature enhancements:
+
+* [FEATURE #411](https://github.com/BurntSushi/ripgrep/issues/411):
+  Add a `--stats` flag, which emits aggregate statistics after search results.
+* [FEATURE #812](https://github.com/BurntSushi/ripgrep/issues/812):
+  Add `-b/--byte-offset` flag that reports byte offset of each matching line.
+* [FEATURE #814](https://github.com/BurntSushi/ripgrep/issues/814):
+  Add `--count-matches` flag, which is like `--count`, but for each match.
+
+Bug fixes:
+
+* [BUG #135](https://github.com/BurntSushi/ripgrep/issues/135):
+  Release portable binaries that conditionally use SSSE3, AVX2, etc., at
+  runtime.
+* [BUG #526](https://github.com/BurntSushi/ripgrep/issues/526):
+  Support backslash escapes in globs.
+* [BUG #832](https://github.com/BurntSushi/ripgrep/issues/832):
+  Clarify usage instructions for `-f/--file` flag.
+* [BUG #852](https://github.com/BurntSushi/ripgrep/issues/852):
+  Be robust with respect to `ENOMEM` errors returned by `mmap`.
+
+
 0.8.1 (2018-02-20)
 ==================
 This is a patch release of ripgrep that primarily fixes regressions introduced
