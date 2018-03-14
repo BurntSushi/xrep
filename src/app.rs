@@ -543,6 +543,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_maxdepth(&mut args);
     flag_mmap(&mut args);
     flag_no_config(&mut args);
+    flag_no_error_messages(&mut args);
     flag_no_ignore(&mut args);
     flag_no_ignore_parent(&mut args);
     flag_no_ignore_vcs(&mut args);
@@ -1294,6 +1295,26 @@ This flag can be disabled with the --messages flag.
     let arg = RGArg::switch("messages")
         .hidden()
         .overrides("no-messages");
+    args.push(arg);
+}
+
+fn flag_no_error_messages(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Suppress errors while searching.";
+    const LONG: &str = long!("\
+Suppresses messages for errors encountered while searching the filesystem,
+but keeps rg's own errors and suggestions enabled, for example, suppressing
+permission denied messages for files the user has no permission to search.
+
+This flag can be disabled with the --error-messages flag.
+");
+    let arg = RGArg::switch("no-error-messages")
+        .help(SHORT).long_help(LONG)
+        .overrides("error-messages");
+    args.push(arg);
+
+    let arg = RGArg::switch("error-messages")
+        .hidden()
+        .overrides("no-error-messages");
     args.push(arg);
 }
 
