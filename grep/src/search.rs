@@ -1,10 +1,10 @@
 use memchr::{memchr, memrchr};
 use regex::bytes::{Regex, RegexBuilder};
-use syntax;
 
 use literals::LiteralSets;
 use nonl;
-use syntax::Expr;
+use syntax::ParserBuilder;
+use syntax::hir::Hir;
 use word_boundary::strip_unicode_word_boundaries;
 use Result;
 
@@ -166,7 +166,7 @@ impl GrepBuilder {
 
     /// Creates a new regex from the given expression with the current
     /// configuration.
-    fn regex(&self, expr: &Expr) -> Result<Regex> {
+    fn regex(&self, expr: &Hir) -> Result<Regex> {
         let mut builder = RegexBuilder::new(&expr.to_string());
         builder.unicode(true);
         self.regex_build(builder)
@@ -184,15 +184,16 @@ impl GrepBuilder {
 
     /// Parses the underlying pattern and ensures the pattern can never match
     /// the line terminator.
-    fn parse(&self) -> Result<syntax::Expr> {
-        let expr =
-            syntax::ExprBuilder::new()
-            .allow_bytes(true)
-            .unicode(true)
+    fn parse(&self) -> Result<Hir> {
+        let expr = ParserBuilder::new()
+            .allow_invalid_utf8(true)
             .case_insensitive(self.is_case_insensitive()?)
+            .multi_line(true)
+            .build()
             .parse(&self.pattern)?;
+        debug!("original regex HIR pattern:\n{}", expr);
         let expr = nonl::remove(expr, self.opts.line_terminator)?;
-        debug!("regex ast:\n{:#?}", expr);
+        debug!("transformed regex HIR pattern:\n{}", expr);
         Ok(expr)
     }
 

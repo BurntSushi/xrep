@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap;
 use encoding_rs::Encoding;
-use grep::{Grep, GrepBuilder, Error as GrepError};
+use grep::{Grep, GrepBuilder};
 use log;
 use num_cpus;
 use regex;
@@ -882,16 +882,7 @@ impl<'a> ArgMatches<'a> {
         if let Some(limit) = self.regex_size_limit()? {
             gb = gb.size_limit(limit);
         }
-        gb.build().map_err(|err| {
-            match err {
-                GrepError::Regex(err) => {
-                  let s = format!("{}\n(Hint: Try the --fixed-strings flag \
-                  to search for a literal string.)", err.to_string());
-                  From::from(s)
-                },
-                err => From::from(err)
-            }
-        })
+        Ok(gb.build()?)
     }
 
     /// Builds the set of glob overrides from the command line flags.

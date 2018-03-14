@@ -14,11 +14,16 @@ CPUs (such as AVX2) for additional optimizations.
   per line. Previously, the behavior of ripgrep was to report the total number
   of matching lines. (Note that this behavior diverges from the behavior of
   GNU grep.)
+* Octal syntax is no longer supported. ripgrep previously accepted expressions
+  like `\1` as syntax for matching `U+0001`, but ripgrep will now report an
+  error instead.
 
 Feature enhancements:
 
 * [FEATURE #411](https://github.com/BurntSushi/ripgrep/issues/411):
   Add a `--stats` flag, which emits aggregate statistics after search results.
+* [FEATURE #702](https://github.com/BurntSushi/ripgrep/issues/702):
+  Support `\u{..}` Unicode escape sequences.
 * [FEATURE #812](https://github.com/BurntSushi/ripgrep/issues/812):
   Add `-b/--byte-offset` flag that reports byte offset of each matching line.
 * [FEATURE #814](https://github.com/BurntSushi/ripgrep/issues/814):
@@ -29,12 +34,19 @@ Bug fixes:
 * [BUG #135](https://github.com/BurntSushi/ripgrep/issues/135):
   Release portable binaries that conditionally use SSSE3, AVX2, etc., at
   runtime.
+* [BUG #268](https://github.com/BurntSushi/ripgrep/issues/268):
+  Print descriptive error message when trying to use look-around or
+  backreferences.
+* [BUG #395](https://github.com/BurntSushi/ripgrep/issues/395):
+  Show comprehensible error messages for regexes like `\s*{`.
 * [BUG #526](https://github.com/BurntSushi/ripgrep/issues/526):
   Support backslash escapes in globs.
 * [BUG #832](https://github.com/BurntSushi/ripgrep/issues/832):
   Clarify usage instructions for `-f/--file` flag.
 * [BUG #852](https://github.com/BurntSushi/ripgrep/issues/852):
   Be robust with respect to `ENOMEM` errors returned by `mmap`.
+* [BUG #853](https://github.com/BurntSushi/ripgrep/issues/853):
+  Upgrade `grep` crate to `regex-syntax 0.5.0`.
 
 
 0.8.1 (2018-02-20)
