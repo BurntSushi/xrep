@@ -43,6 +43,8 @@ Bug fixes:
   Support backslash escapes in globs.
 * [BUG #832](https://github.com/BurntSushi/ripgrep/issues/832):
   Clarify usage instructions for `-f/--file` flag.
+* [BUG #851](https://github.com/BurntSushi/ripgrep/issues/851):
+  Fix `-S/--smart-case` detection once and for all.
 * [BUG #852](https://github.com/BurntSushi/ripgrep/issues/852):
   Be robust with respect to `ENOMEM` errors returned by `mmap`.
 * [BUG #853](https://github.com/BurntSushi/ripgrep/issues/853):

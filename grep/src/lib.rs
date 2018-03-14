@@ -19,6 +19,7 @@ pub use search::{Grep, GrepBuilder, Iter, Match};
 mod literals;
 mod nonl;
 mod search;
+mod smart_case;
 mod word_boundary;
 
 /// Result is a convenient type alias that fixes the type of the error to
