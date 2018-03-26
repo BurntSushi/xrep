@@ -971,17 +971,17 @@ impl<W: io::Write> WriteColor for Ansi<W> {
 
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         self.reset()?;
-        if let Some(ref c) = spec.fg_color {
-            self.write_color(true, c, spec.intense)?;
-        }
-        if let Some(ref c) = spec.bg_color {
-            self.write_color(false, c, spec.intense)?;
-        }
         if spec.bold {
             self.write_str("\x1B[1m")?;
         }
         if spec.underline {
             self.write_str("\x1B[4m")?;
+        }
+        if let Some(ref c) = spec.fg_color {
+            self.write_color(true, c, spec.intense)?;
+        }
+        if let Some(ref c) = spec.bg_color {
+            self.write_color(false, c, spec.intense)?;
         }
         Ok(())
     }
