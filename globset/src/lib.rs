@@ -441,6 +441,7 @@ impl GlobSet {
 
 /// GlobSetBuilder builds a group of patterns that can be used to
 /// simultaneously match a file path.
+#[derive(Clone, Debug)]
 pub struct GlobSetBuilder {
     pats: Vec<Glob>,
 }

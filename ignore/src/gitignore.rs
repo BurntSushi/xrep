@@ -301,6 +301,7 @@ impl Gitignore {
 }
 
 /// Builds a matcher for a single set of globs from a .gitignore file.
+#[derive(Clone, Debug)]
 pub struct GitignoreBuilder {
     builder: GlobSetBuilder,
     root: PathBuf,
