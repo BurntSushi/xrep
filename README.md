@@ -234,6 +234,12 @@ $ sudo dnf copr enable carlwgeorge/ripgrep
 $ sudo dnf install ripgrep
 ```
 
+If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the [official repo](http://software.opensuse.org/package/ripgrep):
+
+```
+$ sudo zypper install ripgrep
+```
+
 If you're a **RHEL/CentOS 7** user, you can install ripgrep from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
