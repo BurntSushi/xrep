@@ -24,7 +24,7 @@ use {Error, PartialErrorBuilder};
 ///
 /// The error typically refers to a problem parsing ignore files in a
 /// particular directory.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DirEntry {
     dent: DirEntryInner,
     err: Option<Error>,
@@ -126,7 +126,7 @@ impl DirEntry {
 ///
 /// Specifically, (3) has to essentially re-create the DirEntry implementation
 /// from WalkDir.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum DirEntryInner {
     Stdin,
     Walkdir(walkdir::DirEntry),
@@ -235,6 +235,7 @@ impl DirEntryInner {
 
 /// DirEntryRaw is essentially copied from the walkdir crate so that we can
 /// build `DirEntry`s from whole cloth in the parallel iterator.
+#[derive(Clone)]
 struct DirEntryRaw {
     /// The path as reported by the `fs::ReadDir` iterator (even if it's a
     /// symbolic link).
