@@ -33,7 +33,7 @@ path = "tests/tests.rs"
 members = ["grep", "globset", "ignore", "termcolor", "wincolor"]
 
 [dependencies]
-atty = "0.2.2"
+atty = "=0.2.6"
 bytecount = "0.3.1"
 encoding_rs = "0.7"
 globset = { version = "0.3.0", path = "globset" }
