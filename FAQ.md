@@ -20,6 +20,7 @@
 * [How do I create an alias for ripgrep on Windows?](#rg-alias-windows)
 * [How do I create a PowerShell profile?](#powershell-profile)
 * [How do I pipe non-ASCII content to ripgrep on Windows?](#pipe-non-ascii-windows)
+* [How can I search and replace with ripgrep?](#search-and-replace)
 * [How is ripgrep licensed?](#license)
 * [Can ripgrep replace grep?](#posix4ever)
 * [What does the "rip" in ripgrep mean?](#intentcountsforsomething)
@@ -470,6 +471,55 @@ that the console will use for printing to UTF-8 with
 will also reset when PowerShell is restarted, so you can add that line
 to your profile as well if you want to make the setting permanent.
 
+<h3 name="search-and-replace">
+How can I search and replace with ripgrep?
+</h3>
+
+Using ripgrep alone, you can't. ripgrep is a search tool that will never
+touch your files. However, the output of ripgrep can be piped to other tools
+that do modify files on disk. See 
+[this issue](https://github.com/BurntSushi/ripgrep/issues/74) for more
+information.
+
+sed is one such tool that can modify files on disk. sed can take a filename
+and a substitution command to search and replace in the specified file.
+Files containing matching patterns can be provided to sed using
+
+```
+rg 'foo' --files-with-matches
+```
+
+The output of this command is a list of filenames that contain a match for
+the `foo` pattern.
+
+This list can be piped into `xargs`, which will split the filenames from
+standard input into arguments for the command following xargs. You can use this
+combination to pipe a list of filenames into sed for replacement. For example:
+
+```
+rg 'foo' --files-with-matches | xargs sed -i 's/foo/bar/g'
+```
+
+will replace all instances of 'foo' with 'bar' in the files in which ripgrep
+finds the foo pattern. The `-i` flag to sed indicates that you are editing files
+in place, and `s/foo/bar/g` says that you are performing a **s**ubstitution of
+the pattren `foo` for `bar`, and that you  are  doing this substitution
+**g**lobally (all occurrences of the pattern in each file).
+
+Note: the above command assumes that you are using GNU sed. If you are using
+ BSD sed (the default on OSx and FreeBSD) then you must modify the above
+command to be the following:
+
+```
+rg 'foo' --files-with-matches | xargs sed -i '' 's/foo/bar/g'
+```
+
+The `-i` flag in BSD sed requires a file extension to be given to make backups
+for all modified files. Specifying the empty string prevents file backups from
+being made.
+
+To learn more about sed, see the sed manual
+[here](https://www.gnu.org/software/sed/manual/sed.html).
 
 <h3 name="license">
 How is ripgrep licensed?
