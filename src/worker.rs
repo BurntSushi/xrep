@@ -42,6 +42,7 @@ struct Options {
     invert_match: bool,
     line_number: bool,
     max_count: Option<u64>,
+    no_error_messages: bool,
     no_messages: bool,
     quiet: bool,
     text: bool,
@@ -64,6 +65,7 @@ impl Default for Options {
             invert_match: false,
             line_number: false,
             max_count: None,
+            no_error_messages: false,
             no_messages: false,
             quiet: false,
             text: false,
@@ -196,6 +198,14 @@ impl WorkerBuilder {
         self
     }
 
+    /// If enabled, error messages while searching files are suppressed.
+    ///
+    /// This is disabled by default.
+    pub fn no_error_messages(mut self, yes: bool) -> Self {
+        self.opts.no_error_messages = yes;
+        self
+    }
+
     /// If enabled, error messages are suppressed.
     ///
     /// This is disabled by default.
@@ -263,7 +273,7 @@ impl Worker {
                     let file = match File::open(path) {
                         Ok(file) => file,
                         Err(err) => {
-                            if !self.opts.no_messages {
+                            if !self.opts.no_messages && !self.opts.no_error_messages {
                                 eprintln!("{}: {}", path.display(), err);
                             }
                             return 0;
@@ -285,7 +295,7 @@ impl Worker {
                 count
             }
             Err(err) => {
-                if !self.opts.no_messages {
+                if !self.opts.no_messages && !self.opts.no_error_messages {
                     eprintln!("{}", err);
                 }
                 0

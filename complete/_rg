@@ -61,6 +61,7 @@ _rg() {
     "--no-ignore-parent[don't respect ignore files in parent directories]"
     "--no-ignore-vcs[don't respect version control ignore files]"
     '(-n -N --line-number --no-line-number)'{-N,--no-line-number}'[suppress line numbers]'
+    '--no-error-messages[suppresses errors while searching]'
     '--no-messages[suppress all error messages]'
     "(--mmap --no-mmap)--no-mmap[don't search using memory maps]"
     '(-0 --null)'{-0,--null}'[print NUL byte after file names]'

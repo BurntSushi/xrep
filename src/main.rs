@@ -112,7 +112,7 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
                 result,
                 args.stdout_handle(),
                 args.files(),
-                args.no_messages(),
+                args.no_messages() || args.no_error_messages(),
             ) {
                 None => return Continue,
                 Some(dent) => dent,
@@ -175,7 +175,7 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
             result,
             args.stdout_handle(),
             args.files(),
-            args.no_messages(),
+            args.no_messages() || args.no_error_messages(),
         ) {
             None => continue,
             Some(dent) => dent,
@@ -240,7 +240,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
                 result,
                 args.stdout_handle(),
                 args.files(),
-                args.no_messages(),
+                args.no_messages() || args.no_error_messages(),
             ) {
                 tx.send(dent).unwrap();
             }
@@ -259,7 +259,7 @@ fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
             result,
             args.stdout_handle(),
             args.files(),
-            args.no_messages(),
+            args.no_messages() || args.no_error_messages(),
         ) {
             None => continue,
             Some(dent) => dent,

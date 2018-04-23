@@ -65,6 +65,7 @@ pub struct Args {
     no_ignore: bool,
     no_ignore_parent: bool,
     no_ignore_vcs: bool,
+    no_error_messages: bool,
     no_messages: bool,
     null: bool,
     only_matching: bool,
@@ -280,6 +281,7 @@ impl Args {
             .invert_match(self.invert_match)
             .max_count(self.max_count)
             .mmap(self.mmap)
+            .no_error_messages(self.no_error_messages)
             .no_messages(self.no_messages)
             .quiet(self.quiet)
             .text(self.text)
@@ -301,6 +303,11 @@ impl Args {
     /// loaded and then exit.
     pub fn type_list(&self) -> bool {
         self.type_list
+    }
+
+    /// Returns true if errors searching files should be suppressed.
+    pub fn no_error_messages(&self) -> bool {
+        self.no_error_messages
     }
 
     /// Returns true if error messages should be suppressed.
@@ -327,7 +334,7 @@ impl Args {
         }
         for path in &self.ignore_files {
             if let Some(err) = wd.add_ignore(path) {
-                if !self.no_messages {
+                if !self.no_messages && !self.no_error_messages {
                     eprintln!("{}", err);
                 }
             }
@@ -404,6 +411,7 @@ impl<'a> ArgMatches<'a> {
             no_ignore: self.no_ignore(),
             no_ignore_parent: self.no_ignore_parent(),
             no_ignore_vcs: self.no_ignore_vcs(),
+			no_error_messages: self.is_present("no-error-messages"),
             no_messages: self.is_present("no-messages"),
             null: self.is_present("null"),
             only_matching: self.is_present("only-matching"),
