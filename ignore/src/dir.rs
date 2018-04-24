@@ -107,15 +107,15 @@ struct IgnoreInner {
     /// Ignore files used in addition to `.ignore`
     custom_ignore_filenames: Arc<Vec<OsString>>,
     /// The matcher for custom ignore files
-    custom_ignore_matcher: Gitignore,
+    custom_ignore_matcher: Option<Gitignore>,
     /// The matcher for .ignore files.
-    ignore_matcher: Gitignore,
+    ignore_matcher: Option<Gitignore>,
     /// A global gitignore matcher, usually from $XDG_CONFIG_HOME/git/ignore.
     git_global_matcher: Arc<Gitignore>,
     /// The matcher for .gitignore files.
-    git_ignore_matcher: Gitignore,
+    git_ignore_matcher: Option<Gitignore>,
     /// Special matcher for `.git/info/exclude` files.
-    git_exclude_matcher: Gitignore,
+    git_exclude_matcher: Option<Gitignore>,
     /// Whether this directory contains a .git sub-directory.
     has_git: bool,
     /// Ignore config.
@@ -210,34 +210,38 @@ impl Ignore {
         let mut errs = PartialErrorBuilder::default();
         let custom_ig_matcher =
             {
-                let (m, err) =
-                    create_gitignore(&dir, &self.0.custom_ignore_filenames);
-                errs.maybe_push(err);
-                m
+                if self.0.custom_ignore_filenames.len() > 0 {
+                    let (m, err) =
+                        create_gitignore(&dir, &self.0.custom_ignore_filenames);
+                    errs.maybe_push(err);
+                    Some(m)
+                } else {
+                    None
+                }
             };
         let ig_matcher =
             if !self.0.opts.ignore {
-                Gitignore::empty()
+                None
             } else {
                 let (m, err) = create_gitignore(&dir, &[".ignore"]);
                 errs.maybe_push(err);
-                m
+                Some(m)
             };
         let gi_matcher =
             if !self.0.opts.git_ignore {
-                Gitignore::empty()
+                None
             } else {
                 let (m, err) = create_gitignore(&dir, &[".gitignore"]);
                 errs.maybe_push(err);
-                m
+                Some(m)
             };
         let gi_exclude_matcher =
             if !self.0.opts.git_exclude {
-                Gitignore::empty()
+                None
             } else {
                 let (m, err) = create_gitignore(&dir, &[".git/info/exclude"]);
                 errs.maybe_push(err);
-                m
+                Some(m)
             };
         let ig = IgnoreInner {
             compiled: self.0.compiled.clone(),
@@ -333,23 +337,39 @@ impl Ignore {
         for ig in self.parents().take_while(|ig| !ig.0.is_absolute_parent) {
             if m_custom_ignore.is_none() {
                 m_custom_ignore =
-                    ig.0.custom_ignore_matcher.matched(path, is_dir)
-                      .map(IgnoreMatch::gitignore);
+                    if let Some(ref matcher) = ig.0.custom_ignore_matcher {
+                        matcher.matched(path, is_dir)
+                               .map(IgnoreMatch::gitignore)
+                    } else {
+                        Match::None
+                    }
             }
             if m_ignore.is_none() {
                 m_ignore =
-                    ig.0.ignore_matcher.matched(path, is_dir)
-                      .map(IgnoreMatch::gitignore);
+                    if let Some(ref matcher) = ig.0.ignore_matcher {
+                        matcher.matched(path, is_dir)
+                               .map(IgnoreMatch::gitignore)
+                    } else {
+                        Match::None
+                    }
             }
             if !saw_git && m_gi.is_none() {
                 m_gi =
-                    ig.0.git_ignore_matcher.matched(path, is_dir)
-                      .map(IgnoreMatch::gitignore);
+                    if let Some(ref matcher) = ig.0.git_ignore_matcher {
+                        matcher.matched(path, is_dir)
+                               .map(IgnoreMatch::gitignore)
+                    } else {
+                        Match::None
+                    }
             }
             if !saw_git && m_gi_exclude.is_none() {
                 m_gi_exclude =
-                    ig.0.git_exclude_matcher.matched(path, is_dir)
-                      .map(IgnoreMatch::gitignore);
+                    if let Some(ref matcher) = ig.0.git_exclude_matcher {
+                        matcher.matched(path, is_dir)
+                               .map(IgnoreMatch::gitignore)
+                    } else {
+                        Match::None
+                    }
             }
             saw_git = saw_git || ig.0.has_git;
         }
@@ -358,23 +378,39 @@ impl Ignore {
             for ig in self.parents().skip_while(|ig|!ig.0.is_absolute_parent) {
                 if m_custom_ignore.is_none() {
                     m_custom_ignore =
-                        ig.0.custom_ignore_matcher.matched(&path, is_dir)
-                          .map(IgnoreMatch::gitignore);
+                        if let Some(ref matcher) = ig.0.custom_ignore_matcher {
+                            matcher.matched(&path, is_dir)
+                                   .map(IgnoreMatch::gitignore)
+                        } else {
+                            Match::None
+                        }
                 }
                 if m_ignore.is_none() {
                     m_ignore =
-                        ig.0.ignore_matcher.matched(&path, is_dir)
-                          .map(IgnoreMatch::gitignore);
+                        if let Some(ref matcher) = ig.0.ignore_matcher {
+                            matcher.matched(&path, is_dir)
+                                   .map(IgnoreMatch::gitignore)
+                        } else {
+                            Match::None
+                        }
                 }
                 if !saw_git && m_gi.is_none() {
                     m_gi =
-                        ig.0.git_ignore_matcher.matched(&path, is_dir)
-                          .map(IgnoreMatch::gitignore);
+                        if let Some(ref matcher) = ig.0.git_ignore_matcher {
+                            matcher.matched(&path, is_dir)
+                                   .map(IgnoreMatch::gitignore)
+                        } else {
+                            Match::None
+                        }
                 }
                 if !saw_git && m_gi_exclude.is_none() {
                     m_gi_exclude =
-                        ig.0.git_exclude_matcher.matched(&path, is_dir)
-                          .map(IgnoreMatch::gitignore);
+                        if let Some(ref matcher) = ig.0.git_exclude_matcher {
+                            matcher.matched(&path, is_dir)
+                                   .map(IgnoreMatch::gitignore)
+                        } else {
+                            Match::None
+                        }
                 }
                 saw_git = saw_git || ig.0.has_git;
             }
@@ -487,11 +523,11 @@ impl IgnoreBuilder {
             absolute_base: None,
             explicit_ignores: Arc::new(self.explicit_ignores.clone()),
             custom_ignore_filenames: Arc::new(self.custom_ignore_filenames.clone()),
-            custom_ignore_matcher: Gitignore::empty(),
-            ignore_matcher: Gitignore::empty(),
+            custom_ignore_matcher: None,
+            ignore_matcher: None,
             git_global_matcher: Arc::new(git_global_matcher),
-            git_ignore_matcher: Gitignore::empty(),
-            git_exclude_matcher: Gitignore::empty(),
+            git_ignore_matcher: None,
+            git_exclude_matcher: None,
             has_git: false,
             opts: self.opts,
         }))
