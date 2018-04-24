@@ -209,7 +209,9 @@ impl Ignore {
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
         let mut errs = PartialErrorBuilder::default();
         let custom_ig_matcher =
-            {
+            if self.0.custom_ignore_filenames.is_empty() {
+                Gitignore::empty()
+            } else {
                 let (m, err) =
                     create_gitignore(&dir, &self.0.custom_ignore_filenames);
                 errs.maybe_push(err);

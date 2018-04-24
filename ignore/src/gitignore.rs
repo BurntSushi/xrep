@@ -83,7 +83,7 @@ pub struct Gitignore {
     globs: Vec<Glob>,
     num_ignores: u64,
     num_whitelists: u64,
-    matches: Arc<ThreadLocal<RefCell<Vec<usize>>>>,
+    matches: Option<Arc<ThreadLocal<RefCell<Vec<usize>>>>>,
 }
 
 impl Gitignore {
@@ -143,7 +143,14 @@ impl Gitignore {
     ///
     /// Its path is empty.
     pub fn empty() -> Gitignore {
-        GitignoreBuilder::new("").build().unwrap()
+        Gitignore {
+            set: GlobSet::empty(),
+            root: PathBuf::from(""),
+            globs: vec![],
+            num_ignores: 0,
+            num_whitelists: 0,
+            matches: None,
+        }
     }
 
     /// Returns the directory containing this gitignore matcher.
@@ -249,7 +256,7 @@ impl Gitignore {
             return Match::None;
         }
         let path = path.as_ref();
-        let _matches = self.matches.get_default();
+        let _matches = self.matches.as_ref().unwrap().get_default();
         let mut matches = _matches.borrow_mut();
         let candidate = Candidate::new(path);
         self.set.matches_candidate_into(&candidate, &mut *matches);
@@ -345,7 +352,7 @@ impl GitignoreBuilder {
             globs: self.globs.clone(),
             num_ignores: nignore as u64,
             num_whitelists: nwhite as u64,
-            matches: Arc::new(ThreadLocal::default()),
+            matches: Some(Arc::new(ThreadLocal::default())),
         })
     }
 

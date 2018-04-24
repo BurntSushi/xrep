@@ -288,6 +288,14 @@ pub struct GlobSet {
 }
 
 impl GlobSet {
+    /// Create an empty `GlobSet`. An empty set matches nothing.
+    pub fn empty() -> GlobSet {
+        GlobSet {
+            len: 0,
+            strats: vec![],
+        }
+    }
+
     /// Returns true if this set is empty, and therefore matches nothing.
     pub fn is_empty(&self) -> bool {
         self.len == 0

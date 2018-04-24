@@ -54,6 +54,8 @@ Bug fixes:
   Fix problems with `--line-number-width` by removing it.
 * [BUG #832](https://github.com/BurntSushi/ripgrep/issues/832):
   Clarify usage instructions for `-f/--file` flag.
+* [BUG #835](https://github.com/BurntSushi/ripgrep/issues/835):
+  Fix small performance regression while crawling very large directory trees.
 * [BUG #851](https://github.com/BurntSushi/ripgrep/issues/851):
   Fix `-S/--smart-case` detection once and for all.
 * [BUG #852](https://github.com/BurntSushi/ripgrep/issues/852):
