@@ -44,6 +44,7 @@ lazy_static! {
         m.insert("gz", DecompressionCommand::new("gzip", ARGS));
         m.insert("bz2", DecompressionCommand::new("bzip2", ARGS));
         m.insert("xz", DecompressionCommand::new("xz", ARGS));
+        m.insert("lz4", DecompressionCommand::new("lz4", ARGS));
 
         const LZMA_ARGS: &[&str] = &["--format=lzma", "-d", "-c"];
         m.insert("lzma", DecompressionCommand::new("xz", LZMA_ARGS));
@@ -55,6 +56,7 @@ lazy_static! {
         builder.add(Glob::new("*.gz").unwrap());
         builder.add(Glob::new("*.bz2").unwrap());
         builder.add(Glob::new("*.xz").unwrap());
+        builder.add(Glob::new("*.lz4").unwrap());
         builder.add(Glob::new("*.lzma").unwrap());
         builder.build().unwrap()
     };
@@ -63,6 +65,7 @@ lazy_static! {
         builder.add(Glob::new("*.tar.gz").unwrap());
         builder.add(Glob::new("*.tar.xz").unwrap());
         builder.add(Glob::new("*.tar.bz2").unwrap());
+        builder.add(Glob::new("*.tar.lz4").unwrap());
         builder.add(Glob::new("*.tgz").unwrap());
         builder.add(Glob::new("*.txz").unwrap());
         builder.add(Glob::new("*.tbz2").unwrap());

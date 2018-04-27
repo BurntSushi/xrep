@@ -1793,6 +1793,26 @@ be, to a very large extent, the result of luck. Sherlock Holmes
 }
 
 #[test]
+fn compressed_lz4() {
+    if !cmd_exists("lz4") {
+        return;
+    }
+    let lz4_file = include_bytes!("./data/sherlock.lz4");
+
+    let wd = WorkDir::new("feature_search_compressed");
+    wd.create_bytes("sherlock.lz4", lz4_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.lz4");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
 fn compressed_lzma() {
     if !cmd_exists("xz") {
         return;
