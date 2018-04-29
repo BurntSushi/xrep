@@ -215,6 +215,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("pod", &["*.pod"]),
     ("protobuf", &["*.proto"]),
     ("ps", &["*.cdxml", "*.ps1", "*.ps1xml", "*.psd1", "*.psm1"]),
+    ("puppet", &[".erb", "*.pp", "*.rb"]),
     ("purs", &["*.purs"]),
     ("py", &["*.py"]),
     ("qmake", &["*.pro", "*.pri", "*.prf"]),
