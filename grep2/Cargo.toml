@@ -1,0 +1,23 @@
+[package]
+name = "grep2"
+version = "0.2.0"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+Fast line oriented regex searching as a library.
+"""
+documentation = "http://burntsushi.net/rustdoc/grep/"
+homepage = "https://github.com/BurntSushi/ripgrep"
+repository = "https://github.com/BurntSushi/ripgrep"
+readme = "README.md"
+keywords = ["regex", "grep", "egrep", "search", "pattern"]
+license = "Unlicense/MIT"
+
+[dependencies]
+grep-matcher = { version = "0.0.1", path = "../grep-matcher" }
+grep-printer = { version = "0.0.1", path = "../grep-printer" }
+grep-regex = { version = "0.0.1", path = "../grep-regex" }
+grep-searcher = { version = "0.0.1", path = "../grep-searcher" }
+
+[features]
+avx-accel = ["grep-searcher/avx-accel"]
+simd-accel = ["grep-searcher/simd-accel"]

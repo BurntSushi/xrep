@@ -32,7 +32,17 @@ name = "integration"
 path = "tests/tests.rs"
 
 [workspace]
-members = ["grep", "globset", "ignore"]
+members = [
+  "globset",
+  "grep",
+  "grep2",
+  "grep-matcher",
+  "grep-pcre2",
+  "grep-printer",
+  "grep-regex",
+  "grep-searcher",
+  "ignore",
+]
 
 [dependencies]
 atty = "0.2.11"
@@ -72,10 +82,12 @@ features = ["suggestions", "color"]
 [features]
 avx-accel = [
   "bytecount/avx-accel",
+  "grep2/avx-accel",
 ]
 simd-accel = [
   "bytecount/simd-accel",
   "encoding_rs/simd-accel",
+  "grep2/simd-accel",
 ]
 
 [profile.release]

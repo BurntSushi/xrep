@@ -1,0 +1,35 @@
+[package]
+name = "grep-searcher"
+version = "0.0.1"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+Fast line oriented regex searching as a library.
+"""
+documentation = "https://docs.rs/grep-searcher"
+homepage = "https://github.com/BurntSushi/ripgrep"
+repository = "https://github.com/BurntSushi/ripgrep"
+readme = "README.md"
+keywords = ["regex", "grep", "egrep", "search", "pattern"]
+license = "Unlicense/MIT"
+
+[dependencies]
+bytecount = "0.3.1"
+encoding_rs = "0.8"
+encoding_rs_io = "0.1.2"
+grep-matcher = { version = "0.0.1", path = "../grep-matcher" }
+log = "0.4"
+memchr = "2"
+memmap = "0.6"
+
+[dev-dependencies]
+grep-regex = { version = "0.0.1", path = "../grep-regex" }
+regex = "1"
+
+[features]
+avx-accel = [
+  "bytecount/avx-accel",
+]
+simd-accel = [
+  "bytecount/simd-accel",
+  "encoding_rs/simd-accel",
+]

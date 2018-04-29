@@ -1,0 +1,24 @@
+[package]
+name = "grep-matcher"
+version = "0.0.1"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+A trait for regular expressions, with a focus on line oriented search.
+"""
+documentation = "https://docs.rs/grep-matcher"
+homepage = "https://github.com/BurntSushi/ripgrep"
+repository = "https://github.com/BurntSushi/ripgrep"
+readme = "README.md"
+keywords = ["regex", "pattern", "trait"]
+license = "Unlicense/MIT"
+autotests = false
+
+[dependencies]
+memchr = "2"
+
+[dev-dependencies]
+regex = "1"
+
+[[test]]
+name = "integration"
+path = "tests/tests.rs"

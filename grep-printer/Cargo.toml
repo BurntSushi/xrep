@@ -1,0 +1,30 @@
+[package]
+name = "grep-printer"
+version = "0.0.1"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+An implementation of the grep crate's Sink trait that provides standard
+printing of search results, similar to grep itself.
+"""
+documentation = "https://docs.rs/grep-printer"
+homepage = "https://github.com/BurntSushi/ripgrep"
+repository = "https://github.com/BurntSushi/ripgrep"
+readme = "README.md"
+keywords = ["grep", "pattern", "print", "printer", "sink"]
+license = "Unlicense/MIT"
+
+[features]
+default = ["serde1"]
+serde1 = ["base64", "serde", "serde_derive", "serde_json"]
+
+[dependencies]
+base64 = { version = "0.9", optional = true }
+grep-matcher = { version = "0.0.1", path = "../grep-matcher" }
+grep-searcher = { version = "0.0.1", path = "../grep-searcher" }
+termcolor = "1"
+serde = { version = "1", optional = true }
+serde_derive = { version = "1", optional = true }
+serde_json = { version = "1", optional = true }
+
+[dev-dependencies]
+grep-regex = { version = "0.0.1", path = "../grep-regex" }
