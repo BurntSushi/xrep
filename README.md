@@ -151,7 +151,7 @@ Summarizing, ripgrep is fast because:
   latter is better for large directories. ripgrep chooses the best searching
   strategy for you automatically.
 * Applies your ignore patterns in `.gitignore` files using a
-  [`RegexSet`](https://doc.rust-lang.org/regex/regex/struct.RegexSet.html).
+  [`RegexSet`](https://docs.rs/regex/1.0.0/regex/struct.RegexSet.html).
   That means a single file path can be matched against multiple glob patterns
   simultaneously.
 * It uses a lock-free parallel recursive directory iterator, courtesy of
