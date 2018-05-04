@@ -500,6 +500,8 @@ impl GitignoreBuilder {
 
     /// Toggle whether the globs should be matched case insensitively or not.
     ///
+    /// When this option is changed, only globs added after the change will be affected.
+    ///
     /// This is disabled by default.
     pub fn case_insensitive(
         &mut self, yes: bool
