@@ -46,7 +46,7 @@ log = "0.4"
 memchr = "2"
 memmap = "0.6"
 num_cpus = "1"
-regex = "0.2.10"
+regex = "1"
 same-file = "1"
 termcolor = { version = "0.3.4", path = "termcolor" }
 
