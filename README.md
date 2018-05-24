@@ -9,7 +9,7 @@ ack and grep.
 
 [![Linux build status](https://travis-ci.org/BurntSushi/ripgrep.svg?branch=master)](https://travis-ci.org/BurntSushi/ripgrep)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/github/BurntSushi/ripgrep?svg=true)](https://ci.appveyor.com/project/BurntSushi/ripgrep)
-[![](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
+[![Crates.io](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
 
 Dual-licensed under MIT or the [UNLICENSE](http://unlicense.org).
 
