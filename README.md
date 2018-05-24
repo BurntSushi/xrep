@@ -197,6 +197,12 @@ $ brew tap burntsushi/ripgrep https://github.com/BurntSushi/ripgrep.git
 $ brew install ripgrep-bin
 ```
 
+If you're a **MacPorts** user, then you can install ripgrep from the [official ports](https://www.macports.org/ports.php?by=name&substr=ripgrep):
+
+```
+$ sudo port install ripgrep
+```
+
 If you're a **Windows Chocolatey** user, then you can install ripgrep from the [official repo](https://chocolatey.org/packages/ripgrep):
 
 ```
