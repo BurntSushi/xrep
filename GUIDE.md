@@ -539,6 +539,13 @@ $ cat $HOME/.ripgreprc
 --type-add
 web:*.{html,css,js}*
 
+# Using glob patterns to include/exclude files or folders
+--glob=!git/*
+
+# or
+--glob
+!git/*
+
 # Set the colors.
 --colors=line:none
 --colors=line:style:bold

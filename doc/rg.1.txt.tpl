@@ -98,6 +98,28 @@ would behave identically to the following command
 
     rg --smart-case foo
 
+another example is adding types
+
+    --type-add
+    web:*.{html,css,js}*
+
+would behave identically to the following command
+
+    rg --type-add 'web:*.{html,css,js}*' foo
+
+same with using globs
+
+    --glob=!git/*
+
+or
+
+    --glob
+    !git/*
+
+would behave identically to the following command
+
+    rg --glob '!git/*' foo
+
 ripgrep also provides a flag, *--no-config*, that when present will suppress
 any and all support for configuration. This includes any future support
 for auto-loading configuration files from pre-determined paths.
