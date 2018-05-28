@@ -2185,29 +2185,25 @@ foo:1
 #[test]
 fn regression_416() {
     let wd = WorkDir::new("regression_416");
-    wd.create("cf_lf_eol", "foo\r\nbar\r\nbaz\r\n");
-    // TODO: consider adding files to check behavior when `\r` is *not* followed by `\n`
-    // (...but what should that behavior be? There *are* some systems that treat `\r` on its own as
-    // a newline.)
+    wd.create("cr_lf_eol", "foo\r\nbar\r\nbaz\r\n");
 
     let mut cmd = wd.command();
     cmd.arg("--eol-anchor-include-cr");
-    cmd.arg("--with-filename");
     cmd.arg("bar$");
 
     let lines: String = wd.stdout(&mut cmd);
-    assert_eq!(lines, "cf_lf_eol:bar\r\n");
+    assert_eq!(lines, "cr_lf_eol:bar\r\n");
 
-    /* XXX TEMP
+    /* Test DISABLED for now due to #441; see
+     * https://github.com/BurntSushi/ripgrep/issues/441
+
     // Check that we match on an initial blank line.
-    // ...and that we do NOT consider `\r\n` (in cf_lf_eol) to be a blank line.
+    // ...and that we do NOT consider `\r\n` (in cr_lf_eol) to be a blank line.
     wd.create("first_line_blank", "\nfoo\n");
     let mut cmd = wd.command();
     cmd.arg("--eol-anchor-include-cr");
-    cmd.arg("--with-filename");
     cmd.arg("^$");
 
-    // XXX TODO better way to check this?
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, "first_line_blank:\n");
     */
