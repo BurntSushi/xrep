@@ -554,6 +554,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_vimgrep(&mut args);
     flag_with_filename(&mut args);
     flag_word_regexp(&mut args);
+    flag_eol_anchor_include_cr(&mut args);
     args
 }
 
@@ -1700,5 +1701,16 @@ This overrides the --line-regexp flag.
     let arg = RGArg::switch("word-regexp").short("w")
         .help(SHORT).long_help(LONG)
         .overrides("line-regexp");
+    args.push(arg);
+}
+
+fn flag_eol_anchor_include_cr(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Let the end-of-line anchor match CRLF.";
+    const LONG: &str = long!("\
+Let the end-of-line anchor '$' match an optional carriage-return character before a newline
+character. This is equivalent to replacing '$' with '\r$' in all search patterns.
+");
+    let arg = RGArg::switch("eol-anchor-include-cr")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }

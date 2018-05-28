@@ -496,7 +496,8 @@ impl<'a> ArgMatches<'a> {
     /// Note that if -F/--fixed-strings is set, then all patterns will be
     /// escaped. Similarly, if -w/--word-regexp is set, then all patterns
     /// are surrounded by `\b`, and if -x/--line-regexp is set, then all
-    /// patterns are surrounded by `^...$`. Finally, if --passthru is set,
+    /// patterns are surrounded by `^...$`. If --eol-anchor-include-cr is
+    /// given, `$` is replaced with `\r?$`. Finally, if --passthru is set,
     /// the pattern `^` is added to the end (to ensure that it works as
     /// expected with multiple -e/-f patterns).
     ///
@@ -558,7 +559,8 @@ impl<'a> ArgMatches<'a> {
     /// boundaries or escapes if applicable.
     fn str_pattern(&self, pat: &str) -> String {
         let litpat = self.literal_pattern(pat.to_string());
-        let s = self.line_pattern(self.word_pattern(litpat));
+        // XXX formatting?
+        let s = self.cr_anchr_pattern(self.line_pattern(self.word_pattern(litpat)));
 
         if s.is_empty() {
             self.empty_pattern()
@@ -593,6 +595,20 @@ impl<'a> ArgMatches<'a> {
     fn line_pattern(&self, pat: String) -> String {
         if self.is_present("line-regexp") {
             format!(r"^(?:{})$", pat)
+        } else {
+            pat
+        }
+    }
+
+    /// Returns the given pattern with `\r?` inserted before each `$` if the
+    /// --eol-anchor-include-cr flag is set. Otherwise, the pattern is
+    /// returned unchanged.
+    fn cr_anchr_pattern(&self, pat: String) -> String {
+        if self.is_present("eol-anchor-include-cr") {
+            // If `$` occurs at the end (or beginning), an empty
+            // split-element will be created, causing the `join` to
+            // perform the desired insertion at the correct location.
+            pat.split('$').collect::<Vec<&str>>().join(r"\r?$")
         } else {
             pat
         }
