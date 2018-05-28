@@ -107,22 +107,6 @@ sherlock!(line_numbers, |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, expected);
 });
 
-sherlock!(line_number_width, |wd: WorkDir, mut cmd: Command| {
-    cmd.arg("-n");
-    cmd.arg("--line-number-width").arg("2");
-    let lines: String = wd.stdout(&mut cmd);
-    let expected = " 1:For the Doctor Watsons of this world, as opposed to the Sherlock
- 3:be, to a very large extent, the result of luck. Sherlock Holmes
-";
-    assert_eq!(lines, expected);
-});
-
-sherlock!(line_number_width_padding_character_error, |wd: WorkDir, mut cmd: Command| {
-    cmd.arg("-n");
-    cmd.arg("--line-number-width").arg("02");
-    wd.assert_non_empty_stderr(&mut cmd);
-});
-
 sherlock!(columns, |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--column");
     let lines: String = wd.stdout(&mut cmd);
@@ -395,10 +379,41 @@ sherlock!(csglob, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     assert_eq!(lines, "file2.html:Sherlock\n");
 });
 
+sherlock!(byte_offset_only_matching, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-b").arg("-o");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:56:Sherlock
+sherlock:177:Sherlock
+";
+    assert_eq!(lines, expected);
+});
+
 sherlock!(count, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     cmd.arg("--count");
     let lines: String = wd.stdout(&mut cmd);
     let expected = "sherlock:2\n";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(count_matches, "the", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--count-matches");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "sherlock:4\n";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(count_matches_inverted, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--count-matches").arg("--invert-match");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "sherlock:4\n";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(count_matches_via_only, "the", ".", |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--count").arg("--only-matching");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "sherlock:4\n";
     assert_eq!(lines, expected);
 });
 
@@ -620,7 +635,7 @@ sherlock!(ignore_git_parent_stop, "Sherlock", ".",
     //
     // .gitignore (contains `sherlock`)
     // foo/
-    //   .git
+    //   .git/
     //   bar/
     //      sherlock
     //
@@ -631,6 +646,39 @@ sherlock!(ignore_git_parent_stop, "Sherlock", ".",
     wd.create(".gitignore", "sherlock\n");
     wd.create_dir("foo");
     wd.create_dir("foo/.git");
+    wd.create_dir("foo/bar");
+    wd.create("foo/bar/sherlock", hay::SHERLOCK);
+    cmd.current_dir(wd.path().join("foo").join("bar"));
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+});
+
+// Like ignore_git_parent_stop, but with a .git file instead of a .git
+// directory.
+sherlock!(ignore_git_parent_stop_file, "Sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    // This tests that searching parent directories for .gitignore files stops
+    // after it sees a .git *file*. A .git file is used for submodules. To test
+    // this, we create this directory hierarchy:
+    //
+    // .gitignore (contains `sherlock`)
+    // foo/
+    //   .git
+    //   bar/
+    //      sherlock
+    //
+    // And we perform the search inside `foo/bar/`. ripgrep will stop looking
+    // for .gitignore files after it sees `foo/.git`, and therefore not
+    // respect the top-level `.gitignore` containing `sherlock`.
+    wd.remove("sherlock");
+    wd.create(".gitignore", "sherlock\n");
+    wd.create_dir("foo");
+    wd.create("foo/.git", "");
     wd.create_dir("foo/bar");
     wd.create("foo/bar/sherlock", hay::SHERLOCK);
     cmd.current_dir(wd.path().join("foo").join("bar"));
@@ -772,6 +820,34 @@ sherlock:5:12:but Doctor Watson has to have it taken out for him and dusted,
     assert_eq!(lines, expected);
 });
 
+sherlock!(vimgrep_no_line, "Sherlock|Watson", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--vimgrep").arg("-N");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:16:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:57:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:49:be, to a very large extent, the result of luck. Sherlock Holmes
+sherlock:12:but Doctor Watson has to have it taken out for him and dusted,
+";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(vimgrep_no_line_no_column, "Sherlock|Watson", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--vimgrep").arg("-N").arg("--no-column");
+
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+sherlock:but Doctor Watson has to have it taken out for him and dusted,
+";
+    assert_eq!(lines, expected);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/16
 clean!(regression_16, "xyz", ".", |wd: WorkDir, mut cmd: Command| {
     wd.create(".gitignore", "ghi/");
@@ -800,11 +876,7 @@ clean!(regression_25, "test", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/30
 clean!(regression_30, "test", ".", |wd: WorkDir, mut cmd: Command| {
-    if cfg!(windows) {
-        wd.create(".gitignore", "vendor/**\n!vendor\\manifest");
-    } else {
-        wd.create(".gitignore", "vendor/**\n!vendor/manifest");
-    }
+    wd.create(".gitignore", "vendor/**\n!vendor/manifest");
     wd.create_dir("vendor");
     wd.create("vendor/manifest", "test");
 
@@ -1152,7 +1224,8 @@ clean!(regression_428_unrecognized_style, "Sherlok", ".",
     let output = cmd.output().unwrap();
     let err = String::from_utf8_lossy(&output.stderr);
     let expected = "\
-Unrecognized style attribute ''. Choose from: nobold, bold, nointense, intense.
+Unrecognized style attribute ''. Choose from: nobold, bold, nointense, intense, \
+nounderline, underline.
 ";
     assert_eq!(err, expected);
 });
@@ -1164,6 +1237,49 @@ clean!(regression_493, " 're ", "input.txt", |wd: WorkDir, mut cmd: Command| {
 
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, " 're \n");
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/553
+sherlock!(regression_553_switch, "sherlock", ".",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-i");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+
+    // This repeats the `-i` flag.
+    cmd.arg("-i");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+});
+
+sherlock!(regression_553_flag, "world|attached",
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("-C").arg("1");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+Holmeses, success in the province of detective work must always
+--
+but Doctor Watson has to have it taken out for him and dusted,
+and exhibited clearly, with a label attached.
+";
+    assert_eq!(lines, expected);
+
+    cmd.arg("-C").arg("0");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+and exhibited clearly, with a label attached.
+";
+    assert_eq!(lines, expected);
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/599
@@ -1187,6 +1303,19 @@ clean!(regression_599, "^$", "input.txt", |wd: WorkDir, mut cmd: Command| {
 [0m4[0m:
 ";
     assert_eq!(expected, lines);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/807
+clean!(regression_807, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create(".gitignore", ".a/b");
+    wd.create_dir(".a/b");
+    wd.create_dir(".a/c");
+    wd.create(".a/b/file", "test");
+    wd.create(".a/c/file", "test");
+
+    cmd.arg("--hidden");
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, format!("{}:test\n", path(".a/c/file")));
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1
@@ -1603,16 +1732,6 @@ sherlock!(feature_419_zero_as_shortcut_for_null, "Sherlock", ".",
     assert_eq!(lines, "sherlock\x002\n");
 });
 
-// See: https://github.com/BurntSushi/ripgrep/issues/709
-clean!(suggest_fixed_strings_for_invalid_regex, "foo(", ".",
-|wd: WorkDir, mut cmd: Command| {
-    wd.assert_non_empty_stderr(&mut cmd);
-
-    let output = cmd.output().unwrap();
-    let err = String::from_utf8_lossy(&output.stderr);
-    assert_eq!(err.contains("--fixed-strings"), true);
-});
-
 #[test]
 fn compressed_gzip() {
     if !cmd_exists("gzip") {
@@ -1725,6 +1844,51 @@ For the Doctor Watsons of this world, as opposed to the Sherlock
 be, to a very large extent, the result of luck. Sherlock Holmes
 ";
     assert_eq!(lines, expected);
+});
+
+sherlock!(feature_411_single_threaded_search_stats,
+|wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("2 matched lines"), true);
+    assert_eq!(lines.contains("1 files contained matches"), true);
+    assert_eq!(lines.contains("1 files searched"), true);
+    assert_eq!(lines.contains("seconds"), true);
+});
+
+#[test]
+fn feature_411_parallel_search_stats() {
+    let wd = WorkDir::new("feature_411");
+    wd.create("sherlock_1", hay::SHERLOCK);
+    wd.create("sherlock_2", hay::SHERLOCK);
+
+    let mut cmd = wd.command();
+    cmd.arg("--stats");
+    cmd.arg("Sherlock");
+    cmd.arg("./");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("4 matched lines"), true);
+    assert_eq!(lines.contains("2 files contained matches"), true);
+    assert_eq!(lines.contains("2 files searched"), true);
+    assert_eq!(lines.contains("seconds"), true);
+}
+
+sherlock!(feature_411_ignore_stats_1, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--files-with-matches");
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("seconds"), false);
+});
+
+sherlock!(feature_411_ignore_stats_2, |wd: WorkDir, mut cmd: Command| {
+    cmd.arg("--files-without-match");
+    cmd.arg("--stats");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines.contains("seconds"), false);
 });
 
 #[test]
@@ -1858,7 +2022,7 @@ fn regression_270() {
     wd.create("foo", "-test");
 
     let mut cmd = wd.command();
-    cmd.arg("-e").arg("-test");
+    cmd.arg("-e").arg("-test").arg("./");
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, path("foo:-test\n"));
 }
@@ -2007,7 +2171,7 @@ fn regression_693_context_option_in_contextless_mode() {
     wd.create("bar", "xyz\n");
 
     let mut cmd = wd.command();
-    cmd.arg("-C1").arg("-c").arg("--sort-files").arg("xyz");
+    cmd.arg("-C1").arg("-c").arg("--sort-files").arg("xyz").arg("./");
 
     let lines: String = wd.stdout(&mut cmd);
     let expected = "\

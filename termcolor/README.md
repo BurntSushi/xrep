@@ -70,7 +70,7 @@ writeln!(&mut stdout, "green text!")?;
 
 A `BufferWriter` can create buffers and write buffers to stdout or stderr. It
 does *not* implement `io::Write` or `WriteColor` itself. Instead, `Buffer`
-implements `io::Write` and `io::WriteColor`.
+implements `io::Write` and `termcolor::WriteColor`.
 
 This example shows how to print some green text to stderr.
 

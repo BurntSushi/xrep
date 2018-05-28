@@ -1,10 +1,11 @@
 [package]
 name = "ripgrep"
-version = "0.7.1"  #:version
+version = "0.8.1"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
-Line oriented search tool using Rust's regex library. Combines the raw
-performance of grep with the usability of the silver searcher.
+ripgrep is a line-oriented search tool that recursively searches your current
+directory for a regex pattern while respecting your gitignore rules. ripgrep
+has first class support on Windows, macOS and Linux
 """
 documentation = "https://github.com/BurntSushi/ripgrep"
 homepage = "https://github.com/BurntSushi/ripgrep"
@@ -30,27 +31,27 @@ name = "integration"
 path = "tests/tests.rs"
 
 [workspace]
-members = [ "grep", "globset", "ignore", "termcolor", "wincolor" ]
+members = ["grep", "globset", "ignore", "termcolor", "wincolor"]
 
 [dependencies]
-atty = "0.2.2"
+atty = "0.2.9"
 bytecount = "0.3.1"
 encoding_rs = "0.7"
-grep = { version = "0.1.7", path = "grep" }
-ignore = { version = "0.3.1", path = "ignore" }
+globset = { version = "0.4.0", path = "globset" }
+grep = { version = "0.1.8", path = "grep" }
+ignore = { version = "0.4.0", path = "ignore" }
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 memchr = "2"
 memmap = "0.6"
 num_cpus = "1"
-regex = "0.2.4"
+regex = "1"
 same-file = "1"
-termcolor = { version = "0.3.3", path = "termcolor" }
-globset = { version = "0.2.1", path = "globset" }
+termcolor = { version = "0.3.4", path = "termcolor" }
 
 [dependencies.clap]
-version = "2.26"
+version = "2.29.4"
 default-features = false
 features = ["suggestions", "color"]
 
@@ -62,17 +63,18 @@ features = ["std", "winnt"]
 lazy_static = "1"
 
 [build-dependencies.clap]
-version = "2.26"
+version = "2.29.4"
 default-features = false
 features = ["suggestions", "color"]
 
 [features]
-avx-accel = ["bytecount/avx-accel"]
+avx-accel = ["bytecount/avx-accel", "regex/unstable"]
 simd-accel = [
   "bytecount/simd-accel",
-  "regex/simd-accel",
   "encoding_rs/simd-accel",
+  "regex/unstable",
 ]
+unstable = ["regex/unstable"]
 
 [profile.release]
 debug = true

@@ -2,6 +2,12 @@
 
 Replace this text with the output of `rg --version`.
 
+#### How did you install ripgrep?
+
+If you installed ripgrep with snap and are getting strange file permission or
+file not found errors, then please do not file a bug. Instead, use one of the
+Github binary releases.
+
 #### What operating system are you using ripgrep on?
 
 Replace this text with your operating system and version.

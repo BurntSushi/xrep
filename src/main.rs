@@ -27,6 +27,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::thread;
+use std::time::{Duration, Instant};
 
 use args::Args;
 use worker::Work;
@@ -85,16 +86,19 @@ fn run(args: Arc<Args>) -> Result<u64> {
 }
 
 fn run_parallel(args: &Arc<Args>) -> Result<u64> {
+    let start_time = Instant::now();
     let bufwtr = Arc::new(args.buffer_writer());
     let quiet_matched = args.quiet_matched();
     let paths_searched = Arc::new(AtomicUsize::new(0));
-    let match_count = Arc::new(AtomicUsize::new(0));
+    let match_line_count = Arc::new(AtomicUsize::new(0));
+    let paths_matched = Arc::new(AtomicUsize::new(0));
 
     args.walker_parallel().run(|| {
         let args = Arc::clone(args);
         let quiet_matched = quiet_matched.clone();
         let paths_searched = paths_searched.clone();
-        let match_count = match_count.clone();
+        let match_line_count = match_line_count.clone();
+        let paths_matched = paths_matched.clone();
         let bufwtr = Arc::clone(&bufwtr);
         let mut buf = bufwtr.buffer();
         let mut worker = args.worker();
@@ -109,6 +113,7 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
                 args.stdout_handle(),
                 args.files(),
                 args.no_messages(),
+                args.no_ignore_messages(),
             ) {
                 None => return Continue,
                 Some(dent) => dent,
@@ -125,9 +130,12 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
                     } else {
                         worker.run(&mut printer, Work::DirEntry(dent))
                     };
-                match_count.fetch_add(count as usize, Ordering::SeqCst);
+                match_line_count.fetch_add(count as usize, Ordering::SeqCst);
                 if quiet_matched.set_match(count > 0) {
                     return Quit;
+                }
+                if args.stats() && count > 0 {
+                    paths_matched.fetch_add(1, Ordering::SeqCst);
                 }
             }
             // BUG(burntsushi): We should handle this error instead of ignoring
@@ -141,27 +149,41 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
             eprint_nothing_searched();
         }
     }
-    Ok(match_count.load(Ordering::SeqCst) as u64)
+    let match_line_count = match_line_count.load(Ordering::SeqCst) as u64;
+    let paths_searched = paths_searched.load(Ordering::SeqCst) as u64;
+    let paths_matched = paths_matched.load(Ordering::SeqCst) as u64;
+    if args.stats() {
+        print_stats(
+            match_line_count,
+            paths_searched,
+            paths_matched,
+            start_time.elapsed(),
+        );
+    }
+    Ok(match_line_count)
 }
 
 fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
+    let start_time = Instant::now();
     let stdout = args.stdout();
     let mut stdout = stdout.lock();
     let mut worker = args.worker();
     let mut paths_searched: u64 = 0;
-    let mut match_count = 0;
+    let mut match_line_count = 0;
+    let mut paths_matched: u64 = 0;
     for result in args.walker() {
         let dent = match get_or_log_dir_entry(
             result,
             args.stdout_handle(),
             args.files(),
             args.no_messages(),
+            args.no_ignore_messages(),
         ) {
             None => continue,
             Some(dent) => dent,
         };
         let mut printer = args.printer(&mut stdout);
-        if match_count > 0 {
+        if match_line_count > 0 {
             if args.quiet() {
                 break;
             }
@@ -170,19 +192,31 @@ fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
             }
         }
         paths_searched += 1;
-        match_count +=
+        let count =
             if dent.is_stdin() {
                 worker.run(&mut printer, Work::Stdin)
             } else {
                 worker.run(&mut printer, Work::DirEntry(dent))
             };
+        match_line_count += count;
+        if args.stats() && count > 0 {
+            paths_matched += 1;
+        }
     }
     if !args.paths().is_empty() && paths_searched == 0 {
         if !args.no_messages() {
             eprint_nothing_searched();
         }
     }
-    Ok(match_count)
+    if args.stats() {
+        print_stats(
+            match_line_count,
+            paths_searched,
+            paths_matched,
+            start_time.elapsed(),
+        );
+    }
+    Ok(match_line_count)
 }
 
 fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
@@ -209,6 +243,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
                 args.stdout_handle(),
                 args.files(),
                 args.no_messages(),
+                args.no_ignore_messages(),
             ) {
                 tx.send(dent).unwrap();
             }
@@ -228,6 +263,7 @@ fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
             args.stdout_handle(),
             args.files(),
             args.no_messages(),
+            args.no_ignore_messages(),
         ) {
             None => continue,
             Some(dent) => dent,
@@ -256,6 +292,7 @@ fn get_or_log_dir_entry(
     stdout_handle: Option<&same_file::Handle>,
     files_only: bool,
     no_messages: bool,
+    no_ignore_messages: bool,
 ) -> Option<ignore::DirEntry> {
     match result {
         Err(err) => {
@@ -266,7 +303,7 @@ fn get_or_log_dir_entry(
         }
         Ok(dent) => {
             if let Some(err) = dent.error() {
-                if !no_messages {
+                if !no_messages && !no_ignore_messages {
                     eprintln!("{}", err);
                 }
             }
@@ -371,6 +408,22 @@ fn eprint_nothing_searched() {
     eprintln!("No files were searched, which means ripgrep probably \
                applied a filter you didn't expect. \
                Try running again with --debug.");
+}
+
+fn print_stats(
+    match_count: u64,
+    paths_searched: u64,
+    paths_matched: u64,
+    time_elapsed: Duration,
+) {
+    let time_elapsed =
+        time_elapsed.as_secs() as f64
+        + (time_elapsed.subsec_nanos() as f64 * 1e-9);
+    println!("\n{} matched lines\n\
+              {} files contained matches\n\
+              {} files searched\n\
+              {:.3} seconds", match_count, paths_matched,
+             paths_searched, time_elapsed);
 }
 
 // The Rust standard library suppresses the default SIGPIPE behavior, so that

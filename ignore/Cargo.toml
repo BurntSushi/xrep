@@ -1,6 +1,6 @@
 [package]
 name = "ignore"
-version = "0.3.1"  #:version
+version = "0.4.2"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A fast library for efficiently matching ignore files such as `.gitignore`
@@ -19,11 +19,11 @@ bench = false
 
 [dependencies]
 crossbeam = "0.3"
-globset = { version = "0.2.1", path = "../globset" }
+globset = { version = "0.4.0", path = "../globset" }
 lazy_static = "1"
 log = "0.4"
 memchr = "2"
-regex = "0.2.1"
+regex = "1"
 same-file = "1"
 thread_local = "0.3.2"
 walkdir = "2"

@@ -54,34 +54,28 @@ pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
 /// a pattern like `*.rs` is obviously trying to match files with a `rs`
 /// extension, but it also matches files like `.rs`, which doesn't have an
 /// extension according to std::path::Path::extension.
-pub fn file_name_ext(name: &OsStr) -> Option<&OsStr> {
-    // Yes, these functions are awful, and yes, we are completely violating
-    // the abstraction barrier of std::ffi. The barrier we're violating is
-    // that an OsStr's encoding is *ASCII compatible*. While this is obviously
-    // true on Unix systems, it's also true on Windows because an OsStr uses
-    // WTF-8 internally: https://simonsapin.github.io/wtf-8/
-    //
-    // We should consider doing the same for the other path utility functions.
-    // Right now, we don't break any barriers, but Windows users are paying
-    // for it.
-    //
-    // Got any better ideas that don't cost anything? Hit me up. ---AG
-    unsafe fn os_str_as_u8_slice(s: &OsStr) -> &[u8] {
-        ::std::mem::transmute(s)
-    }
-    unsafe fn u8_slice_as_os_str(s: &[u8]) -> &OsStr {
-        ::std::mem::transmute(s)
-    }
+pub fn file_name_ext(name: &OsStr) -> Option<Cow<[u8]>> {
     if name.is_empty() {
         return None;
     }
-    let name = unsafe { os_str_as_u8_slice(name) };
-    for (i, &b) in name.iter().enumerate().rev() {
-        if b == b'.' {
-            return Some(unsafe { u8_slice_as_os_str(&name[i..]) });
+    let name = os_str_bytes(name);
+    let last_dot_at = {
+        let result = name
+            .iter().enumerate().rev()
+            .find(|&(_, &b)| b == b'.')
+            .map(|(i, _)| i);
+        match result {
+            None => return None,
+            Some(i) => i,
         }
-    }
-    None
+    };
+    Some(match name {
+        Cow::Borrowed(name) => Cow::Borrowed(&name[last_dot_at..]),
+        Cow::Owned(mut name) => {
+            name.drain(..last_dot_at);
+            Cow::Owned(name)
+        }
+    })
 }
 
 /// Return raw bytes of a path, transcoded to UTF-8 if necessary.
@@ -144,7 +138,7 @@ mod tests {
             #[test]
             fn $name() {
                 let got = file_name_ext(OsStr::new($file_name));
-                assert_eq!($ext.map(OsStr::new), got);
+                assert_eq!($ext.map(|s| Cow::Borrowed(s.as_bytes())), got);
             }
         };
     }

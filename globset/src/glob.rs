@@ -1,4 +1,3 @@
-use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::hash;
 use std::iter;
@@ -28,7 +27,7 @@ pub enum MatchStrategy {
     BasenameLiteral(String),
     /// A pattern matches if and only if the file path's extension matches this
     /// literal string.
-    Extension(OsString),
+    Extension(String),
     /// A pattern matches if and only if this prefix literal is a prefix of the
     /// candidate file path.
     Prefix(String),
@@ -47,7 +46,7 @@ pub enum MatchStrategy {
     /// extension. Note that this is a necessary but NOT sufficient criterion.
     /// Namely, if the extension matches, then a full regex search is still
     /// required.
-    RequiredExtension(OsString),
+    RequiredExtension(String),
     /// A regex needs to be used for matching.
     Regex,
 }
@@ -154,7 +153,7 @@ impl GlobStrategic {
                 lit.as_bytes() == &*candidate.basename
             }
             MatchStrategy::Extension(ref ext) => {
-                candidate.ext == ext
+                ext.as_bytes() == &*candidate.ext
             }
             MatchStrategy::Prefix(ref pre) => {
                 starts_with(pre.as_bytes(), byte_path)
@@ -166,7 +165,8 @@ impl GlobStrategic {
                 ends_with(suffix.as_bytes(), byte_path)
             }
             MatchStrategy::RequiredExtension(ref ext) => {
-                candidate.ext == ext && self.re.is_match(byte_path)
+                let ext = ext.as_bytes();
+                &*candidate.ext == ext && self.re.is_match(byte_path)
             }
             MatchStrategy::Regex => self.re.is_match(byte_path),
         }
@@ -187,13 +187,26 @@ pub struct GlobBuilder<'a> {
     opts: GlobOptions,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct GlobOptions {
     /// Whether to match case insensitively.
     case_insensitive: bool,
     /// Whether to require a literal separator to match a separator in a file
     /// path. e.g., when enabled, `*` won't match `/`.
     literal_separator: bool,
+    /// Whether or not to use `\` to escape special characters.
+    /// e.g., when enabled, `\*` will match a literal `*`.
+    backslash_escape: bool,
+}
+
+impl GlobOptions {
+    fn default() -> GlobOptions {
+        GlobOptions {
+            case_insensitive: false,
+            literal_separator: false,
+            backslash_escape: !is_separator('\\'),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -295,7 +308,7 @@ impl Glob {
     /// std::path::Path::extension returns. Namely, this extension includes
     /// the '.'. Also, paths like `.rs` are considered to have an extension
     /// of `.rs`.
-    fn ext(&self) -> Option<OsString> {
+    fn ext(&self) -> Option<String> {
         if self.opts.case_insensitive {
             return None;
         }
@@ -319,11 +332,11 @@ impl Glob {
             Some(&Token::Literal('.')) => {}
             _ => return None,
         }
-        let mut lit = OsStr::new(".").to_os_string();
+        let mut lit = ".".to_string();
         for t in self.tokens[start + 2..].iter() {
             match *t {
                 Token::Literal('.') | Token::Literal('/') => return None,
-                Token::Literal(c) => lit.push(c.to_string()),
+                Token::Literal(c) => lit.push(c),
                 _ => return None,
             }
         }
@@ -337,7 +350,7 @@ impl Glob {
     /// This is like `ext`, but returns an extension even if it isn't sufficent
     /// to imply a match. Namely, if an extension is returned, then it is
     /// necessary but not sufficient for a match.
-    fn required_ext(&self) -> Option<OsString> {
+    fn required_ext(&self) -> Option<String> {
         if self.opts.case_insensitive {
             return None;
         }
@@ -360,7 +373,7 @@ impl Glob {
             None
         } else {
             ext.reverse();
-            Some(OsString::from(ext.into_iter().collect::<String>()))
+            Some(ext.into_iter().collect())
         }
     }
 
@@ -549,6 +562,7 @@ impl<'a> GlobBuilder<'a> {
             chars: self.glob.chars().peekable(),
             prev: None,
             cur: None,
+            opts: &self.opts,
         };
         p.parse()?;
         if p.stack.is_empty() {
@@ -583,6 +597,19 @@ impl<'a> GlobBuilder<'a> {
     /// Toggle whether a literal `/` is required to match a path separator.
     pub fn literal_separator(&mut self, yes: bool) -> &mut GlobBuilder<'a> {
         self.opts.literal_separator = yes;
+        self
+    }
+
+    /// When enabled, a back slash (`\`) may be used to escape
+    /// special characters in a glob pattern. Additionally, this will
+    /// prevent `\` from being interpreted as a path separator on all
+    /// platforms.
+    ///
+    /// This is enabled by default on platforms where `\` is not a
+    /// path separator and disabled by default on platforms where `\`
+    /// is a path separator.
+    pub fn backslash_escape(&mut self, yes: bool) -> &mut GlobBuilder<'a> {
+        self.opts.backslash_escape = yes;
         self
     }
 }
@@ -710,6 +737,7 @@ struct Parser<'a> {
     chars: iter::Peekable<str::Chars<'a>>,
     prev: Option<char>,
     cur: Option<char>,
+    opts: &'a GlobOptions,
 }
 
 impl<'a> Parser<'a> {
@@ -726,14 +754,8 @@ impl<'a> Parser<'a> {
                 '{' => self.push_alternate()?,
                 '}' => self.pop_alternate()?,
                 ',' => self.parse_comma()?,
-                c => {
-                    if is_separator(c) {
-                        // Normalize all patterns to use / as a separator.
-                        self.push_token(Token::Literal('/'))?
-                    } else {
-                        self.push_token(Token::Literal(c))?
-                    }
-                }
+                '\\' => self.parse_backslash()?,
+                c => self.push_token(Token::Literal(c))?,
             }
         }
         Ok(())
@@ -783,6 +805,20 @@ impl<'a> Parser<'a> {
             self.push_token(Token::Literal(','))
         } else {
             Ok(self.stack.push(Tokens::default()))
+        }
+    }
+
+    fn parse_backslash(&mut self) -> Result<(), Error> {
+        if self.opts.backslash_escape {
+            match self.bump() {
+                None => Err(self.error(ErrorKind::DanglingEscape)),
+                Some(c) => self.push_token(Token::Literal(c)),
+            }
+        } else if is_separator('\\') {
+            // Normalize all patterns to use / as a separator.
+            self.push_token(Token::Literal('/'))
+        } else {
+            self.push_token(Token::Literal('\\'))
         }
     }
 
@@ -927,16 +963,15 @@ fn ends_with(needle: &[u8], haystack: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::{OsStr, OsString};
-
     use {GlobSetBuilder, ErrorKind};
     use super::{Glob, GlobBuilder, Token};
     use super::Token::*;
 
     #[derive(Clone, Copy, Debug, Default)]
     struct Options {
-        casei: bool,
-        litsep: bool,
+        casei: Option<bool>,
+        litsep: Option<bool>,
+        bsesc: Option<bool>,
     }
 
     macro_rules! syntax {
@@ -966,11 +1001,17 @@ mod tests {
         ($name:ident, $pat:expr, $re:expr, $options:expr) => {
             #[test]
             fn $name() {
-                let pat = GlobBuilder::new($pat)
-                    .case_insensitive($options.casei)
-                    .literal_separator($options.litsep)
-                    .build()
-                    .unwrap();
+                let mut builder = GlobBuilder::new($pat);
+                if let Some(casei) = $options.casei {
+                    builder.case_insensitive(casei);
+                }
+                if let Some(litsep) = $options.litsep {
+                    builder.literal_separator(litsep);
+                }
+                if let Some(bsesc) = $options.bsesc {
+                    builder.backslash_escape(bsesc);
+                }
+                let pat = builder.build().unwrap();
                 assert_eq!(format!("(?-u){}", $re), pat.regex());
             }
         };
@@ -983,11 +1024,17 @@ mod tests {
         ($name:ident, $pat:expr, $path:expr, $options:expr) => {
             #[test]
             fn $name() {
-                let pat = GlobBuilder::new($pat)
-                    .case_insensitive($options.casei)
-                    .literal_separator($options.litsep)
-                    .build()
-                    .unwrap();
+                let mut builder = GlobBuilder::new($pat);
+                if let Some(casei) = $options.casei {
+                    builder.case_insensitive(casei);
+                }
+                if let Some(litsep) = $options.litsep {
+                    builder.literal_separator(litsep);
+                }
+                if let Some(bsesc) = $options.bsesc {
+                    builder.backslash_escape(bsesc);
+                }
+                let pat = builder.build().unwrap();
                 let matcher = pat.compile_matcher();
                 let strategic = pat.compile_strategic_matcher();
                 let set = GlobSetBuilder::new().add(pat).build().unwrap();
@@ -1005,11 +1052,17 @@ mod tests {
         ($name:ident, $pat:expr, $path:expr, $options:expr) => {
             #[test]
             fn $name() {
-                let pat = GlobBuilder::new($pat)
-                    .case_insensitive($options.casei)
-                    .literal_separator($options.litsep)
-                    .build()
-                    .unwrap();
+                let mut builder = GlobBuilder::new($pat);
+                if let Some(casei) = $options.casei {
+                    builder.case_insensitive(casei);
+                }
+                if let Some(litsep) = $options.litsep {
+                    builder.literal_separator(litsep);
+                }
+                if let Some(bsesc) = $options.bsesc {
+                    builder.backslash_escape(bsesc);
+                }
+                let pat = builder.build().unwrap();
                 let matcher = pat.compile_matcher();
                 let strategic = pat.compile_strategic_matcher();
                 let set = GlobSetBuilder::new().add(pat).build().unwrap();
@@ -1021,7 +1074,6 @@ mod tests {
     }
 
     fn s(string: &str) -> String { string.to_string() }
-    fn os(string: &str) -> OsString { OsStr::new(string).to_os_string() }
 
     fn class(s: char, e: char) -> Token {
         Class { negated: false, ranges: vec![(s, e)] }
@@ -1094,12 +1146,24 @@ mod tests {
     syntaxerr!(err_range2, "[z--]", ErrorKind::InvalidRange('z', '-'));
 
     const CASEI: Options = Options {
-        casei: true,
-        litsep: false,
+        casei: Some(true),
+        litsep: None,
+        bsesc: None,
     };
     const SLASHLIT: Options = Options {
-        casei: false,
-        litsep: true,
+        casei: None,
+        litsep: Some(true),
+        bsesc: None,
+    };
+    const NOBSESC: Options = Options {
+        casei: None,
+        litsep: None,
+        bsesc: Some(false),
+    };
+    const BSESC: Options = Options {
+        casei: None,
+        litsep: None,
+        bsesc: Some(true),
     };
 
     toregex!(re_casei, "a", "(?i)^a$", &CASEI);
@@ -1155,6 +1219,7 @@ mod tests {
     matches!(matchrec22, ".*/**", ".abc/abc");
     matches!(matchrec23, "foo/**", "foo");
     matches!(matchrec24, "**/foo/bar", "foo/bar");
+    matches!(matchrec25, "some/*/needle.txt", "some/one/needle.txt");
 
     matches!(matchrange1, "a[0-9]b", "a0b");
     matches!(matchrange2, "a[0-9]b", "a9b");
@@ -1211,6 +1276,17 @@ mod tests {
     #[cfg(not(unix))]
     matches!(matchslash5, "abc\\def", "abc/def", SLASHLIT);
 
+    matches!(matchbackslash1, "\\[", "[", BSESC);
+    matches!(matchbackslash2, "\\?", "?", BSESC);
+    matches!(matchbackslash3, "\\*", "*", BSESC);
+    matches!(matchbackslash4, "\\[a-z]", "\\a", NOBSESC);
+    matches!(matchbackslash5, "\\?", "\\a", NOBSESC);
+    matches!(matchbackslash6, "\\*", "\\\\", NOBSESC);
+    #[cfg(unix)]
+    matches!(matchbackslash7, "\\a", "a");
+    #[cfg(not(unix))]
+    matches!(matchbackslash8, "\\a", "/a");
+
     nmatches!(matchnot1, "a*b*c", "abcd");
     nmatches!(matchnot2, "abc*abc*abc", "abcabcabcabcabcabcabca");
     nmatches!(matchnot3, "some/**/needle.txt", "some/other/notthis.txt");
@@ -1243,18 +1319,32 @@ mod tests {
     nmatches!(matchnot27, "a[^0-9]b", "a0b");
     nmatches!(matchnot28, "a[^0-9]b", "a9b");
     nmatches!(matchnot29, "[^-]", "-");
+    nmatches!(matchnot30, "some/*/needle.txt", "some/needle.txt");
+    nmatches!(
+        matchrec31,
+        "some/*/needle.txt", "some/one/two/needle.txt", SLASHLIT);
+    nmatches!(
+        matchrec32,
+        "some/*/needle.txt", "some/one/two/three/needle.txt", SLASHLIT);
 
     macro_rules! extract {
         ($which:ident, $name:ident, $pat:expr, $expect:expr) => {
             extract!($which, $name, $pat, $expect, Options::default());
         };
-        ($which:ident, $name:ident, $pat:expr, $expect:expr, $opts:expr) => {
+        ($which:ident, $name:ident, $pat:expr, $expect:expr, $options:expr) => {
             #[test]
             fn $name() {
-                let pat = GlobBuilder::new($pat)
-                    .case_insensitive($opts.casei)
-                    .literal_separator($opts.litsep)
-                    .build().unwrap();
+                let mut builder = GlobBuilder::new($pat);
+                if let Some(casei) = $options.casei {
+                    builder.case_insensitive(casei);
+                }
+                if let Some(litsep) = $options.litsep {
+                    builder.literal_separator(litsep);
+                }
+                if let Some(bsesc) = $options.bsesc {
+                    builder.backslash_escape(bsesc);
+                }
+                let pat = builder.build().unwrap();
                 assert_eq!($expect, pat.$which());
             }
         };
@@ -1311,19 +1401,19 @@ mod tests {
         Literal('f'), Literal('o'), ZeroOrMore, Literal('o'),
     ]), SLASHLIT);
 
-    ext!(extract_ext1, "**/*.rs", Some(os(".rs")));
+    ext!(extract_ext1, "**/*.rs", Some(s(".rs")));
     ext!(extract_ext2, "**/*.rs.bak", None);
-    ext!(extract_ext3, "*.rs", Some(os(".rs")));
+    ext!(extract_ext3, "*.rs", Some(s(".rs")));
     ext!(extract_ext4, "a*.rs", None);
     ext!(extract_ext5, "/*.c", None);
     ext!(extract_ext6, "*.c", None, SLASHLIT);
-    ext!(extract_ext7, "*.c", Some(os(".c")));
+    ext!(extract_ext7, "*.c", Some(s(".c")));
 
-    required_ext!(extract_req_ext1, "*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext2, "/foo/bar/*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext3, "/foo/bar/*.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext4, "/foo/bar/.rs", Some(os(".rs")));
-    required_ext!(extract_req_ext5, ".rs", Some(os(".rs")));
+    required_ext!(extract_req_ext1, "*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext2, "/foo/bar/*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext3, "/foo/bar/*.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext4, "/foo/bar/.rs", Some(s(".rs")));
+    required_ext!(extract_req_ext5, ".rs", Some(s(".rs")));
     required_ext!(extract_req_ext6, "./rs", None);
     required_ext!(extract_req_ext7, "foo", None);
     required_ext!(extract_req_ext8, ".foo/", None);

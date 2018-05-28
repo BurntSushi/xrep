@@ -25,8 +25,10 @@ _rg() {
     '*--colors=[specify color settings and styles]: :->colorspec'
     '--column[show column numbers]'
     '(-A -B -C --after-context --before-context --context)'{-C+,--context=}'[specify lines to show before and after each match]:number of lines'
+    '(-b --byte-offset)'{-b,--byte-offset}'[print the 0-based byte offset for each matching line]'
     '--context-separator=[specify string used to separate non-continuous context lines in output]:separator'
-    '(-c --count --passthrough --passthru)'{-c,--count}'[only show count of matches for each file]'
+    '(-c --count --count-matches --passthrough --passthru)'{-c,--count}'[only show count of matching lines for each file]'
+    '(--count-matches -c --count --passthrough --passthru)--count-matches[only show count of individual matches for each file]'
     '--debug[show debug messages]'
     '--dfa-size-limit=[specify upper size limit of generated DFA]:DFA size'
     '(-E --encoding)'{-E+,--encoding=}'[specify text encoding of files to search]: :_rg_encodings'
@@ -45,7 +47,6 @@ _rg() {
     '--ignore-file=[specify additional ignore file]:file:_files'
     '(-v --invert-match)'{-v,--invert-match}'[invert matching]'
     '(-n -N --line-number --no-line-number)'{-n,--line-number}'[show line numbers]'
-    '(-N --no-line-number)--line-number-width=[specify width of displayed line number]:number of columns'
     '(-w -x --line-regexp --word-regexp)'{-x,--line-regexp}'[only show matches surrounded by line boundaries]'
     '(-M --max-columns)'{-M+,--max-columns=}'[specify max length of lines to print]:number of bytes'
     '(-m --max-count)'{-m+,--max-count=}'[specify max number of matches per file]:number of matches'
@@ -55,11 +56,12 @@ _rg() {
     '(-H --with-filename --no-filename)--no-filename[suppress all file names]'
     "(-p --heading --pretty --vimgrep)--no-heading[don't group matches by file name]"
     "--no-config[don't load configuration files]"
+    '--no-ignore-messages[suppress gitignore parse error messages]'
     "(--no-ignore-parent)--no-ignore[don't respect ignore files]"
     "--no-ignore-parent[don't respect ignore files in parent directories]"
     "--no-ignore-vcs[don't respect version control ignore files]"
     '(-n -N --line-number --no-line-number)'{-N,--no-line-number}'[suppress line numbers]'
-    '--no-messages[suppress all error messages]'
+    '--no-messages[suppress some error messages]'
     "(--mmap --no-mmap)--no-mmap[don't search using memory maps]"
     '(-0 --null)'{-0,--null}'[print NUL byte after file names]'
     '(-o -r --only-matching --passthrough --passthru --replace)'{-o,--only-matching}'[show only matching part of each line]'
@@ -89,6 +91,7 @@ _rg() {
     '(-e -f --file --files --regexp --type-list)1: :_rg_pattern'
     '(--type-list)*:file:_files'
     '(-z --search-zip)'{-z,--search-zip}'[search in compressed files]'
+    "(--stats)--stats[print stats about this search]"
   )
 
   [[ ${_RG_COMPLETE_LIST_ARGS:-} == (1|t*|y*) ]] && {
@@ -125,7 +128,7 @@ _rg() {
 
         [[ "${state}" == 'style' ]] &&
         _values -S ':' 'style value' \
-          bold nobold intense nointense && return 0
+          bold nobold intense nointense underline nounderline && return 0
         ;;
 
       typespec)

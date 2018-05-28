@@ -66,6 +66,12 @@ impl Glob {
     pub fn is_only_dir(&self) -> bool {
         self.is_only_dir
     }
+
+    /// Returns true if and only if this glob has a `**/` prefix.
+    fn has_doublestar_prefix(&self) -> bool {
+        self.actual.starts_with("**/")
+        || (self.actual == "**" && self.is_only_dir)
+    }
 }
 
 /// Gitignore is a matcher for the globs in one or more gitignore files
@@ -77,7 +83,7 @@ pub struct Gitignore {
     globs: Vec<Glob>,
     num_ignores: u64,
     num_whitelists: u64,
-    matches: Arc<ThreadLocal<RefCell<Vec<usize>>>>,
+    matches: Option<Arc<ThreadLocal<RefCell<Vec<usize>>>>>,
 }
 
 impl Gitignore {
@@ -137,7 +143,14 @@ impl Gitignore {
     ///
     /// Its path is empty.
     pub fn empty() -> Gitignore {
-        GitignoreBuilder::new("").build().unwrap()
+        Gitignore {
+            set: GlobSet::empty(),
+            root: PathBuf::from(""),
+            globs: vec![],
+            num_ignores: 0,
+            num_whitelists: 0,
+            matches: None,
+        }
     }
 
     /// Returns the directory containing this gitignore matcher.
@@ -243,7 +256,7 @@ impl Gitignore {
             return Match::None;
         }
         let path = path.as_ref();
-        let _matches = self.matches.get_default();
+        let _matches = self.matches.as_ref().unwrap().get_default();
         let mut matches = _matches.borrow_mut();
         let candidate = Candidate::new(path);
         self.set.matches_candidate_into(&candidate, &mut *matches);
@@ -278,7 +291,10 @@ impl Gitignore {
         // BUT, a file name might not have any directory components to it,
         // in which case, we don't want to accidentally strip any part of the
         // file name.
-        if !is_file_name(path) {
+        //
+        // As an additional special case, if the root is just `.`, then we
+        // shouldn't try to strip anything, e.g., when path begins with a `.`.
+        if self.root != Path::new(".") && !is_file_name(path) {
             if let Some(p) = strip_prefix(&self.root, path) {
                 path = p;
                 // If we're left with a leading slash, get rid of it.
@@ -292,6 +308,7 @@ impl Gitignore {
 }
 
 /// Builds a matcher for a single set of globs from a .gitignore file.
+#[derive(Clone, Debug)]
 pub struct GitignoreBuilder {
     builder: GlobSetBuilder,
     root: PathBuf,
@@ -335,7 +352,7 @@ impl GitignoreBuilder {
             globs: self.globs.clone(),
             num_ignores: nignore as u64,
             num_whitelists: nwhite as u64,
-            matches: Arc::new(ThreadLocal::default()),
+            matches: Some(Arc::new(ThreadLocal::default())),
         })
     }
 
@@ -454,7 +471,7 @@ impl GitignoreBuilder {
         // prefix.
         if !literal_separator {
             // ... but only if we don't already have a **/ prefix.
-            if !(glob.actual.starts_with("**/") || (glob.actual == "**" && glob.is_only_dir)) {
+            if !glob.has_doublestar_prefix() {
                 glob.actual = format!("**/{}", glob.actual);
             }
         }
@@ -468,6 +485,7 @@ impl GitignoreBuilder {
             GlobBuilder::new(&glob.actual)
                 .literal_separator(literal_separator)
                 .case_insensitive(self.case_insensitive)
+                .backslash_escape(true)
                 .build()
                 .map_err(|err| {
                     Error::Glob {
@@ -481,6 +499,8 @@ impl GitignoreBuilder {
     }
 
     /// Toggle whether the globs should be matched case insensitively or not.
+    ///
+    /// When this option is changed, only globs added after the change will be affected.
     ///
     /// This is disabled by default.
     pub fn case_insensitive(
@@ -620,6 +640,16 @@ mod tests {
     ignored!(ig29, ROOT, "node_modules/ ", "node_modules", true);
     ignored!(ig30, ROOT, "**/", "foo/bar", true);
     ignored!(ig31, ROOT, "path1/*", "path1/foo");
+    ignored!(ig32, ROOT, ".a/b", ".a/b");
+    ignored!(ig33, "./", ".a/b", ".a/b");
+    ignored!(ig34, ".", ".a/b", ".a/b");
+    ignored!(ig35, "./.", ".a/b", ".a/b");
+    ignored!(ig36, "././", ".a/b", ".a/b");
+    ignored!(ig37, "././.", ".a/b", ".a/b");
+    ignored!(ig38, ROOT, "\\[", "[");
+    ignored!(ig39, ROOT, "\\?", "?");
+    ignored!(ig40, ROOT, "\\*", "*");
+    ignored!(ig41, ROOT, "\\a", "a");
 
     not_ignored!(ignot1, ROOT, "amonths", "months");
     not_ignored!(ignot2, ROOT, "monthsa", "months");

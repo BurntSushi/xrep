@@ -99,10 +99,6 @@ pub struct Printer<W> {
     path_separator: Option<u8>,
     /// Restrict lines to this many columns.
     max_columns: Option<usize>,
-    /// Width of line number displayed. If the number of digits in the
-    /// line number is less than this, it is left padded with
-    /// spaces.
-    line_number_width: Option<usize>
 }
 
 impl<W: WriteColor> Printer<W> {
@@ -124,7 +120,6 @@ impl<W: WriteColor> Printer<W> {
             colors: ColorSpecs::default(),
             path_separator: None,
             max_columns: None,
-            line_number_width: None
         }
     }
 
@@ -213,12 +208,6 @@ impl<W: WriteColor> Printer<W> {
         self
     }
 
-    /// Configure the width of the displayed line number
-    pub fn line_number_width(mut self, line_number_width: Option<usize>) -> Printer<W> {
-        self.line_number_width = line_number_width;
-        self
-    }
-
     /// Returns true if and only if something has been printed.
     pub fn has_printed(&self) -> bool {
         self.has_printed
@@ -280,6 +269,7 @@ impl<W: WriteColor> Printer<W> {
         start: usize,
         end: usize,
         line_number: Option<u64>,
+        byte_offset: Option<u64>
     ) {
         if !self.line_per_match && !self.only_matching {
             let mat = re
@@ -287,12 +277,13 @@ impl<W: WriteColor> Printer<W> {
                 .map(|m| (m.start(), m.end()))
                 .unwrap_or((0, 0));
             return self.write_match(
-                re, path, buf, start, end, line_number, mat.0, mat.1);
+                re, path, buf, start, end, line_number,
+                byte_offset, mat.0, mat.1);
         }
         for m in re.find_iter(&buf[start..end]) {
             self.write_match(
-                re, path.as_ref(), buf, start, end,
-                line_number, m.start(), m.end());
+                re, path.as_ref(), buf, start, end, line_number,
+                byte_offset, m.start(), m.end());
         }
     }
 
@@ -304,6 +295,7 @@ impl<W: WriteColor> Printer<W> {
         start: usize,
         end: usize,
         line_number: Option<u64>,
+        byte_offset: Option<u64>,
         match_start: usize,
         match_end: usize,
     ) {
@@ -320,6 +312,14 @@ impl<W: WriteColor> Printer<W> {
         }
         if self.column {
             self.column_number(match_start as u64 + 1, b':');
+        }
+        if let Some(byte_offset) = byte_offset {
+            if self.only_matching {
+                self.write_byte_offset(
+                    byte_offset + ((start + match_start) as u64), b':');
+            } else {
+                self.write_byte_offset(byte_offset + (start as u64), b':');
+            }
         }
         if self.replace.is_some() {
             let mut count = 0;
@@ -395,6 +395,7 @@ impl<W: WriteColor> Printer<W> {
         start: usize,
         end: usize,
         line_number: Option<u64>,
+        byte_offset: Option<u64>,
     ) {
         if self.heading && self.with_filename && !self.has_printed {
             self.write_file_sep();
@@ -406,6 +407,9 @@ impl<W: WriteColor> Printer<W> {
         }
         if let Some(line_number) = line_number {
             self.line_number(line_number, b'-');
+        }
+        if let Some(byte_offset) = byte_offset {
+            self.write_byte_offset(byte_offset + (start as u64), b'-');
         }
         if self.max_columns.map_or(false, |m| end - start > m) {
             self.write(b"[Omitted long context line]");
@@ -468,16 +472,18 @@ impl<W: WriteColor> Printer<W> {
     }
 
     fn line_number(&mut self, n: u64, sep: u8) {
-        let mut line_number = n.to_string();
-        if let Some(width) = self.line_number_width {
-            line_number = format!("{:>width$}", line_number, width = width);
-        }
+        let line_number = n.to_string();
         self.write_colored(line_number.as_bytes(), |colors| colors.line());
         self.separator(&[sep]);
     }
 
     fn column_number(&mut self, n: u64, sep: u8) {
         self.write_colored(n.to_string().as_bytes(), |colors| colors.column());
+        self.separator(&[sep]);
+    }
+
+    fn write_byte_offset(&mut self, o: u64, sep: u8) {
+        self.write_colored(o.to_string().as_bytes(), |colors| colors.column());
         self.separator(&[sep]);
     }
 
@@ -555,7 +561,8 @@ impl fmt::Display for Error {
             }
             Error::UnrecognizedStyle(ref name) => {
                 write!(f, "Unrecognized style attribute '{}'. Choose from: \
-                           nobold, bold, nointense, intense.", name)
+                           nobold, bold, nointense, intense, nounderline, \
+                           underline.", name)
             }
             Error::InvalidFormat(ref original) => {
                 write!(
@@ -627,7 +634,8 @@ pub struct ColorSpecs {
 /// Valid colors are `black`, `blue`, `green`, `red`, `cyan`, `magenta`,
 /// `yellow`, `white`.
 ///
-/// Valid style instructions are `nobold`, `bold`, `intense`, `nointense`.
+/// Valid style instructions are `nobold`, `bold`, `intense`, `nointense`,
+/// `underline`, `nounderline`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Spec {
     ty: OutType,
@@ -668,6 +676,8 @@ enum Style {
     NoBold,
     Intense,
     NoIntense,
+    Underline,
+    NoUnderline
 }
 
 impl ColorSpecs {
@@ -727,6 +737,8 @@ impl SpecValue {
                     Style::NoBold => { cspec.set_bold(false); }
                     Style::Intense => { cspec.set_intense(true); }
                     Style::NoIntense => { cspec.set_intense(false); }
+                    Style::Underline => { cspec.set_underline(true); }
+                    Style::NoUnderline => { cspec.set_underline(false); }
                 }
             }
         }
@@ -806,6 +818,8 @@ impl FromStr for Style {
             "nobold" => Ok(Style::NoBold),
             "intense" => Ok(Style::Intense),
             "nointense" => Ok(Style::NoIntense),
+            "underline" => Ok(Style::Underline),
+            "nounderline" => Ok(Style::NoUnderline),
             _ => Err(Error::UnrecognizedStyle(s.to_string())),
         }
     }
@@ -857,6 +871,12 @@ mod tests {
         assert_eq!(spec, Spec {
             ty: OutType::Match,
             value: SpecValue::Style(Style::Intense),
+        });
+
+        let spec: Spec = "match:style:underline".parse().unwrap();
+        assert_eq!(spec, Spec {
+            ty: OutType::Match,
+            value: SpecValue::Style(Style::Underline),
         });
 
         let spec: Spec = "line:none".parse().unwrap();

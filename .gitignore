@@ -6,6 +6,7 @@ target
 /ignore/Cargo.lock
 /termcolor/Cargo.lock
 /wincolor/Cargo.lock
+/deployment
 
 # Snapcraft files
 stage

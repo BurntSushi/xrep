@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ignore = "0.3"
+ignore = "0.4"
 ```
 
 and this to your crate root:

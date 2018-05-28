@@ -2,6 +2,7 @@ use std::io;
 use std::mem;
 
 use winapi::shared::minwindef::{DWORD, WORD};
+use winapi::um::consoleapi;
 use winapi::um::processenv;
 use winapi::um::winbase::{STD_ERROR_HANDLE, STD_OUTPUT_HANDLE};
 use winapi::um::wincon::{
@@ -114,6 +115,41 @@ impl Console {
     pub fn reset(&mut self) -> io::Result<()> {
         self.cur_attr = self.start_attr;
         self.set()
+    }
+
+    /// Toggle virtual terminal processing.
+    ///
+    /// This method attempts to toggle virtual terminal processing for this
+    /// console. If there was a problem toggling it, then an error returned.
+    /// On success, the caller may assume that toggling it was successful.
+    ///
+    /// When virtual terminal processing is enabled, characters emitted to the
+    /// console are parsed for VT100 and similar control character sequences
+    /// that control color and other similar operations.
+    pub fn set_virtual_terminal_processing(
+        &mut self,
+        yes: bool,
+    ) -> io::Result<()> {
+        let vt = wincon::ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        let mut old_mode = 0;
+        let handle = unsafe { processenv::GetStdHandle(self.handle_id) };
+        if unsafe { consoleapi::GetConsoleMode(handle, &mut old_mode) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let new_mode =
+            if yes {
+                old_mode | vt
+            } else {
+                old_mode & !vt
+            };
+        if old_mode == new_mode {
+            return Ok(());
+        }
+        if unsafe { consoleapi::SetConsoleMode(handle, new_mode) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
     }
 }
 

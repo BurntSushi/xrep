@@ -73,13 +73,6 @@ struct IgnoreOptions {
     git_exclude: bool,
 }
 
-impl IgnoreOptions {
-    /// Returns true if at least one type of ignore rules should be matched.
-    fn has_any_ignore_options(&self) -> bool {
-        self.ignore || self.git_global || self.git_ignore || self.git_exclude
-    }
-}
-
 /// Ignore is a matcher useful for recursively walking one or more directories.
 #[derive(Clone, Debug)]
 pub struct Ignore(Arc<IgnoreInner>);
@@ -216,7 +209,9 @@ impl Ignore {
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
         let mut errs = PartialErrorBuilder::default();
         let custom_ig_matcher =
-            {
+            if self.0.custom_ignore_filenames.is_empty() {
+                Gitignore::empty()
+            } else {
                 let (m, err) =
                     create_gitignore(&dir, &self.0.custom_ignore_filenames);
                 errs.maybe_push(err);
@@ -261,10 +256,19 @@ impl Ignore {
             git_global_matcher: self.0.git_global_matcher.clone(),
             git_ignore_matcher: gi_matcher,
             git_exclude_matcher: gi_exclude_matcher,
-            has_git: dir.join(".git").is_dir(),
+            has_git: dir.join(".git").exists(),
             opts: self.0.opts,
         };
         (ig, errs.into_error_option())
+    }
+
+    /// Returns true if at least one type of ignore rule should be matched.
+    fn has_any_ignore_rules(&self) -> bool {
+        let opts = self.0.opts;
+        let has_custom_ignore_files = !self.0.custom_ignore_filenames.is_empty();
+
+        opts.ignore || opts.git_global || opts.git_ignore
+                    || opts.git_exclude || has_custom_ignore_files
     }
 
     /// Returns a match indicating whether the given file path should be
@@ -295,7 +299,7 @@ impl Ignore {
             }
         }
         let mut whitelisted = Match::None;
-        if self.0.opts.has_any_ignore_options() {
+        if self.has_any_ignore_rules() {
             let mat = self.matched_ignore(path, is_dir);
             if mat.is_ignore() {
                 return mat;

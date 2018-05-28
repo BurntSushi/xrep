@@ -1,4 +1,4 @@
-use syntax::Expr;
+use syntax::hir::{self, Hir, HirKind};
 
 use {Error, Result};
 
@@ -9,59 +9,66 @@ use {Error, Result};
 ///
 /// If `byte` is not an ASCII character (i.e., greater than `0x7F`), then this
 /// function panics.
-pub fn remove(expr: Expr, byte: u8) -> Result<Expr> {
-    // TODO(burntsushi): There is a bug in this routine where only `\n` is
-    // handled correctly. Namely, `AnyChar` and `AnyByte` need to be translated
-    // to proper character classes instead of the special `AnyCharNoNL` and
-    // `AnyByteNoNL` classes.
-    use syntax::Expr::*;
+pub fn remove(expr: Hir, byte: u8) -> Result<Hir> {
     assert!(byte <= 0x7F);
     let chr = byte as char;
     assert!(chr.len_utf8() == 1);
 
-    Ok(match expr {
-        Literal { chars, casei } => {
-            if chars.iter().position(|&c| c == chr).is_some() {
+    Ok(match expr.into_kind() {
+        HirKind::Empty => Hir::empty(),
+        HirKind::Literal(hir::Literal::Unicode(c)) => {
+            if c == chr {
                 return Err(Error::LiteralNotAllowed(chr));
             }
-            Literal { chars: chars, casei: casei }
+            Hir::literal(hir::Literal::Unicode(c))
         }
-        LiteralBytes { bytes, casei } => {
-            if bytes.iter().position(|&b| b == byte).is_some() {
+        HirKind::Literal(hir::Literal::Byte(b)) => {
+            if b as char == chr {
                 return Err(Error::LiteralNotAllowed(chr));
             }
-            LiteralBytes { bytes: bytes, casei: casei }
+            Hir::literal(hir::Literal::Byte(b))
         }
-        AnyChar => AnyCharNoNL,
-        AnyByte => AnyByteNoNL,
-        Class(mut cls) => {
-            cls.remove(chr);
-            Class(cls)
-        }
-        ClassBytes(mut cls) => {
-            cls.remove(byte);
-            ClassBytes(cls)
-        }
-        Group { e, i, name } => {
-            Group {
-                e: Box::new(remove(*e, byte)?),
-                i: i,
-                name: name,
+        HirKind::Class(hir::Class::Unicode(mut cls)) => {
+            let remove = hir::ClassUnicode::new(Some(
+                hir::ClassUnicodeRange::new(chr, chr),
+            ));
+            cls.difference(&remove);
+            if cls.iter().next().is_none() {
+                return Err(Error::LiteralNotAllowed(chr));
             }
+            Hir::class(hir::Class::Unicode(cls))
         }
-        Repeat { e, r, greedy } => {
-            Repeat {
-                e: Box::new(remove(*e, byte)?),
-                r: r,
-                greedy: greedy,
+        HirKind::Class(hir::Class::Bytes(mut cls)) => {
+            let remove = hir::ClassBytes::new(Some(
+                hir::ClassBytesRange::new(byte, byte),
+            ));
+            cls.difference(&remove);
+            if cls.iter().next().is_none() {
+                return Err(Error::LiteralNotAllowed(chr));
             }
+            Hir::class(hir::Class::Bytes(cls))
         }
-        Concat(exprs) => {
-            Concat(exprs.into_iter().map(|e| remove(e, byte)).collect::<Result<Vec<Expr>>>()?)
+        HirKind::Anchor(x) => Hir::anchor(x),
+        HirKind::WordBoundary(x) => Hir::word_boundary(x),
+        HirKind::Repetition(mut x) => {
+            x.hir = Box::new(remove(*x.hir, byte)?);
+            Hir::repetition(x)
         }
-        Alternate(exprs) => {
-            Alternate(exprs.into_iter().map(|e| remove(e, byte)).collect::<Result<Vec<Expr>>>()?)
+        HirKind::Group(mut x) => {
+            x.hir = Box::new(remove(*x.hir, byte)?);
+            Hir::group(x)
         }
-        e => e,
+        HirKind::Concat(xs) => {
+            let xs = xs.into_iter()
+                .map(|e| remove(e, byte))
+                .collect::<Result<Vec<Hir>>>()?;
+            Hir::concat(xs)
+        }
+        HirKind::Alternation(xs) => {
+            let xs = xs.into_iter()
+                .map(|e| remove(e, byte))
+                .collect::<Result<Vec<Hir>>>()?;
+            Hir::alternation(xs)
+        }
     })
 }

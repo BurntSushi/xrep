@@ -1,5 +1,19 @@
-mktempd() {
-    echo $(mktemp -d 2>/dev/null || mktemp -d -t tmp)
+#!/bin/bash
+
+# Various utility functions used through CI.
+
+# Finds Cargo's `OUT_DIR` directory from the most recent build.
+#
+# This requires one parameter corresponding to the target directory
+# to search for the build output.
+cargo_out_dir() {
+    # This works by finding the most recent stamp file, which is produced by
+    # every ripgrep build.
+    target_dir="$1"
+    find "$target_dir" -name ripgrep-stamp -print0 \
+      | xargs -0 ls -t \
+      | head -n1 \
+      | xargs dirname
 }
 
 host() {
@@ -13,33 +27,8 @@ host() {
     esac
 }
 
-gcc_prefix() {
-    case "$TARGET" in
-        aarch64-unknown-linux-gnu)
-            echo aarch64-linux-gnu-
-            ;;
-        arm*-gnueabihf)
-            echo arm-linux-gnueabihf-
-            ;;
-        *)
-            return
-            ;;
-    esac
-}
-
-dobin() {
-    [ -z $MAKE_DEB ] && die 'dobin: $MAKE_DEB not set'
-    [ $# -lt 1 ] && die "dobin: at least one argument needed"
-
-    local f prefix=$(gcc_prefix)
-    for f in "$@"; do
-        install -m0755 $f $dtd/debian/usr/bin/
-        ${prefix}strip -s $dtd/debian/usr/bin/$(basename $f)
-    done
-}
-
 architecture() {
-    case ${TARGET:?} in
+    case "$TARGET" in
         x86_64-*)
             echo amd64
             ;;
@@ -55,10 +44,48 @@ architecture() {
     esac
 }
 
-is_ssse3_target() {
-    case "${TARGET}" in
-        i686-unknown-netbsd) return 1 ;; # i686-unknown-netbsd - SSE2
-        i686*|x86_64*)       return 0 ;;
+gcc_prefix() {
+    case "$(architecture)" in
+        armhf)
+            echo arm-linux-gnueabihf-
+            ;;
+        *)
+            return
+            ;;
     esac
-    return 1
+}
+
+is_ssse3_target() {
+    case "$(architecture)" in
+        amd64) return 0 ;;
+        *)     return 1 ;;
+    esac
+}
+
+is_x86() {
+    case "$(architecture)" in
+      amd64|i386) return 0 ;;
+      *)          return 1 ;;
+    esac
+}
+
+is_arm() {
+    case "$(architecture)" in
+        armhf) return 0 ;;
+        *)     return 1 ;;
+    esac
+}
+
+is_linux() {
+    case "$TRAVIS_OS_NAME" in
+        linux) return 0 ;;
+        *)     return 1 ;;
+    esac
+}
+
+is_osx() {
+    case "$TRAVIS_OS_NAME" in
+        osx) return 0 ;;
+        *)   return 1 ;;
+    esac
 }

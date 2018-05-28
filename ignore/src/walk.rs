@@ -24,7 +24,7 @@ use {Error, PartialErrorBuilder};
 ///
 /// The error typically refers to a problem parsing ignore files in a
 /// particular directory.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DirEntry {
     dent: DirEntryInner,
     err: Option<Error>,
@@ -126,7 +126,7 @@ impl DirEntry {
 ///
 /// Specifically, (3) has to essentially re-create the DirEntry implementation
 /// from WalkDir.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum DirEntryInner {
     Stdin,
     Walkdir(walkdir::DirEntry),
@@ -235,6 +235,7 @@ impl DirEntryInner {
 
 /// DirEntryRaw is essentially copied from the walkdir crate so that we can
 /// build `DirEntry`s from whole cloth in the parallel iterator.
+#[derive(Clone)]
 struct DirEntryRaw {
     /// The path as reported by the `fs::ReadDir` iterator (even if it's a
     /// symbolic link).
@@ -249,6 +250,14 @@ struct DirEntryRaw {
     /// The underlying inode number (Unix only).
     #[cfg(unix)]
     ino: u64,
+    /// The underlying metadata (Windows only). We store this on Windows
+    /// because this comes for free while reading a directory.
+    ///
+    /// We use this to determine whether an entry is a directory or not, which
+    /// works around a bug in Rust's standard library:
+    /// https://github.com/rust-lang/rust/issues/46484
+    #[cfg(windows)]
+    metadata: fs::Metadata,
 }
 
 impl fmt::Debug for DirEntryRaw {
@@ -274,6 +283,20 @@ impl DirEntryRaw {
     }
 
     fn metadata(&self) -> Result<Metadata, Error> {
+        self.metadata_internal()
+    }
+
+    #[cfg(windows)]
+    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
+        if self.follow_link {
+            fs::metadata(&self.path)
+        } else {
+            Ok(self.metadata.clone())
+        }.map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
+    }
+
+    #[cfg(not(windows))]
+    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
         if self.follow_link {
             fs::metadata(&self.path)
         } else {
@@ -309,21 +332,29 @@ impl DirEntryRaw {
                 err: Box::new(err),
             }
         })?;
-        Ok(DirEntryRaw::from_entry_os(depth, ent, ty))
+        DirEntryRaw::from_entry_os(depth, ent, ty)
     }
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     fn from_entry_os(
         depth: usize,
         ent: &fs::DirEntry,
         ty: fs::FileType,
-    ) -> DirEntryRaw {
-        DirEntryRaw {
+    ) -> Result<DirEntryRaw, Error> {
+        let md = ent.metadata().map_err(|err| {
+            let err = Error::Io(io::Error::from(err)).with_path(ent.path());
+            Error::WithDepth {
+                depth: depth,
+                err: Box::new(err),
+            }
+        })?;
+        Ok(DirEntryRaw {
             path: ent.path(),
             ty: ty,
             follow_link: false,
             depth: depth,
-        }
+            metadata: md,
+        })
     }
 
     #[cfg(unix)]
@@ -331,16 +362,16 @@ impl DirEntryRaw {
         depth: usize,
         ent: &fs::DirEntry,
         ty: fs::FileType,
-    ) -> DirEntryRaw {
+    ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::DirEntryExt;
 
-        DirEntryRaw {
+        Ok(DirEntryRaw {
             path: ent.path(),
             ty: ty,
             follow_link: false,
             depth: depth,
             ino: ent.ino(),
-        }
+        })
     }
 
     #[cfg(not(unix))]
@@ -353,6 +384,7 @@ impl DirEntryRaw {
             ty: md.file_type(),
             follow_link: true,
             depth: depth,
+            metadata: md,
         })
     }
 
@@ -1026,6 +1058,11 @@ impl Work {
         self.dent.is_dir()
     }
 
+    /// Returns true if and only if this work item is a symlink.
+    fn is_symlink(&self) -> bool {
+        self.dent.file_type().map_or(false, |ft| ft.is_symlink())
+    }
+
     /// Adds ignore rules for parent directories.
     ///
     /// Note that this only applies to entries at depth 0. On all other
@@ -1112,7 +1149,7 @@ impl Worker {
         while let Some(mut work) = self.get_work() {
             // If the work is not a directory, then we can just execute the
             // caller's callback immediately and move on.
-            if !work.is_dir() {
+            if work.is_symlink() || !work.is_dir() {
                 if (self.f)(Ok(work.dent)).is_quit() {
                     self.quit_now();
                     return;
@@ -1581,6 +1618,26 @@ mod tests {
         wfile(td.path().join("a/bar"), "");
 
         let mut builder = WalkBuilder::new(td.path());
+        builder.add_custom_ignore_filename(&custom_ignore);
+        assert_paths(td.path(), &builder, &["bar", "a", "a/bar"]);
+    }
+
+    #[test]
+    fn custom_ignore_exclusive_use() {
+        let td = TempDir::new("walk-test-").unwrap();
+        let custom_ignore = ".customignore";
+        mkdirp(td.path().join("a"));
+        wfile(td.path().join(custom_ignore), "foo");
+        wfile(td.path().join("foo"), "");
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("bar"), "");
+        wfile(td.path().join("a/bar"), "");
+
+        let mut builder = WalkBuilder::new(td.path());
+        builder.ignore(false);
+        builder.git_ignore(false);
+        builder.git_global(false);
+        builder.git_exclude(false);
         builder.add_custom_ignore_filename(&custom_ignore);
         assert_paths(td.path(), &builder, &["bar", "a", "a/bar"]);
     }

@@ -1,30 +1,46 @@
-# `script` phase: you usually build, test and generate docs in this phase
+#!/bin/bash
+
+# build, test and generate docs in this phase
 
 set -ex
 
-. $(dirname $0)/utils.sh
-
-# NOTE Workaround for rust-lang/rust#31907 - disable doc tests when cross compiling
-# This has been fixed in the nightly channel but it would take a while to reach the other channels
-disable_cross_doctests() {
-    if [ $(host) != "$TARGET" ] && [ "$TRAVIS_RUST_VERSION" = "stable" ]; then
-        if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-            brew install gnu-sed --default-names
-        fi
-        find src -name '*.rs' -type f | xargs sed -i -e 's:\(//.\s*```\):\1 ignore,:g'
-    fi
-}
+. "$(dirname $0)/utils.sh"
 
 main() {
-    # disable_cross_doctests
-    cargo build --target "${TARGET}" --verbose --all
-    if [ "$(architecture)" = "amd64" ] || [ "$(architecture)" = "i386" ]; then
-        cargo test --target "${TARGET}" --verbose --all
-        "$( dirname "${0}" )/test_complete.sh"
+    # Test a normal debug build.
+    cargo build --target "$TARGET" --verbose --all
+
+    # Show the output of the most recent build.rs stderr.
+    set +x
+    stderr="$(find "target/$TARGET/debug" -name stderr -print0 | xargs -0 ls -t | head -n1)"
+    if [ -s "$stderr" ]; then
+      echo "===== $stderr ====="
+      cat "$stderr"
+      echo "====="
     fi
+    set -x
 
     # sanity check the file type
-    file target/$TARGET/debug/rg
+    file target/"$TARGET"/debug/rg
+
+    # Check that we've generated man page and other shell completions.
+    outdir="$(cargo_out_dir "target/$TARGET/debug")"
+    file "$outdir/rg.bash"
+    file "$outdir/rg.fish"
+    file "$outdir/_rg.ps1"
+    file "$outdir/rg.1"
+
+    # Apparently tests don't work on arm, so just bail now. I guess we provide
+    # ARM releases on a best effort basis?
+    if is_arm; then
+      return 0
+    fi
+
+    # Test that zsh completions are in sync with ripgrep's actual args.
+    "$(dirname "${0}")/test_complete.sh"
+
+    # Run tests for ripgrep and all sub-crates.
+    cargo test --target "$TARGET" --verbose --all
 }
 
 main

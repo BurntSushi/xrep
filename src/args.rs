@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap;
 use encoding_rs::Encoding;
-use grep::{Grep, GrepBuilder, Error as GrepError};
+use grep::{Grep, GrepBuilder};
 use log;
 use num_cpus;
 use regex;
@@ -35,11 +35,13 @@ pub struct Args {
     paths: Vec<PathBuf>,
     after_context: usize,
     before_context: usize,
+    byte_offset: bool,
     color_choice: termcolor::ColorChoice,
     colors: ColorSpecs,
     column: bool,
     context_separator: Vec<u8>,
     count: bool,
+    count_matches: bool,
     encoding: Option<&'static Encoding>,
     files_with_matches: bool,
     files_without_matches: bool,
@@ -54,13 +56,13 @@ pub struct Args {
     invert_match: bool,
     line_number: bool,
     line_per_match: bool,
-    line_number_width: Option<usize>,
     max_columns: Option<usize>,
     max_count: Option<u64>,
     max_filesize: Option<u64>,
     maxdepth: Option<usize>,
     mmap: bool,
     no_ignore: bool,
+    no_ignore_messages: bool,
     no_ignore_parent: bool,
     no_ignore_vcs: bool,
     no_messages: bool,
@@ -77,7 +79,8 @@ pub struct Args {
     type_list: bool,
     types: Types,
     with_filename: bool,
-    search_zip_files: bool
+    search_zip_files: bool,
+    stats: bool
 }
 
 impl Args {
@@ -187,8 +190,7 @@ impl Args {
             .only_matching(self.only_matching)
             .path_separator(self.path_separator)
             .with_filename(self.with_filename)
-            .max_columns(self.max_columns)
-            .line_number_width(self.line_number_width);
+            .max_columns(self.max_columns);
         if let Some(ref rep) = self.replace {
             p = p.replace(rep.clone());
         }
@@ -199,6 +201,7 @@ impl Args {
     pub fn file_separator(&self) -> Option<Vec<u8>> {
         let contextless =
             self.count
+            || self.count_matches
             || self.files_with_matches
             || self.files_without_matches;
         let use_heading_sep = self.heading && !contextless;
@@ -216,6 +219,12 @@ impl Args {
     /// Returns true if the given arguments are known to never produce a match.
     pub fn never_match(&self) -> bool {
         self.max_count == Some(0)
+    }
+
+
+    /// Returns whether ripgrep should track stats for this run
+    pub fn stats(&self) -> bool {
+        self.stats
     }
 
     /// Create a new writer for single-threaded searching with color support.
@@ -259,7 +268,9 @@ impl Args {
         WorkerBuilder::new(self.grep())
             .after_context(self.after_context)
             .before_context(self.before_context)
+            .byte_offset(self.byte_offset)
             .count(self.count)
+            .count_matches(self.count_matches)
             .encoding(self.encoding)
             .files_with_matches(self.files_with_matches)
             .files_without_matches(self.files_without_matches)
@@ -296,6 +307,12 @@ impl Args {
         self.no_messages
     }
 
+    /// Returns true if error messages associated with parsing .ignore or
+    /// .gitignore files should be suppressed.
+    pub fn no_ignore_messages(&self) -> bool {
+        self.no_ignore_messages
+    }
+
     /// Create a new recursive directory iterator over the paths in argv.
     pub fn walker(&self) -> ignore::Walk {
         self.walker_builder().build()
@@ -315,7 +332,7 @@ impl Args {
         }
         for path in &self.ignore_files {
             if let Some(err) = wd.add_ignore(path) {
-                if !self.no_messages {
+                if !self.no_messages && !self.no_ignore_messages {
                     eprintln!("{}", err);
                 }
             }
@@ -356,16 +373,19 @@ impl<'a> ArgMatches<'a> {
         let mmap = self.mmap(&paths)?;
         let with_filename = self.with_filename(&paths);
         let (before_context, after_context) = self.contexts()?;
+        let (count, count_matches) = self.counts();
         let quiet = self.is_present("quiet");
         let args = Args {
             paths: paths,
             after_context: after_context,
             before_context: before_context,
+            byte_offset: self.is_present("byte-offset"),
             color_choice: self.color_choice(),
             colors: self.color_specs()?,
             column: self.column(),
             context_separator: self.context_separator(),
-            count: self.is_present("count"),
+            count: count,
+            count_matches: count_matches,
             encoding: self.encoding()?,
             files_with_matches: self.is_present("files-with-matches"),
             files_without_matches: self.is_present("files-without-match"),
@@ -379,14 +399,14 @@ impl<'a> ArgMatches<'a> {
             ignore_files: self.ignore_files(),
             invert_match: self.is_present("invert-match"),
             line_number: line_number,
-            line_number_width: try!(self.usize_of("line-number-width")),
             line_per_match: self.is_present("vimgrep"),
-            max_columns: self.usize_of("max-columns")?,
-            max_count: self.usize_of("max-count")?.map(|max| max as u64),
+            max_columns: self.usize_of_nonzero("max-columns")?,
+            max_count: self.usize_of("max-count")?.map(|n| n as u64),
             max_filesize: self.max_filesize()?,
             maxdepth: self.usize_of("maxdepth")?,
             mmap: mmap,
             no_ignore: self.no_ignore(),
+            no_ignore_messages: self.is_present("no-ignore-messages"),
             no_ignore_parent: self.no_ignore_parent(),
             no_ignore_vcs: self.no_ignore_vcs(),
             no_messages: self.is_present("no-messages"),
@@ -403,7 +423,8 @@ impl<'a> ArgMatches<'a> {
             type_list: self.is_present("type-list"),
             types: self.types()?,
             with_filename: with_filename,
-            search_zip_files: self.is_present("search-zip")
+            search_zip_files: self.is_present("search-zip"),
+            stats: self.stats()
         };
         if args.mmap {
             debug!("will try to use memory maps");
@@ -583,7 +604,7 @@ impl<'a> ArgMatches<'a> {
         // This would normally just be an empty string, which works on its
         // own, but if the patterns are joined in a set of alternations, then
         // you wind up with `foo|`, which is invalid.
-        self.word_pattern("z{0}".to_string())
+        self.word_pattern("(?:z{0})*".to_string())
     }
 
     /// Returns true if and only if file names containing each match should
@@ -665,6 +686,9 @@ impl<'a> ArgMatches<'a> {
 
     /// Returns true if and only if column numbers should be shown.
     fn column(&self) -> bool {
+        if self.is_present("no-column") {
+            return false;
+        }
         self.is_present("column") || self.is_present("vimgrep")
     }
 
@@ -728,6 +752,28 @@ impl<'a> ArgMatches<'a> {
         } else {
             (before, after)
         })
+    }
+
+    /// Returns whether the -c/--count or the --count-matches flags were
+    /// passed from the command line.
+    ///
+    /// If --count-matches and --invert-match were passed in, behave
+    /// as if --count and --invert-match were passed in (i.e. rg will
+    /// count inverted matches as per existing behavior).
+    fn counts(&self) -> (bool, bool) {
+        let count = self.is_present("count");
+        let count_matches = self.is_present("count-matches");
+        let invert_matches = self.is_present("invert-match");
+        let only_matching = self.is_present("only-matching");
+        if count_matches && invert_matches {
+            // Treat `-v --count-matches` as `-v -c`.
+            (true, false)
+        } else if count && only_matching {
+            // Treat `-c --only-matching` as `--count-matches`.
+            (false, true)
+        } else {
+            (count, count_matches)
+        }
     }
 
     /// Returns the user's color choice based on command line parameters and
@@ -796,6 +842,19 @@ impl<'a> ArgMatches<'a> {
         }
     }
 
+    /// Returns whether status should be tracked for this run of ripgrep
+
+    /// This is automatically disabled if we're asked to only list the
+    /// files that wil be searched, files with matches or files
+    /// without matches.
+    fn stats(&self) -> bool {
+        if self.is_present("files-with-matches") ||
+           self.is_present("files-without-match") {
+               return false;
+        }
+        self.is_present("stats")
+    }
+
     /// Returns the approximate number of threads that ripgrep should use.
     fn threads(&self) -> Result<usize> {
         if self.is_present("sort-files") {
@@ -832,16 +891,7 @@ impl<'a> ArgMatches<'a> {
         if let Some(limit) = self.regex_size_limit()? {
             gb = gb.size_limit(limit);
         }
-        gb.build().map_err(|err| {
-            match err {
-                GrepError::Regex(err) => {
-                  let s = format!("{}\n(Hint: Try the --fixed-strings flag \
-                  to search for a literal string.)", err.to_string());
-                  From::from(s)
-                },
-                err => From::from(err)
-            }
-        })
+        Ok(gb.build()?)
     }
 
     /// Builds the set of glob overrides from the command line flags.
@@ -974,6 +1024,24 @@ impl<'a> ArgMatches<'a> {
 
     /// Safely reads an arg value with the given name, and if it's present,
     /// tries to parse it as a usize value.
+    ///
+    /// If the number is zero, then it is considered absent and `None` is
+    /// returned.
+    fn usize_of_nonzero(&self, name: &str) -> Result<Option<usize>> {
+        match self.value_of_lossy(name) {
+            None => Ok(None),
+            Some(v) => v.parse().map_err(From::from).map(|n| {
+                if n == 0 {
+                    None
+                } else {
+                    Some(n)
+                }
+            }),
+        }
+    }
+
+    /// Safely reads an arg value with the given name, and if it's present,
+    /// tries to parse it as a usize value.
     fn usize_of(&self, name: &str) -> Result<Option<usize>> {
         match self.value_of_lossy(name) {
             None => Ok(None),
@@ -995,7 +1063,7 @@ impl<'a> ArgMatches<'a> {
     }
 
     fn value_of_lossy(&self, name: &str) -> Option<String> {
-        self.values_of_lossy(name).and_then(|mut vals| vals.pop())
+        self.0.value_of_lossy(name).map(|s| s.into_owned())
     }
 
     fn values_of_lossy(&self, name: &str) -> Option<Vec<String>> {
@@ -1003,7 +1071,7 @@ impl<'a> ArgMatches<'a> {
     }
 
     fn value_of_os(&'a self, name: &str) -> Option<&'a OsStr> {
-        self.values_of_os(name).and_then(|it| it.last())
+        self.0.value_of_os(name)
     }
 
     fn values_of_os(&'a self, name: &str) -> Option<clap::OsValues<'a>> {

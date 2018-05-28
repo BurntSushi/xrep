@@ -13,14 +13,12 @@ use clap::{self, App, AppSettings};
 
 const ABOUT: &str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.
+By default, ripgrep will respect your `.gitignore` and automatically skip
+hidden files/directories and binary files.
 
 ripgrep's regex engine uses finite automata and guarantees linear time
 searching. Because of this, features like backreferences and arbitrary
 lookaround are not supported.
-
-Note that ripgrep may abort unexpectedly when using default settings if it
-searches a file that is simultaneously truncated. This behavior can be avoided
-by passing the --no-mmap flag.
 
 ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
 configuration file. The file can specify one shell argument per line. Lines
@@ -33,7 +31,7 @@ Use -h for short descriptions and --help for more details.";
 
 const USAGE: &str = "
     rg [OPTIONS] PATTERN [PATH ...]
-    rg [OPTIONS] [-e PATTERN ...] [-f FILE ...] [PATH ...]
+    rg [OPTIONS] [-e PATTERN ...] [-f PATTERNFILE ...] [PATH ...]
     rg [OPTIONS] --files [PATH ...]
     rg [OPTIONS] --type-list";
 
@@ -57,7 +55,7 @@ pub fn app() -> App<'static, 'static> {
     // 'static, but we need to build the version string dynamically. We can
     // fake the 'static lifetime with lazy_static.
     lazy_static! {
-        static ref LONG_VERSION: String = long_version();
+        static ref LONG_VERSION: String = long_version(None);
     }
 
     let mut app = App::new("ripgrep")
@@ -67,6 +65,7 @@ pub fn app() -> App<'static, 'static> {
         .about(ABOUT)
         .max_term_width(100)
         .setting(AppSettings::UnifiedHelpMessage)
+        .setting(AppSettings::AllArgsOverrideSelf)
         .usage(USAGE)
         .template(TEMPLATE)
         .help_message("Prints help information. Use --help for more details.");
@@ -77,7 +76,11 @@ pub fn app() -> App<'static, 'static> {
 }
 
 /// Return the "long" format of ripgrep's version string.
-fn long_version() -> String {
+///
+/// If a revision hash is given, then it is used. If one isn't given, then
+/// the RIPGREP_BUILD_GIT_HASH env var is inspect for it. If that isn't set,
+/// then a revision hash is not included in the version string returned.
+pub fn long_version(revision_hash: Option<&str>) -> String {
     // Let's say whether faster CPU instructions are enabled or not.
     let mut features = vec![];
     if cfg!(feature = "simd-accel") {
@@ -92,7 +95,7 @@ fn long_version() -> String {
     }
     // Do we have a git hash?
     // (Yes, if ripgrep was built on a machine with `git` installed.)
-    let hash = match option_env!("RIPGREP_BUILD_GIT_HASH") {
+    let hash = match revision_hash.or(option_env!("RIPGREP_BUILD_GIT_HASH")) {
         None => String::new(),
         Some(githash) => format!(" (rev {})", githash),
     };
@@ -112,26 +115,38 @@ type Arg = clap::Arg<'static, 'static>;
 /// use of clap.
 #[allow(dead_code)]
 #[derive(Clone)]
-struct RGArg {
+pub struct RGArg {
     /// The underlying clap argument.
     claparg: Arg,
     /// The name of this argument. This is always present and is the name
     /// used in the code to find the value of an argument at runtime.
-    name: &'static str,
+    pub name: &'static str,
     /// A short documentation string describing this argument. This string
     /// should fit on a single line and be a complete sentence.
     ///
     /// This is shown in the `-h` output.
-    doc_short: &'static str,
+    pub doc_short: &'static str,
     /// A longer documentation string describing this argument. This usually
     /// starts with the contents of `doc_short`. This is also usually many
     /// lines, potentially paragraphs, and may contain examples and additional
     /// prose.
     ///
     /// This is shown in the `--help` output.
-    doc_long: &'static str,
+    pub doc_long: &'static str,
+    /// Whether this flag is hidden or not.
+    ///
+    /// This is typically used for uncommon flags that only serve to override
+    /// other flags. For example, --no-ignore is a prominent flag that disables
+    /// ripgrep's gitignore functionality, but --ignore re-enables it. Since
+    /// gitignore support is enabled by default, use of the --ignore flag is
+    /// somewhat niche and relegated to special cases when users make use of
+    /// configuration files to set defaults.
+    ///
+    /// Generally, these flags should be documented in the documentation for
+    /// the flag they override.
+    pub hidden: bool,
     /// The type of this argument.
-    kind: RGArgKind,
+    pub kind: RGArgKind,
 }
 
 /// The kind of a ripgrep argument.
@@ -148,7 +163,7 @@ struct RGArg {
 /// why; the state we do capture is motivated by use cases (like generating
 /// documentation).
 #[derive(Clone)]
-enum RGArgKind {
+pub enum RGArgKind {
     /// A positional argument.
     Positional {
         /// The name of the value used in the `-h/--help` output. By
@@ -233,6 +248,7 @@ impl RGArg {
             name: name,
             doc_short: "",
             doc_long: "",
+            hidden: false,
             kind: RGArgKind::Positional {
                 value_name: value_name,
                 multiple: false,
@@ -250,13 +266,13 @@ impl RGArg {
     /// inspect the number of times the switch is used.
     fn switch(long_name: &'static str) -> RGArg {
         let claparg = Arg::with_name(long_name)
-            .long(long_name)
-            .multiple(true);
+            .long(long_name);
         RGArg {
             claparg: claparg,
             name: long_name,
             doc_short: "",
             doc_long: "",
+            hidden: false,
             kind: RGArgKind::Switch {
                 long: long_name,
                 short: None,
@@ -280,13 +296,13 @@ impl RGArg {
             .long(long_name)
             .value_name(value_name)
             .takes_value(true)
-            .multiple(true)
             .number_of_values(1);
         RGArg {
             claparg: claparg,
             name: long_name,
             doc_short: "",
             doc_long: "",
+            hidden: false,
             kind: RGArgKind::Flag {
                 long: long_name,
                 short: None,
@@ -351,11 +367,8 @@ impl RGArg {
         // document it distinct for each different kind. See RGArgKind docs.
         match self.kind {
             RGArgKind::Positional { ref mut multiple, .. } => {
-                self.claparg = self.claparg.multiple(true);
                 *multiple = true;
             }
-            // We don't need to modify clap's state in the following cases
-            // because all switches and flags always have `multiple` enabled.
             RGArgKind::Switch { ref mut multiple, .. } => {
                 *multiple = true;
             }
@@ -363,6 +376,14 @@ impl RGArg {
                 *multiple = true;
             }
         }
+        self.claparg = self.claparg.multiple(true);
+        self
+    }
+
+    /// Hide this flag from all documentation.
+    fn hidden(mut self) -> RGArg {
+        self.hidden = true;
+        self.claparg = self.claparg.hidden(true);
         self
     }
 
@@ -454,23 +475,6 @@ impl RGArg {
         });
         self
     }
-
-    /// Indicate that any value given to this argument should be a valid
-    /// line number width. A valid line number width cannot start with `0`
-    /// to maintain compatibility with future improvements that add support
-    /// for padding character specifies.
-    fn line_number_width(mut self) -> RGArg {
-        self.claparg = self.claparg.validator(|val| {
-            if val.starts_with("0") {
-                Err(String::from(
-                    "Custom padding characters are currently not supported. \
-                     Please enter only a numeric value."))
-            } else {
-                val.parse::<usize>().map(|_| ()).map_err(|err| err.to_string())
-            }
-        });
-        self
-    }
 }
 
 // We add an extra space to long descriptions so that a black line is inserted
@@ -479,7 +483,8 @@ macro_rules! long {
     ($lit:expr) => { concat!($lit, " ") }
 }
 
-fn all_args_and_flags() -> Vec<RGArg> {
+/// Generate a sequence of all positional and flag arguments.
+pub fn all_args_and_flags() -> Vec<RGArg> {
     let mut args = vec![];
     // The positional arguments must be defined first and in order.
     arg_pattern(&mut args);
@@ -487,6 +492,7 @@ fn all_args_and_flags() -> Vec<RGArg> {
     // Flags can be defined in any order, but we do it alphabetically.
     flag_after_context(&mut args);
     flag_before_context(&mut args);
+    flag_byte_offset(&mut args);
     flag_case_sensitive(&mut args);
     flag_color(&mut args);
     flag_colors(&mut args);
@@ -494,6 +500,7 @@ fn all_args_and_flags() -> Vec<RGArg> {
     flag_context(&mut args);
     flag_context_separator(&mut args);
     flag_count(&mut args);
+    flag_count_matches(&mut args);
     flag_debug(&mut args);
     flag_dfa_size_limit(&mut args);
     flag_encoding(&mut args);
@@ -511,7 +518,6 @@ fn all_args_and_flags() -> Vec<RGArg> {
     flag_ignore_file(&mut args);
     flag_invert_match(&mut args);
     flag_line_number(&mut args);
-    flag_line_number_width(&mut args);
     flag_line_regexp(&mut args);
     flag_max_columns(&mut args);
     flag_max_count(&mut args);
@@ -520,6 +526,7 @@ fn all_args_and_flags() -> Vec<RGArg> {
     flag_mmap(&mut args);
     flag_no_config(&mut args);
     flag_no_ignore(&mut args);
+    flag_no_ignore_messages(&mut args);
     flag_no_ignore_parent(&mut args);
     flag_no_ignore_vcs(&mut args);
     flag_no_messages(&mut args);
@@ -535,6 +542,7 @@ fn all_args_and_flags() -> Vec<RGArg> {
     flag_search_zip(&mut args);
     flag_smart_case(&mut args);
     flag_sort_files(&mut args);
+    flag_stats(&mut args);
     flag_text(&mut args);
     flag_threads(&mut args);
     flag_type(&mut args);
@@ -612,6 +620,19 @@ This overrides the --context flag.
     args.push(arg);
 }
 
+fn flag_byte_offset(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Print the 0-based byte offset for each matching line.";
+    const LONG: &str = long!("\
+Print the 0-based byte offset within the input file
+before each line of output. If -o (--only-matching) is
+specified, print the offset of the matching part itself.
+");
+    let arg = RGArg::switch("byte-offset").short("b")
+        .help(SHORT).long_help(LONG);
+    args.push(arg);
+}
+
 fn flag_case_sensitive(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Search case sensitively (default).";
     const LONG: &str = long!("\
@@ -660,26 +681,32 @@ fn flag_colors(args: &mut Vec<RGArg>) {
 This flag specifies color settings for use in the output. This flag may be
 provided multiple times. Settings are applied iteratively. Colors are limited
 to one of eight choices: red, blue, green, cyan, magenta, yellow, white and
-black. Styles are limited to nobold, bold, nointense or intense.
+black. Styles are limited to nobold, bold, nointense, intense, nounderline
+or underline.
 
-The format of the flag is {type}:{attribute}:{value}. {type} should be one of
-path, line, column or match. {attribute} can be fg, bg or style. {value} is
-either a color (for fg and bg) or a text style. A special format, {type}:none,
-will clear all color settings for {type}.
+The format of the flag is `{type}:{attribute}:{value}`. `{type}` should be
+one of path, line, column or match. `{attribute}` can be fg, bg or style.
+`{value}` is either a color (for fg and bg) or a text style. A special format,
+`{type}:none`, will clear all color settings for `{type}`.
 
 For example, the following command will change the match color to magenta and
 the background color for line numbers to yellow:
 
     rg --colors 'match:fg:magenta' --colors 'line:bg:yellow' foo.
 
-Extended colors can be used for {value} when the terminal supports ANSI color
+Extended colors can be used for `{value}` when the terminal supports ANSI color
 sequences. These are specified as either 'x' (256-color) or 'x,x,x' (24-bit
-truecolor) where x is a number between 0 and 255 inclusive.
+truecolor) where x is a number between 0 and 255 inclusive. x may be given as
+a normal decimal number or a hexadecimal number, which is prefixed by `0x`.
 
 For example, the following command will change the match background color to
 that represented by the rgb value (0,128,255):
 
     rg --colors 'match:bg:0,128,255'
+
+or, equivalently,
+
+    rg --colors 'match:bg:0x0,0x80,0xFF'
 
 Note that the the intense and nointense style flags will have no effect when
 used alongside these extended color codes.
@@ -696,9 +723,17 @@ fn flag_column(args: &mut Vec<RGArg>) {
 Show column numbers (1-based). This only shows the column numbers for the first
 match on each line. This does not try to account for Unicode. One byte is equal
 to one column. This implies --line-number.
+
+This flag can be disabled with --no-column.
 ");
     let arg = RGArg::switch("column")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("no-column");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-column")
+        .hidden()
+        .overrides("column");
     args.push(arg);
 }
 
@@ -730,7 +765,7 @@ sequences like \\x7F or \\t may be used. The default value is --.
 }
 
 fn flag_count(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Only show the count of matches for each file.";
+    const SHORT: &str = "Only show the count of matching lines for each file.";
     const LONG: &str = long!("\
 This flag suppresses normal output and shows the number of lines that match
 the given patterns for each file searched. Each file containing a match has its
@@ -740,9 +775,34 @@ that match and not the total number of matches.
 If only one file is given to ripgrep, then only the count is printed if there
 is a match. The --with-filename flag can be used to force printing the file
 path in this case.
+
+This overrides the --count-matches flag. Note that when --count is combined
+with --only-matching, then ripgrep behaves as if --count-matches was given.
 ");
     let arg = RGArg::switch("count").short("c")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG).overrides("count-matches");
+    args.push(arg);
+}
+
+fn flag_count_matches(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Only show the count of individual matches for each file.";
+    const LONG: &str = long!("\
+This flag suppresses normal output and shows the number of individual
+matches of the given patterns for each file searched. Each file
+containing matches has its path and match count printed on each line.
+Note that this reports the total number of individual matches and not
+the number of lines that match.
+
+If only one file is given to ripgrep, then only the count is printed if there
+is a match. The --with-filename flag can be used to force printing the file
+path in this case.
+
+This overrides the --count flag. Note that when --count is combined with
+--only-matching, then ripgrep behaves as if --count-matches was given.
+");
+    let arg = RGArg::switch("count-matches")
+        .help(SHORT).long_help(LONG).overrides("count");
     args.push(arg);
 }
 
@@ -795,7 +855,7 @@ input lines, and the newline is not counted as part of the pattern.
 
 A line is printed if and only if it matches at least one of the patterns.
 ");
-    let arg = RGArg::flag("file", "PATH").short("f")
+    let arg = RGArg::flag("file", "PATTERNFILE").short("f")
         .help(SHORT).long_help(LONG)
         .multiple()
         .allow_leading_hyphen();
@@ -821,7 +881,7 @@ fn flag_files_with_matches(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Only print the paths with at least one match.
 
-This overrides --file-without-match.
+This overrides --files-without-match.
 ");
     let arg = RGArg::switch("files-with-matches").short("l")
         .help(SHORT).long_help(LONG)
@@ -832,9 +892,10 @@ This overrides --file-without-match.
 fn flag_files_without_match(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Only print the paths that contain zero matches.";
     const LONG: &str = long!("\
-Only print the paths that contain zero matches.
+Only print the paths that contain zero matches. This inverts/negates the
+--files-with-matches flag.
 
-This overrides --file-with-matches.
+This overrides --files-with-matches.
 ");
     let arg = RGArg::switch("files-without-match")
         .help(SHORT).long_help(LONG)
@@ -860,14 +921,22 @@ fn flag_follow(args: &mut Vec<RGArg>) {
 When this flag is enabled, ripgrep will follow symbolic links while traversing
 directories. This is disabled by default. Note that ripgrep will check for
 symbolic link loops and report errors if it finds one.
+
+This flag can be disabled with --no-follow.
 ");
     let arg = RGArg::switch("follow").short("L")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("no-follow");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-follow")
+        .hidden()
+        .overrides("follow");
     args.push(arg);
 }
 
 fn flag_glob(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Include or exclude files and directories.";
+    const SHORT: &str = "Include or exclude files.";
     const LONG: &str = long!("\
 Include or exclude files and directories for searching that match the given
 glob. This always overrides any other ignore logic. Multiple glob flags may be
@@ -915,15 +984,23 @@ fn flag_hidden(args: &mut Vec<RGArg>) {
 Search hidden files and directories. By default, hidden files and directories
 are skipped. Note that if a hidden file or a directory is whitelisted in an
 ignore file, then it will be searched even if this flag isn't provided.
+
+This flag can be disabled with --no-hidden.
 ");
     let arg = RGArg::switch("hidden")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("no-hidden");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-hidden")
+        .hidden()
+        .overrides("hidden");
     args.push(arg);
 }
 
 fn flag_iglob(args: &mut Vec<RGArg>) {
     const SHORT: &str =
-        "Include or exclude files and directories case insensitively.";
+        "Include or exclude files case insensitively.";
     const LONG: &str = long!("\
 Include or exclude files and directories for searching that match the given
 glob. This always overrides any other ignore logic. Multiple glob flags may be
@@ -956,12 +1033,12 @@ This flag overrides -s/--case-sensitive and -S/--smart-case.
 fn flag_ignore_file(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Specify additional ignore files.";
     const LONG: &str = long!("\
-Specify one or more files which contain ignore patterns. These patterns are
-applied after the patterns found in .gitignore and .ignore are applied. Ignore
-patterns should be in the gitignore format and are matched relative to the
-current working directory. Multiple additional ignore files can be specified
-by using the --ignore-file flag several times. When specifying multiple ignore
-files, earlier files have lower precedence than later files.
+Specifies a path to one or more .gitignore format rules files. These patterns
+are applied after the patterns found in .gitignore and .ignore are applied
+and are matched relative to the current working directory. Multiple additional
+ignore files can be specified by using the --ignore-file flag several times.
+When specifying multiple ignore files, earlier files have lower precedence
+than later files.
 
 If you are looking for a way to include or exclude files and directories
 directly on the command line, then used -g instead.
@@ -1005,18 +1082,6 @@ terminal.
     args.push(arg);
 }
 
-fn flag_line_number_width(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Left pad line numbers up to NUM width.";
-    const LONG: &str = long!("\
-Left pad line numbers up to NUM width. Space is used as the default padding
-character. This has no effect if --no-line-number is enabled.
-");
-    let arg = RGArg::flag("line-number-width", "NUM")
-        .help(SHORT).long_help(LONG)
-        .line_number_width();
-    args.push(arg);
-}
-
 fn flag_line_regexp(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Only show matches surrounded by line boundaries.";
     const LONG: &str = long!("\
@@ -1037,6 +1102,8 @@ fn flag_max_columns(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Don't print lines longer than this limit in bytes. Longer lines are omitted,
 and only the number of matches in that line is printed.
+
+When this flag is omitted or is set to 0, then it has no effect.
 ");
     let arg = RGArg::flag("max-columns", "NUM").short("M")
         .help(SHORT).long_help(LONG)
@@ -1138,9 +1205,36 @@ fn flag_no_ignore(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Don't respect ignore files (.gitignore, .ignore, etc.). This implies
 --no-ignore-parent and --no-ignore-vcs.
+
+This flag can be disabled with the --ignore flag.
 ");
     let arg = RGArg::switch("no-ignore")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("ignore");
+    args.push(arg);
+
+    let arg = RGArg::switch("ignore")
+        .hidden()
+        .overrides("no-ignore");
+    args.push(arg);
+}
+
+fn flag_no_ignore_messages(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Suppress gitignore parse error messages.";
+    const LONG: &str = long!("\
+Suppresses all error messages related to parsing ignore files such as .ignore
+or .gitignore.
+
+This flag can be disabled with the --ignore-messages flag.
+");
+    let arg = RGArg::switch("no-ignore-messages")
+        .help(SHORT).long_help(LONG)
+        .overrides("ignore-messages");
+    args.push(arg);
+
+    let arg = RGArg::switch("ignore-messages")
+        .hidden()
+        .overrides("no-ignore-messages");
     args.push(arg);
 }
 
@@ -1148,9 +1242,17 @@ fn flag_no_ignore_parent(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Don't respect ignore files in parent directories.";
     const LONG: &str = long!("\
 Don't respect ignore files (.gitignore, .ignore, etc.) in parent directories.
+
+This flag can be disabled with the --ignore-parent flag.
 ");
     let arg = RGArg::switch("no-ignore-parent")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("ignore-parent");
+    args.push(arg);
+
+    let arg = RGArg::switch("ignore-parent")
+        .hidden()
+        .overrides("no-ignore-parent");
     args.push(arg);
 }
 
@@ -1160,20 +1262,36 @@ fn flag_no_ignore_vcs(args: &mut Vec<RGArg>) {
 Don't respect version control ignore files (.gitignore, etc.). This implies
 --no-ignore-parent for VCS files. Note that .ignore files will continue to be
 respected.
+
+This flag can be disabled with the --ignore-vcs flag.
 ");
     let arg = RGArg::switch("no-ignore-vcs")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("ignore-vcs");
+    args.push(arg);
+
+    let arg = RGArg::switch("ignore-vcs")
+        .hidden()
+        .overrides("no-ignore-vcs");
     args.push(arg);
 }
 
 fn flag_no_messages(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Suppress all error messages.";
+    const SHORT: &str = "Suppress some error messages.";
     const LONG: &str = long!("\
-Suppress all error messages. This provides the same behavior as redirecting
-stderr to /dev/null on Unix-like systems.
+Suppress all error messages related to opening and reading files. Error
+messages related to the syntax of the pattern given are still shown.
+
+This flag can be disabled with the --messages flag.
 ");
     let arg = RGArg::switch("no-messages")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("messages");
+    args.push(arg);
+
+    let arg = RGArg::switch("messages")
+        .hidden()
+        .overrides("no-messages");
     args.push(arg);
 }
 
@@ -1321,9 +1439,17 @@ fn flag_search_zip(args: &mut Vec<RGArg>) {
 Search in compressed files. Currently gz, bz2, xz, and lzma files are
 supported. This option expects the decompression binaries to be available in
 your PATH.
+
+This flag can be disabled with --no-search-zip.
 ");
     let arg = RGArg::switch("search-zip").short("z")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("no-search-zip");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-search-zip")
+        .hidden()
+        .overrides("search-zip");
     args.push(arg);
 }
 
@@ -1347,9 +1473,36 @@ fn flag_sort_files(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Sort results by file path. Note that this currently disables all parallelism
 and runs search in a single thread.
+
+This flag can be disabled with --no-sort-files.
 ");
     let arg = RGArg::switch("sort-files")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-sort-files");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-sort-files")
+        .hidden()
+        .overrides("sort-files");
+    args.push(arg);
+}
+
+fn flag_stats(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Print statistics about this ripgrep search.";
+    const LONG: &str = long!("\
+Print aggregate statistics about this ripgrep search. When this flag is
+present, ripgrep will print the following stats to stdout at the end of the
+search: number of matched lines, number of files with matches, number of files
+searched, and the time taken for the entire search to complete.
+
+This set of aggregate statistics may expand over time.
+
+Note that this flag has no effect if --files, --files-with-matches or
+--files-without-match is passed.");
+
+    let arg = RGArg::switch("stats")
         .help(SHORT).long_help(LONG);
+
     args.push(arg);
 }
 
@@ -1367,9 +1520,17 @@ considered binary and search stops (unless this flag is present).
 
 Note that when the `-u/--unrestricted` flag is provided for a third time, then
 this flag is automatically enabled.
+
+This flag can be disabled with --no-text.
 ");
     let arg = RGArg::switch("text").short("a")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT).long_help(LONG)
+        .overrides("no-text");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-text")
+        .hidden()
+        .overrides("text");
     args.push(arg);
 }
 
@@ -1468,7 +1629,7 @@ Show all supported file types and their corresponding globs.
         .help(SHORT).long_help(LONG)
         // This also technically conflicts with PATTERN, but the first file
         // path will actually be in PATTERN.
-        .conflicts(&["file", "files", "PATTERN", "regexp"]);
+        .conflicts(&["file", "files", "pattern", "regexp"]);
     args.push(arg);
 }
 

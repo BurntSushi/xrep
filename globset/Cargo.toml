@@ -1,6 +1,6 @@
 [package]
 name = "globset"
-version = "0.2.1"  #:version
+version = "0.4.0"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Cross platform single glob and glob set matching. Glob set matching is the
@@ -23,10 +23,10 @@ aho-corasick = "0.6.0"
 fnv = "1.0"
 log = "0.4"
 memchr = "2"
-regex = "0.2.1"
+regex = "1"
 
 [dev-dependencies]
 glob = "0.2"
 
 [features]
-simd-accel = ["regex/simd-accel"]
+simd-accel = []

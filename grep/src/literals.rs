@@ -10,10 +10,8 @@ principled.
 use std::cmp;
 
 use regex::bytes::RegexBuilder;
-use syntax::{
-    Expr, Literals, Lit,
-    ByteClass, ByteRange, CharClass, ClassRange, Repeater,
-};
+use syntax::hir::{self, Hir, HirKind};
+use syntax::hir::literal::{Literal, Literals};
 
 #[derive(Clone, Debug)]
 pub struct LiteralSets {
@@ -23,12 +21,12 @@ pub struct LiteralSets {
 }
 
 impl LiteralSets {
-    pub fn create(expr: &Expr) -> Self {
+    pub fn create(expr: &Hir) -> Self {
         let mut required = Literals::empty();
         union_required(expr, &mut required);
         LiteralSets {
-            prefixes: expr.prefixes(),
-            suffixes: expr.suffixes(),
+            prefixes: Literals::prefixes(expr),
+            suffixes: Literals::suffixes(expr),
             required: required,
         }
     }
@@ -93,60 +91,52 @@ impl LiteralSets {
     }
 }
 
-fn union_required(expr: &Expr, lits: &mut Literals) {
-    use syntax::Expr::*;
-    match *expr {
-        Literal { ref chars, casei: false } => {
-            let s: String = chars.iter().cloned().collect();
-            lits.cross_add(s.as_bytes());
+fn union_required(expr: &Hir, lits: &mut Literals) {
+    match *expr.kind() {
+        HirKind::Literal(hir::Literal::Unicode(c)) => {
+            let mut buf = [0u8; 4];
+            lits.cross_add(c.encode_utf8(&mut buf).as_bytes());
         }
-        Literal { ref chars, casei: true } => {
-            for &c in chars {
-                let cls = CharClass::new(vec![
-                    ClassRange { start: c, end: c },
-                ]).case_fold();
-                if !lits.add_char_class(&cls) {
+        HirKind::Literal(hir::Literal::Byte(b)) => {
+            lits.cross_add(&[b]);
+        }
+        HirKind::Class(hir::Class::Unicode(ref cls)) => {
+            if count_unicode_class(cls) >= 5 || !lits.add_char_class(cls) {
+                lits.cut();
+            }
+        }
+        HirKind::Class(hir::Class::Bytes(ref cls)) => {
+            if count_byte_class(cls) >= 5 || !lits.add_byte_class(cls) {
+                lits.cut();
+            }
+        }
+        HirKind::Group(hir::Group { ref hir, .. }) => {
+            union_required(&**hir, lits);
+        }
+        HirKind::Repetition(ref x) => {
+            match x.kind {
+                hir::RepetitionKind::ZeroOrOne => lits.cut(),
+                hir::RepetitionKind::ZeroOrMore => lits.cut(),
+                hir::RepetitionKind::OneOrMore => {
+                    union_required(&x.hir, lits);
                     lits.cut();
-                    return;
+                }
+                hir::RepetitionKind::Range(ref rng) => {
+                    let (min, max) = match *rng {
+                        hir::RepetitionRange::Exactly(m) => (m, Some(m)),
+                        hir::RepetitionRange::AtLeast(m) => (m, None),
+                        hir::RepetitionRange::Bounded(m, n) => (m, Some(n)),
+                    };
+                    repeat_range_literals(
+                        &x.hir, min, max, x.greedy, lits, union_required);
                 }
             }
         }
-        LiteralBytes { ref bytes, casei: false } => {
-            lits.cross_add(bytes);
+        HirKind::Concat(ref es) if es.is_empty() => {}
+        HirKind::Concat(ref es) if es.len() == 1 => {
+            union_required(&es[0], lits)
         }
-        LiteralBytes { ref bytes, casei: true } => {
-            for &b in bytes {
-                let cls = ByteClass::new(vec![
-                    ByteRange { start: b, end: b },
-                ]).case_fold();
-                if !lits.add_byte_class(&cls) {
-                    lits.cut();
-                    return;
-                }
-            }
-        }
-        Class(_) => {
-            lits.cut();
-        }
-        ClassBytes(_) => {
-            lits.cut();
-        }
-        Group { ref e, .. } => {
-            union_required(&**e, lits);
-        }
-        Repeat { r: Repeater::ZeroOrOne, .. } => lits.cut(),
-        Repeat { r: Repeater::ZeroOrMore, .. } => lits.cut(),
-        Repeat { ref e, r: Repeater::OneOrMore, .. } => {
-            union_required(&**e, lits);
-            lits.cut();
-        }
-        Repeat { ref e, r: Repeater::Range { min, max }, greedy } => {
-            repeat_range_literals(
-                &**e, min, max, greedy, lits, union_required);
-        }
-        Concat(ref es) if es.is_empty() => {}
-        Concat(ref es) if es.len() == 1 => union_required(&es[0], lits),
-        Concat(ref es) => {
+        HirKind::Concat(ref es) => {
             for e in es {
                 let mut lits2 = lits.to_empty();
                 union_required(e, &mut lits2);
@@ -157,7 +147,6 @@ fn union_required(expr: &Expr, lits: &mut Literals) {
                 if lits2.contains_empty() {
                     lits.cut();
                 }
-                // if !lits.union(lits2) {
                 if !lits.cross_product(&lits2) {
                     // If this expression couldn't yield any literal that
                     // could be extended, then we need to quit. Since we're
@@ -167,15 +156,15 @@ fn union_required(expr: &Expr, lits: &mut Literals) {
                 }
             }
         }
-        Alternate(ref es) => {
+        HirKind::Alternation(ref es) => {
             alternate_literals(es, lits, union_required);
         }
         _ => lits.cut(),
     }
 }
 
-fn repeat_range_literals<F: FnMut(&Expr, &mut Literals)>(
-    e: &Expr,
+fn repeat_range_literals<F: FnMut(&Hir, &mut Literals)>(
+    e: &Hir,
     min: u32,
     max: Option<u32>,
     _greedy: bool,
@@ -204,8 +193,8 @@ fn repeat_range_literals<F: FnMut(&Expr, &mut Literals)>(
     }
 }
 
-fn alternate_literals<F: FnMut(&Expr, &mut Literals)>(
-    es: &[Expr],
+fn alternate_literals<F: FnMut(&Hir, &mut Literals)>(
+    es: &[Hir],
     lits: &mut Literals,
     mut f: F,
 ) {
@@ -234,9 +223,19 @@ fn alternate_literals<F: FnMut(&Expr, &mut Literals)>(
     }
     lits.cut();
     if !lcs.is_empty() {
-        lits.add(Lit::empty());
-        lits.add(Lit::new(lcs.to_vec()));
+        lits.add(Literal::empty());
+        lits.add(Literal::new(lcs.to_vec()));
     }
+}
+
+/// Return the number of characters in the given class.
+fn count_unicode_class(cls: &hir::ClassUnicode) -> u32 {
+    cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
+}
+
+/// Return the number of bytes in the given class.
+fn count_byte_class(cls: &hir::ClassBytes) -> u32 {
+    cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
 }
 
 /// Converts an arbitrary sequence of bytes to a literal suitable for building
