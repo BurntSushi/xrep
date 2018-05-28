@@ -2191,6 +2191,7 @@ fn regression_416() {
     // a newline.)
 
     let mut cmd = wd.command();
+    cmd.arg("--eol-anchor-include-cr");
     cmd.arg("bar$");
 
     let lines: String = wd.stdout(&mut cmd);
@@ -2200,6 +2201,7 @@ fn regression_416() {
     // ...and that we do NOT consider `\r\n` (in cf_lf_eol) to be a blank line.
     wd.create("first_line_blank", "\nfoo\n");
     let mut cmd = wd.command();
+    cmd.arg("--eol-anchor-include-cr");
     cmd.arg("^$");
 
     // XXX TODO better way to check this?
