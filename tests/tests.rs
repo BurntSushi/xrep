@@ -2196,7 +2196,7 @@ fn regression_416() {
     cmd.arg("bar$");
 
     let lines: String = wd.stdout(&mut cmd);
-    assert_eq!(lines, "cf_lf_eol\n2:bar\n");
+    assert_eq!(lines, "cf_lf_eol:bar\r\n");
 
     /* XXX TEMP
     // Check that we match on an initial blank line.
