@@ -2189,7 +2189,7 @@ fn regression_416() {
 
     let mut cmd = wd.command();
     cmd.arg("--eol-anchor-include-cr");
-    cmd.arg("bar$");
+    cmd.arg("bar$").arg("./");
 
     let lines: String = wd.stdout(&mut cmd);
     assert_eq!(lines, "cr_lf_eol:bar\r\n");
