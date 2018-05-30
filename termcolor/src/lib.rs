@@ -1407,18 +1407,16 @@ impl Color {
         if codes.len() == 1 {
             if let Some(n) = parse_number(&codes[0]) {
                 Ok(Color::Ansi256(n))
-            } else {
-                if s.chars().all(|c| c.is_digit(16)) {
+            } else if s.chars().all(|c| c.is_digit(16)) {
                     Err(ParseColorError {
                         kind: ParseColorErrorKind::InvalidAnsi256,
                         given: s.to_string(),
                     })
-                } else {
-                    Err(ParseColorError {
-                        kind: ParseColorErrorKind::InvalidName,
-                        given: s.to_string(),
-                    })
-                }
+            } else {
+                Err(ParseColorError {
+                    kind: ParseColorErrorKind::InvalidName,
+                    given: s.to_string(),
+                })
             }
         } else if codes.len() == 3 {
             let mut v = vec![];
@@ -1529,12 +1527,12 @@ struct LossyStandardStream<W> {
 impl<W: io::Write> LossyStandardStream<W> {
     #[cfg(not(windows))]
     fn new(wtr: W) -> LossyStandardStream<W> {
-        LossyStandardStream { wtr: wtr }
+        LossyStandardStream { wtr }
     }
 
     #[cfg(windows)]
     fn new(wtr: W) -> LossyStandardStream<W> {
-        LossyStandardStream { wtr: wtr, is_console: false }
+        LossyStandardStream { wtr, is_console: false }
     }
 
     #[cfg(not(windows))]

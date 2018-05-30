@@ -7,9 +7,9 @@ use std::path::Path;
 /// If the path terminates in ., .., or consists solely of a root of prefix,
 /// file_name will return None.
 #[cfg(unix)]
-pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
-    path: &'a P,
-) -> Option<&'a OsStr> {
+pub fn file_name<P: AsRef<Path> + ?Sized>(
+    path: &P,
+) -> Option<&OsStr> {
     use std::os::unix::ffi::OsStrExt;
     use memchr::memrchr;
 
@@ -20,7 +20,7 @@ pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
         return None;
     } else if path.last() == Some(&b'.') {
         return None;
-    } else if path.len() >= 2 && &path[path.len() - 2..] == &b".."[..] {
+    } else if path.len() >= 2 && path[path.len() - 2..] == b".."[..] {
         return None;
     }
     let last_slash = memrchr(b'/', path).map(|i| i + 1).unwrap_or(0);
@@ -32,9 +32,9 @@ pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
 /// If the path terminates in ., .., or consists solely of a root of prefix,
 /// file_name will return None.
 #[cfg(not(unix))]
-pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
-    path: &'a P,
-) -> Option<&'a OsStr> {
+pub fn file_name<P: AsRef<Path> + ?Sized>(
+    path: &P,
+) -> Option<&OsStr> {
     path.as_ref().file_name()
 }
 

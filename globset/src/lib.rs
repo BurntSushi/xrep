@@ -449,7 +449,7 @@ impl GlobSet {
 
 /// GlobSetBuilder builds a group of patterns that can be used to
 /// simultaneously match a file path.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct GlobSetBuilder {
     pats: Vec<Glob>,
 }
@@ -494,7 +494,7 @@ impl<'a> Candidate<'a> {
     /// Create a new candidate for matching from the given path.
     pub fn new<P: AsRef<Path> + ?Sized>(path: &'a P) -> Candidate<'a> {
         let path = path.as_ref();
-        let basename = file_name(path).unwrap_or(OsStr::new(""));
+        let basename = file_name(path).unwrap_or_else(|| OsStr::new(""));
         Candidate {
             path: normalize_path(path_bytes(path)),
             basename: os_str_bytes(basename),
@@ -567,7 +567,7 @@ impl LiteralStrategy {
     }
 
     fn add(&mut self, global_index: usize, lit: String) {
-        self.0.entry(lit.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(lit.into_bytes()).or_insert_with(|| vec![]).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -591,7 +591,7 @@ impl BasenameLiteralStrategy {
     }
 
     fn add(&mut self, global_index: usize, lit: String) {
-        self.0.entry(lit.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(lit.into_bytes()).or_insert_with(|| vec![]).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -621,7 +621,7 @@ impl ExtensionStrategy {
     }
 
     fn add(&mut self, global_index: usize, ext: String) {
-        self.0.entry(ext.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(ext.into_bytes()).or_insert_with(|| vec![]).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -815,13 +815,13 @@ impl RequiredExtensionStrategyBuilder {
     fn add(&mut self, global_index: usize, ext: String, regex: String) {
         self.0
             .entry(ext.into_bytes())
-            .or_insert(vec![])
+            .or_insert_with(|| vec![])
             .push((global_index, regex));
     }
 
     fn build(self) -> Result<RequiredExtensionStrategy, Error> {
         let mut exts = HashMap::with_hasher(Fnv::default());
-        for (ext, regexes) in self.0.into_iter() {
+        for (ext, regexes) in self.0 {
             exts.insert(ext.clone(), vec![]);
             for (global_index, regex) in regexes {
                 let compiled = new_regex(&regex)?;
