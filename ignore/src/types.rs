@@ -131,6 +131,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("elixir", &["*.ex", "*.eex", "*.exs"]),
     ("elm", &["*.elm"]),
     ("erlang", &["*.erl", "*.hrl"]),
+    ("fidl", &["*.fidl"]),
     ("fish", &["*.fish"]),
     ("fortran", &[
         "*.f", "*.F", "*.f77", "*.F77", "*.pfo",
