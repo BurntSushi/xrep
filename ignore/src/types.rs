@@ -256,6 +256,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("sml", &["*.sml", "*.sig"]),
     ("soy", &["*.soy"]),
     ("spark", &["*.spark"]),
+    ("spec", &["*.spec"]),
     ("sql", &["*.sql", "*.psql"]),
     ("stylus", &["*.styl"]),
     ("sv", &["*.v", "*.vg", "*.sv", "*.svh", "*.h"]),
