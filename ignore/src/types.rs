@@ -98,6 +98,7 @@ use {Error, Match};
 
 const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("agda", &["*.agda", "*.lagda"]),
+    ("aidl", &["*.aidl"]),
     ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
     ("asm", &["*.asm", "*.s", "*.S"]),
     ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
