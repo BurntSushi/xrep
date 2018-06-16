@@ -21,7 +21,6 @@ extern crate termcolor;
 extern crate winapi;
 
 use std::error::Error;
-use std::process;
 use std::result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -53,15 +52,13 @@ mod worker;
 
 pub type Result<T> = result::Result<T, Box<Error>>;
 
-fn main() {
+fn main() -> Result<()> {
     reset_sigpipe();
-    match Args::parse().map(Arc::new).and_then(run) {
-        Ok(0) => process::exit(1),
-        Ok(_) => process::exit(0),
-        Err(err) => {
-            eprintln!("{}", err);
-            process::exit(1);
-        }
+    let args = Arc::new(Args::parse()?);
+    if run(args)? == 0 {
+        errored!("no matches")
+    } else {
+        Ok(())
     }
 }
 
@@ -126,10 +123,10 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
                 let mut printer = args.printer(&mut buf);
                 let count =
                     if dent.is_stdin() {
-                        worker.run(&mut printer, Work::Stdin)
-                    } else {
-                        worker.run(&mut printer, Work::DirEntry(dent))
-                    };
+                    worker.run(&mut printer, Work::Stdin)
+                } else {
+                    worker.run(&mut printer, Work::DirEntry(dent))
+                };
                 match_line_count.fetch_add(count as usize, Ordering::SeqCst);
                 if quiet_matched.set_match(count > 0) {
                     return Quit;

@@ -296,7 +296,7 @@ If you're a **NetBSD** user, then you can install ripgrep from [pkgsrc](http://p
 ```
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
-* Note that the minimum supported version of Rust for ripgrep is **1.20**,
+* Note that the minimum supported version of Rust for ripgrep is **1.26**,
   although ripgrep may work with older versions.
 * Note that the binary may be bigger than expected because it contains debug
   symbols. This is intentional. To remove debug symbols and therefore reduce
@@ -322,7 +322,7 @@ ripgrep isn't currently in any other package repositories.
 
 ripgrep is written in Rust, so you'll need to grab a
 [Rust installation](https://www.rust-lang.org/) in order to compile it.
-ripgrep compiles with Rust 1.20 (stable) or newer. Building is easy:
+ripgrep compiles with Rust 1.26 (stable) or newer. Building is easy:
 
 ```
 $ git clone https://github.com/BurntSushi/ripgrep
