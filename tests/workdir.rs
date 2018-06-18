@@ -279,7 +279,15 @@ impl WorkDir {
             .expect("no status")
             .code()
             .expect("no exit code");
-        assert_eq!(expected_code, code);
+        assert_eq!(
+            expected_code, code,
+            "\n\n===== {:?} =====\n\
+             expected exit code did not match\
+             \n\nexpected: {}\
+             \n\nfound: {}\
+             \n\n=====\n",
+            cmd, expected_code, code
+        );
     }
 
     /// Runs the given command and asserts that something was printed to
