@@ -273,6 +273,15 @@ impl WorkDir {
         }
     }
 
+    /// Runs the given command and asserts that its exit code matches expected exit code.
+    pub fn assert_exit_code(&self, expected_code: i32, cmd: &mut process::Command) {
+        let code = cmd.status()
+            .expect("no status")
+            .code()
+            .expect("no exit code");
+        assert_eq!(expected_code, code);
+    }
+
     /// Runs the given command and asserts that something was printed to
     /// stderr.
     pub fn assert_non_empty_stderr(&self, cmd: &mut process::Command) {

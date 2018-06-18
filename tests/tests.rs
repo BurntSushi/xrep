@@ -2191,3 +2191,33 @@ fn type_list() {
     // This can change over time, so just make sure we print something.
     assert!(!lines.is_empty());
 }
+
+// See: https://github.com/BurntSushi/ripgrep/issues/948
+sherlock!(
+    feature_948_match,
+    ".",
+    ".",
+    |wd: WorkDir, mut cmd: Command| {
+        wd.assert_exit_code(0, &mut cmd);
+    }
+);
+
+// See: https://github.com/BurntSushi/ripgrep/issues/948
+sherlock!(
+    feature_948_no_match,
+    "6d28e48b5224a42b167e{10}",
+    ".",
+    |wd: WorkDir, mut cmd: Command| {
+        wd.assert_exit_code(1, &mut cmd);
+    }
+);
+
+// See: https://github.com/BurntSushi/ripgrep/issues/948
+sherlock!(
+    feature_948_error,
+    "*",
+    ".",
+    |wd: WorkDir, mut cmd: Command| {
+        wd.assert_exit_code(2, &mut cmd);
+    }
+);
