@@ -60,7 +60,7 @@ fn main() {
         Ok(_) => process::exit(0),
         Err(err) => {
             eprintln!("{}", err);
-            process::exit(1);
+            process::exit(2);
         }
     }
 }
