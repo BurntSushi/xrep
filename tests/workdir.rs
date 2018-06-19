@@ -261,24 +261,26 @@ impl WorkDir {
     pub fn assert_err(&self, cmd: &mut process::Command) {
         let o = cmd.output().unwrap();
         if o.status.success() {
-            panic!("\n\n===== {:?} =====\n\
-                    command succeeded but expected failure!\
-                    \n\ncwd: {}\
-                    \n\nstatus: {}\
-                    \n\nstdout: {}\n\nstderr: {}\
-                    \n\n=====\n",
-                   cmd, self.dir.display(), o.status,
-                   String::from_utf8_lossy(&o.stdout),
-                   String::from_utf8_lossy(&o.stderr));
+            panic!(
+                "\n\n===== {:?} =====\n\
+                 command succeeded but expected failure!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\n=====\n",
+                cmd,
+                self.dir.display(),
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
         }
     }
 
     /// Runs the given command and asserts that its exit code matches expected exit code.
     pub fn assert_exit_code(&self, expected_code: i32, cmd: &mut process::Command) {
-        let code = cmd.status()
-            .expect("no status")
-            .code()
-            .expect("no exit code");
+        let code = cmd.status().unwrap().code().unwrap();
+
         assert_eq!(
             expected_code, code,
             "\n\n===== {:?} =====\n\
