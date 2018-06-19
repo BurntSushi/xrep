@@ -2194,7 +2194,7 @@ fn type_list() {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/948
 sherlock!(
-    feature_948_match,
+    exit_code_match_success,
     ".",
     ".",
     |wd: WorkDir, mut cmd: Command| {
@@ -2204,7 +2204,7 @@ sherlock!(
 
 // See: https://github.com/BurntSushi/ripgrep/issues/948
 sherlock!(
-    feature_948_no_match,
+    exit_code_no_match,
     "6d28e48b5224a42b167e{10}",
     ".",
     |wd: WorkDir, mut cmd: Command| {
@@ -2214,7 +2214,7 @@ sherlock!(
 
 // See: https://github.com/BurntSushi/ripgrep/issues/948
 sherlock!(
-    feature_948_error,
+    exit_code_error,
     "*",
     ".",
     |wd: WorkDir, mut cmd: Command| {
