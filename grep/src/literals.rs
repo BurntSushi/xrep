@@ -27,7 +27,7 @@ impl LiteralSets {
         LiteralSets {
             prefixes: Literals::prefixes(expr),
             suffixes: Literals::suffixes(expr),
-            required: required,
+            required,
         }
     }
 
@@ -233,9 +233,9 @@ fn count_unicode_class(cls: &hir::ClassUnicode) -> u32 {
     cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
 }
 
-/// Return the number of bytes in the given class.
+/// Return the number of bytes in the givep class.
 fn count_byte_class(cls: &hir::ClassBytes) -> u32 {
-    cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
+    cls.iter().map(|r| 1 + (u32::from(r.end()) - u32::from(r.start()))).sum()
 }
 
 /// Converts an arbitrary sequence of bytes to a literal suitable for building

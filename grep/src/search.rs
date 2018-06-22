@@ -159,8 +159,8 @@ impl GrepBuilder {
             }
         };
         Ok(Grep {
-            re: re,
-            required: required,
+            re,
+            required,
             opts: self.opts,
         })
     }
@@ -224,7 +224,7 @@ impl Grep {
     pub fn iter<'b, 's>(&'s self, buf: &'b [u8]) -> Iter<'b, 's> {
         Iter {
             searcher: self,
-            buf: buf,
+            buf,
             start: 0,
         }
     }
