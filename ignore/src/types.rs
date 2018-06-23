@@ -104,6 +104,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("asm", &["*.asm", "*.s", "*.S"]),
     ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
     ("awk", &["*.awk"]),
+    ("bazel", &["*.bzl", "WORKSPACE", "BUILD"]),
     ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
     ("bzip2", &["*.bz2"]),
     ("c", &["*.c", "*.h", "*.H"]),
