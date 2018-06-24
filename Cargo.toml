@@ -16,6 +16,7 @@ categories = ["command-line-utilities", "text-processing"]
 license = "Unlicense/MIT"
 exclude = ["HomebrewFormula"]
 build = "build.rs"
+autotests = false
 
 [badges]
 travis-ci = { repository = "BurntSushi/ripgrep" }
