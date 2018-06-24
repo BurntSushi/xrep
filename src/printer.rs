@@ -272,10 +272,14 @@ impl<W: WriteColor> Printer<W> {
         byte_offset: Option<u64>
     ) {
         if !self.line_per_match && !self.only_matching {
-            let mat = re
-                .find(&buf[start..end])
-                .map(|m| (m.start(), m.end()))
-                .unwrap_or((0, 0));
+            let mat =
+                if !self.needs_match() {
+                    (0, 0)
+                } else {
+                    re.find(&buf[start..end])
+                        .map(|m| (m.start(), m.end()))
+                        .unwrap_or((0, 0))
+                };
             return self.write_match(
                 re, path, buf, start, end, line_number,
                 byte_offset, mat.0, mat.1);
@@ -285,6 +289,12 @@ impl<W: WriteColor> Printer<W> {
                 re, path.as_ref(), buf, start, end, line_number,
                 byte_offset, m.start(), m.end());
         }
+    }
+
+    fn needs_match(&self) -> bool {
+        self.column
+        || self.replace.is_some()
+        || self.only_matching
     }
 
     fn write_match<P: AsRef<Path>>(
