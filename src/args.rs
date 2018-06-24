@@ -228,8 +228,13 @@ impl Args {
     }
 
     /// Create a new writer for single-threaded searching with color support.
-    pub fn stdout(&self) -> termcolor::StandardStream {
-        termcolor::StandardStream::stdout(self.color_choice)
+    pub fn stdout(&self) -> Box<termcolor::WriteColor> {
+        if atty::is(atty::Stream::Stdout) {
+            Box::new(termcolor::StandardStream::stdout(self.color_choice))
+        } else {
+            Box::new(
+                termcolor::BufferedStandardStream::stdout(self.color_choice))
+        }
     }
 
     /// Returns a handle to stdout for filtering search.

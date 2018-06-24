@@ -165,8 +165,7 @@ fn run_parallel(args: &Arc<Args>) -> Result<u64> {
 
 fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
     let start_time = Instant::now();
-    let stdout = args.stdout();
-    let mut stdout = stdout.lock();
+    let mut stdout = args.stdout();
     let mut worker = args.worker();
     let mut paths_searched: u64 = 0;
     let mut match_line_count = 0;
@@ -223,8 +222,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
     let print_args = Arc::clone(&args);
     let (tx, rx) = mpsc::channel::<ignore::DirEntry>();
     let print_thread = thread::spawn(move || {
-        let stdout = print_args.stdout();
-        let mut printer = print_args.printer(stdout.lock());
+        let mut printer = print_args.printer(print_args.stdout());
         let mut file_count = 0;
         for dent in rx.iter() {
             if !print_args.quiet() {
@@ -254,8 +252,7 @@ fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
 }
 
 fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
-    let stdout = args.stdout();
-    let mut printer = args.printer(stdout.lock());
+    let mut printer = args.printer(args.stdout());
     let mut file_count = 0;
     for result in args.walker() {
         let dent = match get_or_log_dir_entry(
@@ -277,8 +274,7 @@ fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
 }
 
 fn run_types(args: &Arc<Args>) -> Result<u64> {
-    let stdout = args.stdout();
-    let mut printer = args.printer(stdout.lock());
+    let mut printer = args.printer(args.stdout());
     let mut ty_count = 0;
     for def in args.type_defs() {
         printer.type_def(def);
