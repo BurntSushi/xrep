@@ -102,6 +102,21 @@ pub trait WriteColor: io::Write {
     /// If there was a problem resetting the color settings, then an error is
     /// returned.
     fn reset(&mut self) -> io::Result<()>;
+
+    /// Returns true if and only if the underlying writer must synchronously
+    /// interact with an end user's device in order to control colors. By
+    /// default, this always returns `false`.
+    ///
+    /// In practice, this should return `true` if the underlying writer is
+    /// manipulating colors using the Windows console APIs.
+    ///
+    /// This is useful for writing generic code (such as a buffered writer)
+    /// that can perform certain optimizations when the underlying writer
+    /// doesn't rely on synchronous APIs. For example, ANSI escape sequences
+    /// can be passed through to the end user's device as is.
+    fn is_synchronous(&self) -> bool {
+        false
+    }
 }
 
 impl<'a, T: ?Sized + WriteColor> WriteColor for &'a mut T {
@@ -110,6 +125,16 @@ impl<'a, T: ?Sized + WriteColor> WriteColor for &'a mut T {
         (&mut **self).set_color(spec)
     }
     fn reset(&mut self) -> io::Result<()> { (&mut **self).reset() }
+    fn is_synchronous(&self) -> bool { (&**self).is_synchronous() }
+}
+
+impl<T: ?Sized + WriteColor> WriteColor for Box<T> {
+    fn supports_color(&self) -> bool { (&**self).supports_color() }
+    fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
+        (&mut **self).set_color(spec)
+    }
+    fn reset(&mut self) -> io::Result<()> { (&mut **self).reset() }
+    fn is_synchronous(&self) -> bool { (&**self).is_synchronous() }
 }
 
 /// ColorChoice represents the color preferences of an end user.
@@ -192,11 +217,15 @@ impl ColorChoice {
 enum StandardStreamType {
     Stdout,
     Stderr,
+    StdoutBuffered,
+    StderrBuffered,
 }
 
 enum IoStandardStream {
     Stdout(io::Stdout),
     Stderr(io::Stderr),
+    StdoutBuffered(io::BufWriter<io::Stdout>),
+    StderrBuffered(io::BufWriter<io::Stderr>),
 }
 
 impl IoStandardStream {
@@ -207,6 +236,14 @@ impl IoStandardStream {
             }
             StandardStreamType::Stderr => {
                 IoStandardStream::Stderr(io::stderr())
+            }
+            StandardStreamType::StdoutBuffered => {
+                let wtr = io::BufWriter::new(io::stdout());
+                IoStandardStream::StdoutBuffered(wtr)
+            }
+            StandardStreamType::StderrBuffered => {
+                let wtr = io::BufWriter::new(io::stderr());
+                IoStandardStream::StderrBuffered(wtr)
             }
         }
     }
@@ -219,6 +256,12 @@ impl IoStandardStream {
             IoStandardStream::Stderr(ref s) => {
                 IoStandardStreamLock::StderrLock(s.lock())
             }
+            IoStandardStream::StdoutBuffered(_)
+            | IoStandardStream::StderrBuffered(_) => {
+                // We don't permit this case to ever occur in the public API,
+                // so it's OK to panic.
+                panic!("cannot lock a buffered standard stream")
+            }
         }
     }
 }
@@ -228,6 +271,8 @@ impl io::Write for IoStandardStream {
         match *self {
             IoStandardStream::Stdout(ref mut s) => s.write(b),
             IoStandardStream::Stderr(ref mut s) => s.write(b),
+            IoStandardStream::StdoutBuffered(ref mut s) => s.write(b),
+            IoStandardStream::StderrBuffered(ref mut s) => s.write(b),
         }
     }
 
@@ -235,6 +280,8 @@ impl io::Write for IoStandardStream {
         match *self {
             IoStandardStream::Stdout(ref mut s) => s.flush(),
             IoStandardStream::Stderr(ref mut s) => s.flush(),
+            IoStandardStream::StdoutBuffered(ref mut s) => s.flush(),
+            IoStandardStream::StderrBuffered(ref mut s) => s.flush(),
         }
     }
 }
@@ -279,6 +326,11 @@ pub struct StandardStreamLock<'a> {
     wtr: LossyStandardStream<WriterInnerLock<'a, IoStandardStreamLock<'a>>>,
 }
 
+/// Like `StandardStream`, but does buffered writing.
+pub struct BufferedStandardStream {
+    wtr: LossyStandardStream<WriterInner<IoStandardStream>>,
+}
+
 /// WriterInner is a (limited) generic representation of a writer. It is
 /// limited because W should only ever be stdout/stderr on Windows.
 enum WriterInner<W> {
@@ -304,58 +356,6 @@ enum WriterInnerLock<'a, W> {
 }
 
 impl StandardStream {
-    /// Create a new `StandardStream` with the given color preferences.
-    ///
-    /// The specific color/style settings can be configured when writing via
-    /// the `WriteColor` trait.
-    #[cfg(not(windows))]
-    fn create(sty: StandardStreamType, choice: ColorChoice) -> StandardStream {
-        let wtr =
-            if choice.should_attempt_color() {
-                WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
-            } else {
-                WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
-            };
-        StandardStream { wtr: LossyStandardStream::new(wtr) }
-    }
-
-    /// Create a new `StandardStream` with the given color preferences.
-    ///
-    /// If coloring is desired and a Windows console could not be found, then
-    /// ANSI escape sequences are used instead.
-    ///
-    /// The specific color/style settings can be configured when writing via
-    /// the `WriteColor` trait.
-    #[cfg(windows)]
-    fn create(sty: StandardStreamType, choice: ColorChoice) -> StandardStream {
-        let mut con = match sty {
-            StandardStreamType::Stdout => wincolor::Console::stdout(),
-            StandardStreamType::Stderr => wincolor::Console::stderr(),
-        };
-        let is_win_console = con.is_ok();
-        let is_console_virtual = con.as_mut().map(|con| {
-            con.set_virtual_terminal_processing(true).is_ok()
-        }).unwrap_or(false);
-        let wtr =
-            if choice.should_attempt_color() {
-                if choice.should_ansi() || is_console_virtual {
-                    WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
-                } else if let Ok(console) = con {
-                    WriterInner::Windows {
-                        wtr: IoStandardStream::new(sty),
-                        console: Mutex::new(console),
-                    }
-                } else {
-                    WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
-                }
-            } else {
-                WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
-            };
-        StandardStream {
-            wtr: LossyStandardStream::new(wtr).is_console(is_win_console),
-        }
-    }
-
     /// Create a new `StandardStream` with the given color preferences that
     /// writes to standard output.
     ///
@@ -365,7 +365,8 @@ impl StandardStream {
     /// The specific color/style settings can be configured when writing via
     /// the `WriteColor` trait.
     pub fn stdout(choice: ColorChoice) -> StandardStream {
-        StandardStream::create(StandardStreamType::Stdout, choice)
+        let wtr = WriterInner::create(StandardStreamType::Stdout, choice);
+        StandardStream { wtr: LossyStandardStream::new(wtr) }
     }
 
     /// Create a new `StandardStream` with the given color preferences that
@@ -377,7 +378,8 @@ impl StandardStream {
     /// The specific color/style settings can be configured when writing via
     /// the `WriteColor` trait.
     pub fn stderr(choice: ColorChoice) -> StandardStream {
-        StandardStream::create(StandardStreamType::Stderr, choice)
+        let wtr = WriterInner::create(StandardStreamType::Stderr, choice);
+        StandardStream { wtr: LossyStandardStream::new(wtr) }
     }
 
     /// Lock the underlying writer.
@@ -427,6 +429,91 @@ impl<'a> StandardStreamLock<'a> {
     }
 }
 
+impl BufferedStandardStream {
+    /// Create a new `BufferedStandardStream` with the given color preferences
+    /// that writes to standard output via a buffered writer.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing via
+    /// the `WriteColor` trait.
+    pub fn stdout(choice: ColorChoice) -> BufferedStandardStream {
+        let wtr = WriterInner::create(
+            StandardStreamType::StdoutBuffered,
+            choice,
+        );
+        BufferedStandardStream { wtr: LossyStandardStream::new(wtr) }
+    }
+
+    /// Create a new `BufferedStandardStream` with the given color preferences
+    /// that writes to standard error via a buffered writer.
+    ///
+    /// On Windows, if coloring is desired and a Windows console could not be
+    /// found, then ANSI escape sequences are used instead.
+    ///
+    /// The specific color/style settings can be configured when writing via
+    /// the `WriteColor` trait.
+    pub fn stderr(choice: ColorChoice) -> BufferedStandardStream {
+        let wtr = WriterInner::create(
+            StandardStreamType::StderrBuffered,
+            choice,
+        );
+        BufferedStandardStream { wtr: LossyStandardStream::new(wtr) }
+    }
+}
+
+impl WriterInner<IoStandardStream> {
+    /// Create a new inner writer for a standard stream with the given color
+    /// preferences.
+    #[cfg(not(windows))]
+    fn create(
+        sty: StandardStreamType,
+        choice: ColorChoice,
+    ) -> WriterInner<IoStandardStream> {
+        if choice.should_attempt_color() {
+            WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
+        } else {
+            WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
+        }
+    }
+
+    /// Create a new inner writer for a standard stream with the given color
+    /// preferences.
+    ///
+    /// If coloring is desired and a Windows console could not be found, then
+    /// ANSI escape sequences are used instead.
+    #[cfg(windows)]
+    fn create(
+        sty: StandardStreamType,
+        choice: ColorChoice,
+    ) -> WriterInner<IoStandardStream> {
+        let mut con = match sty {
+            StandardStreamType::Stdout => wincolor::Console::stdout(),
+            StandardStreamType::Stderr => wincolor::Console::stderr(),
+            StandardStreamType::StdoutBuffered => wincolor::Console::stdout(),
+            StandardStreamType::StderrBuffered => wincolor::Console::stderr(),
+        };
+        let is_console_virtual = con.as_mut().map(|con| {
+            con.set_virtual_terminal_processing(true).is_ok()
+        }).unwrap_or(false);
+        if choice.should_attempt_color() {
+            if choice.should_ansi() || is_console_virtual {
+                WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
+            } else if let Ok(console) = con {
+                WriterInner::Windows {
+                    wtr: IoStandardStream::new(sty),
+                    console: Mutex::new(console),
+                }
+            } else {
+                WriterInner::Ansi(Ansi(IoStandardStream::new(sty)))
+            }
+        } else {
+            WriterInner::NoColor(NoColor(IoStandardStream::new(sty)))
+        }
+    }
+}
+
 impl io::Write for StandardStream {
     fn write(&mut self, b: &[u8]) -> io::Result<usize> { self.wtr.write(b) }
     fn flush(&mut self) -> io::Result<()> { self.wtr.flush() }
@@ -438,6 +525,7 @@ impl WriteColor for StandardStream {
         self.wtr.set_color(spec)
     }
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
+    fn is_synchronous(&self) -> bool { self.wtr.is_synchronous() }
 }
 
 impl<'a> io::Write for StandardStreamLock<'a> {
@@ -451,6 +539,24 @@ impl<'a> WriteColor for StandardStreamLock<'a> {
         self.wtr.set_color(spec)
     }
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
+    fn is_synchronous(&self) -> bool { self.wtr.is_synchronous() }
+}
+
+impl io::Write for BufferedStandardStream {
+    fn write(&mut self, b: &[u8]) -> io::Result<usize> { self.wtr.write(b) }
+    fn flush(&mut self) -> io::Result<()> { self.wtr.flush() }
+}
+
+impl WriteColor for BufferedStandardStream {
+    fn supports_color(&self) -> bool { self.wtr.supports_color() }
+    fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
+        if self.is_synchronous() {
+            self.wtr.flush()?;
+        }
+        self.wtr.set_color(spec)
+    }
+    fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
+    fn is_synchronous(&self) -> bool { self.wtr.is_synchronous() }
 }
 
 impl<W: io::Write> io::Write for WriterInner<W> {
@@ -506,6 +612,15 @@ impl<W: io::Write> WriteColor for WriterInner<W> {
                 console.lock().unwrap().reset()?;
                 Ok(())
             }
+        }
+    }
+
+    fn is_synchronous(&self) -> bool {
+        match *self {
+            WriterInner::NoColor(_) => false,
+            WriterInner::Ansi(_) => false,
+            #[cfg(windows)]
+            WriterInner::Windows {..} => true,
         }
     }
 }
@@ -569,6 +684,16 @@ impl<'a, W: io::Write> WriteColor for WriterInnerLock<'a, W> {
             }
         }
     }
+
+    fn is_synchronous(&self) -> bool {
+        match *self {
+            WriterInnerLock::Unreachable(_) => unreachable!(),
+            WriterInnerLock::NoColor(_) => false,
+            WriterInnerLock::Ansi(_) => false,
+            #[cfg(windows)]
+            WriterInnerLock::Windows {..} => true,
+        }
+    }
 }
 
 /// Writes colored buffers to stdout or stderr.
@@ -618,6 +743,8 @@ impl BufferWriter {
         let mut con = match sty {
             StandardStreamType::Stdout => wincolor::Console::stdout(),
             StandardStreamType::Stderr => wincolor::Console::stderr(),
+            StandardStreamType::StdoutBuffered => wincolor::Console::stdout(),
+            StandardStreamType::StderrBuffered => wincolor::Console::stderr(),
         }.ok();
         let is_console_virtual = con.as_mut().map(|con| {
             con.set_virtual_terminal_processing(true).is_ok()
@@ -627,8 +754,7 @@ impl BufferWriter {
         if is_console_virtual {
             con = None;
         }
-        let stream = LossyStandardStream::new(IoStandardStream::new(sty))
-            .is_console(con.is_some());
+        let stream = LossyStandardStream::new(IoStandardStream::new(sty));
         BufferWriter {
             stream: stream,
             printed: AtomicBool::new(false),
@@ -902,6 +1028,10 @@ impl WriteColor for Buffer {
             BufferInner::Windows(ref mut w) => w.reset(),
         }
     }
+
+    fn is_synchronous(&self) -> bool {
+        false
+    }
 }
 
 /// Satisfies `WriteColor` but ignores all color options.
@@ -936,6 +1066,7 @@ impl<W: io::Write> WriteColor for NoColor<W> {
     fn supports_color(&self) -> bool { false }
     fn set_color(&mut self, _: &ColorSpec) -> io::Result<()> { Ok(()) }
     fn reset(&mut self) -> io::Result<()> { Ok(()) }
+    fn is_synchronous(&self) -> bool { false }
 }
 
 /// Satisfies `WriteColor` using standard ANSI escape sequences.
@@ -989,6 +1120,8 @@ impl<W: io::Write> WriteColor for Ansi<W> {
     fn reset(&mut self) -> io::Result<()> {
         self.write_str("\x1B[0m")
     }
+
+    fn is_synchronous(&self) -> bool { false }
 }
 
 impl<W: io::Write> Ansi<W> {
@@ -1205,6 +1338,10 @@ impl WriteColor for WindowsBuffer {
     fn reset(&mut self) -> io::Result<()> {
         self.push(None);
         Ok(())
+    }
+
+    fn is_synchronous(&self) -> bool {
+        false
     }
 }
 
@@ -1534,7 +1671,10 @@ impl<W: io::Write> LossyStandardStream<W> {
 
     #[cfg(windows)]
     fn new(wtr: W) -> LossyStandardStream<W> {
-        LossyStandardStream { wtr: wtr, is_console: false }
+        let is_console =
+            wincolor::Console::stdout().is_ok()
+            || wincolor::Console::stderr().is_ok();
+        LossyStandardStream { wtr: wtr, is_console: is_console }
     }
 
     #[cfg(not(windows))]
@@ -1544,13 +1684,7 @@ impl<W: io::Write> LossyStandardStream<W> {
 
     #[cfg(windows)]
     fn wrap<Q: io::Write>(&self, wtr: Q) -> LossyStandardStream<Q> {
-        LossyStandardStream::new(wtr).is_console(self.is_console)
-    }
-
-    #[cfg(windows)]
-    fn is_console(mut self, yes: bool) -> LossyStandardStream<W> {
-        self.is_console = yes;
-        self
+        LossyStandardStream { wtr: wtr, is_console: self.is_console }
     }
 
     fn get_ref(&self) -> &W {
@@ -1564,6 +1698,7 @@ impl<W: WriteColor> WriteColor for LossyStandardStream<W> {
         self.wtr.set_color(spec)
     }
     fn reset(&mut self) -> io::Result<()> { self.wtr.reset() }
+    fn is_synchronous(&self) -> bool { self.wtr.is_synchronous() }
 }
 
 impl<W: io::Write> io::Write for LossyStandardStream<W> {
