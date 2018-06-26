@@ -32,6 +32,7 @@ _rg() {
     '--debug[show debug messages]'
     '--dfa-size-limit=[specify upper size limit of generated DFA]:DFA size'
     '(-E --encoding)'{-E+,--encoding=}'[specify text encoding of files to search]: :_rg_encodings'
+    '--eol-anchor-include-cr[Let the end-of-line anchor match CRLF]'
     '*'{-f+,--file=}'[specify file containing patterns to search for]:file:_files'
     "(1)--files[show each file that would be searched (but don't search)]"
     '(-l --files-with-matches --files-without-match)'{-l,--files-with-matches}'[only show names of files with matches]'
@@ -86,7 +87,7 @@ _rg() {
     '*'{-T+,--type-not=}"[don't search files matching specified type]: :_rg_types"
     '*'{-u,--unrestricted}'[reduce level of "smart" searching]'
     '(: -)'{-V,--version}'[display version information]'
-    '(-p --heading --no-heading --pretty)--vimgrep[show results in vim-compatible format]'
+    '(-p --heading --no-heading --pretty)--vimgrep[show results in vim compatible format]'
     '(-H --no-filename --with-filename)'{-H,--with-filename}'[display the file name for matches]'
     '(-w -x --line-regexp --word-regexp)'{-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     '(-e -f --file --files --regexp --type-list)1: :_rg_pattern'

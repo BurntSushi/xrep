@@ -2181,6 +2181,34 @@ foo:1
     assert_eq!(lines, expected);
 }
 
+// See: https://github.com/BurntSushi/ripgrep/issues/416
+#[test]
+fn regression_416() {
+    let wd = WorkDir::new("regression_416");
+    wd.create("cr_lf_eol", "foo\r\nbar\r\nbaz\r\n");
+
+    let mut cmd = wd.command();
+    cmd.arg("--eol-anchor-include-cr");
+    cmd.arg("bar$").arg("./");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "cr_lf_eol:bar\r\n");
+
+    /* Test DISABLED for now due to #441; see
+     * https://github.com/BurntSushi/ripgrep/issues/441
+
+    // Check that we match on an initial blank line.
+    // ...and that we do NOT consider `\r\n` (in cr_lf_eol) to be a blank line.
+    wd.create("first_line_blank", "\nfoo\n");
+    let mut cmd = wd.command();
+    cmd.arg("--eol-anchor-include-cr");
+    cmd.arg("^$");
+
+    let lines: String = wd.stdout(&mut cmd);
+    assert_eq!(lines, "first_line_blank:\n");
+    */
+}
+
 #[test]
 fn type_list() {
     let wd = WorkDir::new("type_list");
