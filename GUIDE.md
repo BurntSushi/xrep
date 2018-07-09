@@ -675,7 +675,7 @@ used options that will likely impact how you use ripgrep on a regular basis.
 * `--files`: Print the files that ripgrep *would* search, but don't actually
   search them.
 * `-a/--text`: Search binary files as if they were plain text.
-* `-z/--search-zip`: Search compressed files (gzip, bzip2, lzma, xz). This is
+* `-z/--search-zip`: Search compressed files (gzip, bzip2, zip, lzma, xz). This is
   disabled by default.
 * `-C/--context`: Show the lines surrounding a match.
 * `--sort-files`: Force ripgrep to sort its output by file name. (This disables

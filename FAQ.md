@@ -135,8 +135,8 @@ How do I search compressed files?
 </h3>
 
 ripgrep's `-z/--search-zip` flag will cause it to search compressed files
-automatically. Currently, this supports gzip, bzip2, lzma and xz only and
-requires the corresponding `gzip`, `bzip2` and `xz` binaries to be installed on
+automatically. Currently, this supports gzip, bzip2, zip, lzma and xz only and
+requires the corresponding `gzip`, `bzip2`, `unzip`, and `xz` binaries to be installed on
 your system. (That is, ripgrep does decompression by shelling out to another
 process.)
 

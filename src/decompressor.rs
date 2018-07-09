@@ -48,6 +48,9 @@ lazy_static! {
         const LZMA_ARGS: &[&str] = &["--format=lzma", "-d", "-c"];
         m.insert("lzma", DecompressionCommand::new("xz", LZMA_ARGS));
 
+        const UNZIP_ARGS: &[&str] = &["-p"];
+        m.insert("zip", DecompressionCommand::new("unzip", UNZIP_ARGS));
+
         m
     };
     static ref SUPPORTED_COMPRESSION_FORMATS: GlobSet = {
@@ -56,6 +59,7 @@ lazy_static! {
         builder.add(Glob::new("*.bz2").unwrap());
         builder.add(Glob::new("*.xz").unwrap());
         builder.add(Glob::new("*.lzma").unwrap());
+        builder.add(Glob::new("*.zip").unwrap());
         builder.build().unwrap()
     };
     static ref TAR_ARCHIVE_FORMATS: GlobSet = {
