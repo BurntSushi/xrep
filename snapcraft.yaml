@@ -11,4 +11,5 @@ parts:
     source: .
 apps:
   rg:
-    command: env PATH=$SNAP/bin:$PATH rg
+    adapter: none
+    command: ./bin/rg
