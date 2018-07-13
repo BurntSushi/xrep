@@ -170,7 +170,8 @@ _rg() {
     {-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     {-x,--line-regexp}'[only show matches surrounded by line boundaries]'
 
-    + '(zip)' # Compressed-file options
+    + '(input-decoding)' # Input decoding options
+    '--pre=[specify preprocessor utility]:preprocessor utility:_command_names -e'
     {-z,--search-zip}'[search in compressed files]'
     $no"--no-search-zip[don't search in compressed files]"
 

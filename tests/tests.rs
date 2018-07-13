@@ -1733,6 +1733,26 @@ sherlock!(feature_419_zero_as_shortcut_for_null, "Sherlock", ".",
 });
 
 #[test]
+fn preprocessing() {
+    if !cmd_exists("xzcat") {
+        return;
+    }
+    let xz_file = include_bytes!("./data/sherlock.xz");
+
+    let wd = WorkDir::new("feature_preprocessing");
+    wd.create_bytes("sherlock.xz", xz_file);
+
+    let mut cmd = wd.command();
+    cmd.arg("--pre").arg("xzcat").arg("Sherlock").arg("sherlock.xz");
+    let lines: String = wd.stdout(&mut cmd);
+    let expected = "\
+For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    assert_eq!(lines, expected);
+}
+
+#[test]
 fn compressed_gzip() {
     if !cmd_exists("gzip") {
         return;

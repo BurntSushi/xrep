@@ -80,6 +80,7 @@ pub struct Args {
     types: Types,
     with_filename: bool,
     search_zip_files: bool,
+    preprocessor: Option<PathBuf>,
     stats: bool
 }
 
@@ -288,6 +289,7 @@ impl Args {
             .quiet(self.quiet)
             .text(self.text)
             .search_zip_files(self.search_zip_files)
+            .preprocessor(self.preprocessor.clone())
             .build()
     }
 
@@ -429,6 +431,7 @@ impl<'a> ArgMatches<'a> {
             types: self.types()?,
             with_filename: with_filename,
             search_zip_files: self.is_present("search-zip"),
+            preprocessor: self.preprocessor(),
             stats: self.stats()
         };
         if args.mmap {
@@ -719,6 +722,19 @@ impl<'a> ArgMatches<'a> {
         match self.value_of_lossy("context-separator") {
             None => b"--".to_vec(),
             Some(sep) => unescape(&sep),
+        }
+    }
+
+    /// Returns the preprocessor command
+    fn preprocessor(&self) -> Option<PathBuf> {
+        if let Some(path) = self.value_of_os("pre") {
+            if path.is_empty() {
+                None
+            } else {
+                Some(Path::new(path).to_path_buf())
+            }
+        } else {
+            None
         }
     }
 

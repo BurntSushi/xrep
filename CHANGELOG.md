@@ -50,6 +50,8 @@ Feature enhancements:
 * [FEATURE #967](https://github.com/BurntSushi/ripgrep/issues/967):
   Rename `--maxdepth` to `--max-depth` for consistency. We retain `--maxdepth`
   as a synonym for backwards compatibility.
+* [FEATURE #978](https://github.com/BurntSushi/ripgrep/issues/978):
+  Add a `--pre` option to filter inputs with an arbitrary program.
 * [FEATURE fca9709d](https://github.com/BurntSushi/ripgrep/commit/fca9709d):
   Improve zsh completion.
 

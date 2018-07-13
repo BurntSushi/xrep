@@ -107,6 +107,9 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   specifically specified with the `-E/--encoding` flag.)
 * ripgrep supports searching files compressed in a common format (gzip, xz,
   lzma, bzip2 or lz4) with the `-z/--search-zip` flag.
+* ripgrep supports arbitrary input preprocessing filters which could be PDF
+  text extraction, less supported decompression, decrypting, automatic encoding
+  detection and so on.
 
 In other words, use ripgrep if you like speed, filtering by default, fewer
 bugs, and Unicode support.
