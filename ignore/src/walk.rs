@@ -737,6 +737,19 @@ impl WalkBuilder {
         self
     }
 
+    /// Set a function for sorting directory entries.
+    /// doc
+    pub fn hg_global(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.ig_builder.hg_global(yes);
+        self
+    }
+
+    /// doc
+    pub fn hg_ignore(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.ig_builder.hg_ignore(yes);
+        self
+    }
+
     /// Set a function for sorting directory entries by file name.
     ///
     /// If a compare function is set, the resulting iterator will return all

@@ -71,6 +71,7 @@ pub use walk::{DirEntry, Walk, WalkBuilder, WalkParallel, WalkState};
 
 mod dir;
 pub mod gitignore;
+pub mod hgignore;
 mod pathutil;
 pub mod overrides;
 pub mod types;

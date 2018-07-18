@@ -485,7 +485,8 @@ impl GlobSetBuilder {
 /// path against multiple globs or sets of globs.
 #[derive(Clone, Debug)]
 pub struct Candidate<'a> {
-    path: Cow<'a, [u8]>,
+    /// FIXME: hgignore only needs path, we can build it by hands
+    pub path: Cow<'a, [u8]>,
     basename: Cow<'a, [u8]>,
     ext: Cow<'a, [u8]>,
 }
