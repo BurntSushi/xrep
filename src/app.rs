@@ -540,6 +540,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_regexp(&mut args);
     flag_replace(&mut args);
     flag_search_zip(&mut args);
+    flag_preprocessor(&mut args);
     flag_smart_case(&mut args);
     flag_sort_files(&mut args);
     flag_stats(&mut args);
@@ -1459,6 +1460,35 @@ This flag can be disabled with --no-search-zip.
     let arg = RGArg::switch("no-search-zip")
         .hidden()
         .overrides("search-zip");
+    args.push(arg);
+}
+
+fn flag_preprocessor(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "search outputs of COMMAND FILE for each FILE";
+    const LONG: &str = long!("\
+For each input FILE, search the standard output of COMMAND FILE rather
+than the contents of FILE.  This option expects the COMMAND program to be
+available in your PATH.  An empty string COMMAND deactivates this feature.
+
+When searching over sets of files that may require one of several decoders
+as preprocessors, COMMAND should be a wrapper program or script which first
+classifies FILE based on magic numbers/content or based on the FILE name and
+then dispatches to an appropriate preprocessor.  Each COMMAND also has its
+standard input connected to FILE for convenience.
+
+For example, a Unix script for COMMAND might look like:
+case \"$1\" in
+  *.pdf) exec pdftotext \"$1\" - ;;
+  *) case $(file \"$1\") in
+       *Zstandard*) exec pzstd -cdqp8 ;;
+       *) exec cat ;;
+	 esac;
+esac
+
+This overrides the -z/--search-grep flag.
+");
+    let arg = RGArg::flag("preprocessor", "COMMAND").short("P")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 

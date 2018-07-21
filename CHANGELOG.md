@@ -40,6 +40,8 @@ Feature enhancements:
   Add `--count-matches` flag, which is like `--count`, but for each match.
 * [FEATURE #880](https://github.com/BurntSushi/ripgrep/issues/880):
   Add a `--no-column` flag, which disables column numbers in the output.
+* [FEATURE #978](https://github.com/BurntSushi/ripgrep/issues/978):
+  Add a `--preprocessor` option to filter inputs with an arbitrary program.
 
 Bug fixes:
 

@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use encoding_rs::Encoding;
 use grep::Grep;
@@ -10,6 +10,7 @@ use termcolor::WriteColor;
 
 use decoder::DecodeReader;
 use decompressor::{self, DecompressionReader};
+use preprocessor::PreprocessorReader;
 use pathutil::strip_prefix;
 use printer::Printer;
 use search_buffer::BufferSearcher;
@@ -45,6 +46,7 @@ struct Options {
     no_messages: bool,
     quiet: bool,
     text: bool,
+    preprocessor: PathBuf,
     search_zip_files: bool
 }
 
@@ -68,6 +70,7 @@ impl Default for Options {
             quiet: false,
             text: false,
             search_zip_files: false,
+            preprocessor: PathBuf::new(),
         }
     }
 }
@@ -222,6 +225,12 @@ impl WorkerBuilder {
         self.opts.search_zip_files = yes;
         self
     }
+
+    /// If non-empty, search output of preprocessor run on each file
+    pub fn preprocessor(mut self, command: PathBuf) -> Self {
+        self.opts.preprocessor = command;
+        self
+    }
 }
 
 /// Worker is responsible for executing searches on file paths, while choosing
@@ -250,7 +259,14 @@ impl Worker {
             }
             Work::DirEntry(dent) => {
                 let mut path = dent.path();
-                if self.opts.search_zip_files
+                if !self.opts.preprocessor.as_os_str().is_empty() {
+                    match PreprocessorReader::from_cmd_path(self.opts.preprocessor.to_path_buf(), path) {
+                        Some(reader) => self.search(printer, path, reader),
+                        None => {
+                            return 0;
+                        }
+                    }
+                } else if self.opts.search_zip_files
                      && decompressor::is_compressed(path)
                 {
                     match DecompressionReader::from_path(path) {

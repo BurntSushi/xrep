@@ -43,6 +43,7 @@ mod args;
 mod config;
 mod decoder;
 mod decompressor;
+mod preprocessor;
 mod logger;
 mod pathutil;
 mod printer;
