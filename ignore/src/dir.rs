@@ -266,9 +266,11 @@ impl Ignore {
     fn has_any_ignore_rules(&self) -> bool {
         let opts = self.0.opts;
         let has_custom_ignore_files = !self.0.custom_ignore_filenames.is_empty();
+        let has_explicit_ignores = !self.0.explicit_ignores.is_empty();
 
         opts.ignore || opts.git_global || opts.git_ignore
                     || opts.git_exclude || has_custom_ignore_files
+                    || has_explicit_ignores
     }
 
     /// Returns a match indicating whether the given file path should be

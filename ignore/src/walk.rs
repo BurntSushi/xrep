@@ -1674,6 +1674,24 @@ mod tests {
     }
 
     #[test]
+    fn explicit_ignore_exclusive_use() {
+        let td = TempDir::new("walk-test-").unwrap();
+        let igpath = td.path().join(".not-an-ignore");
+        mkdirp(td.path().join("a"));
+        wfile(&igpath, "foo");
+        wfile(td.path().join("foo"), "");
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("bar"), "");
+        wfile(td.path().join("a/bar"), "");
+
+        let mut builder = WalkBuilder::new(td.path());
+        builder.standard_filters(false);
+        assert!(builder.add_ignore(&igpath).is_none());
+        assert_paths(td.path(), &builder,
+            &[".not-an-ignore", "bar", "a", "a/bar"]);
+    }
+
+    #[test]
     fn gitignore_parent() {
         let td = TempDir::new("walk-test-").unwrap();
         mkdirp(td.path().join("a"));
