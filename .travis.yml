@@ -16,6 +16,7 @@ addons:
       - zsh
       # Needed for testing decompression search.
       - xz-utils
+      - liblz4-tool
 matrix:
   fast_finish: true
   include:

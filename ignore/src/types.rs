@@ -193,6 +193,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
     ("lzma", &["*.lzma"]),
+    ("lz4", &["*.lz4"]),
     ("m4", &["*.ac", "*.m4"]),
     ("make", &[
         "gnumakefile", "Gnumakefile", "GNUmakefile",

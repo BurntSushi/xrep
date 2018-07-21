@@ -1445,7 +1445,7 @@ This flag can be used with the -o/--only-matching flag.
 fn flag_search_zip(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Search in compressed files.";
     const LONG: &str = long!("\
-Search in compressed files. Currently gz, bz2, xz, and lzma files are
+Search in compressed files. Currently gz, bz2, xz, lzma, and lz4 files are
 supported. This option expects the decompression binaries to be available in
 your PATH.
 

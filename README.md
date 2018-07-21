@@ -106,7 +106,7 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   automatically detecting UTF-16 is provided. Other text encodings must be
   specifically specified with the `-E/--encoding` flag.)
 * ripgrep supports searching files compressed in a common format (gzip, xz,
-  lzma or bzip2 current) with the `-z/--search-zip` flag.
+  lzma, bzip2 or lz4) with the `-z/--search-zip` flag.
 
 In other words, use ripgrep if you like speed, filtering by default, fewer
 bugs, and Unicode support.
