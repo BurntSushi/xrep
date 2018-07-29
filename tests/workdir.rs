@@ -49,7 +49,11 @@ impl WorkDir {
 
     /// Try to create a new file with the given name and contents in this
     /// directory.
-    pub fn try_create<P: AsRef<Path>>(&self, name: P, contents: &str) -> io::Result<()> {
+    pub fn try_create<P: AsRef<Path>>(
+        &self,
+        name: P,
+        contents: &str,
+    ) -> io::Result<()> {
         let path = self.dir.join(name);
         self.try_create_bytes(path, contents.as_bytes())
     }
@@ -70,7 +74,11 @@ impl WorkDir {
 
     /// Try to create a new file with the given name and contents in this
     /// directory.
-    fn try_create_bytes<P: AsRef<Path>>(&self, path: P, contents: &[u8]) -> io::Result<()> {
+    fn try_create_bytes<P: AsRef<Path>>(
+        &self,
+        path: P,
+        contents: &[u8],
+    ) -> io::Result<()> {
         let mut file = File::create(&path)?;
         file.write_all(contents)?;
         file.flush()
@@ -190,7 +198,11 @@ impl WorkDir {
         match stdout.parse() {
             Ok(t) => t,
             Err(err) => {
-                panic!("could not convert from string: {:?}\n\n{}", err, stdout);
+                panic!(
+                    "could not convert from string: {:?}\n\n{}",
+                    err,
+                    stdout
+                );
             }
         }
     }
@@ -221,7 +233,10 @@ impl WorkDir {
             write!(stdin, "{}", input)
         });
 
-        let output = self.expect_success(cmd, child.wait_with_output().unwrap());
+        let output = self.expect_success(
+            cmd,
+            child.wait_with_output().unwrap(),
+        );
         worker.join().unwrap().unwrap();
         output
     }
@@ -277,8 +292,13 @@ impl WorkDir {
         }
     }
 
-    /// Runs the given command and asserts that its exit code matches expected exit code.
-    pub fn assert_exit_code(&self, expected_code: i32, cmd: &mut process::Command) {
+    /// Runs the given command and asserts that its exit code matches expected
+    /// exit code.
+    pub fn assert_exit_code(
+        &self,
+        expected_code: i32,
+        cmd: &mut process::Command,
+    ) {
         let code = cmd.status().unwrap().code().unwrap();
 
         assert_eq!(
