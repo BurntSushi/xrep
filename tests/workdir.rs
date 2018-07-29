@@ -21,7 +21,8 @@ pub struct WorkDir {
     /// The directory in which this test executable is running.
     root: PathBuf,
     /// The directory in which the test should run. If a test needs to create
-    /// files, they should go in here.
+    /// files, they should go in here. This directory is also used as the CWD
+    /// for any processes created by the test.
     dir: PathBuf,
 }
 
@@ -31,9 +32,15 @@ impl WorkDir {
     /// to a logical grouping of tests.
     pub fn new(name: &str) -> WorkDir {
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
-        let root = env::current_exe().unwrap()
-            .parent().expect("executable's directory").to_path_buf();
-        let dir = root.join(TEST_DIR).join(name).join(&format!("{}", id));
+        let root = env::current_exe()
+            .unwrap()
+            .parent()
+            .expect("executable's directory")
+            .to_path_buf();
+        let dir = env::temp_dir()
+            .join(TEST_DIR)
+            .join(name)
+            .join(&format!("{}", id));
         nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
         WorkDir {
             root: root,
@@ -107,28 +114,11 @@ impl WorkDir {
     }
 
     /// Returns the path to the ripgrep executable.
-    #[cfg(not(windows))]
     pub fn bin(&self) -> PathBuf {
-        let path = self.root.join("rg");
-        if !path.is_file() {
-            // Looks like a recent version of Cargo changed the cwd or the
-            // location of the test executable.
-            self.root.join("../rg")
-        } else {
-            path
-        }
-    }
-
-    /// Returns the path to the ripgrep executable.
-    #[cfg(windows)]
-    pub fn bin(&self) -> PathBuf {
-        let path = self.root.join("rg.exe");
-        if !path.is_file() {
-            // Looks like a recent version of Cargo changed the cwd or the
-            // location of the test executable.
+        if cfg!(windows) {
             self.root.join("../rg.exe")
         } else {
-            path
+            self.root.join("../rg")
         }
     }
 

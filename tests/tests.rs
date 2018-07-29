@@ -590,6 +590,7 @@ sherlock!(no_ignore_hidden, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
 });
 
 sherlock!(ignore_git, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "sherlock\n");
     wd.assert_err(&mut cmd);
 });
@@ -852,6 +853,7 @@ sherlock:but Doctor Watson has to have it taken out for him and dusted,
 
 // See: https://github.com/BurntSushi/ripgrep/issues/16
 clean!(regression_16, "xyz", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "ghi/");
     wd.create_dir("ghi");
     wd.create_dir("def/ghi");
@@ -907,6 +909,7 @@ clean!(regression_50, "xyz", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/65
 clean!(regression_65, "xyz", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "a/");
     wd.create_dir("a");
     wd.create("a/foo", "xyz");
@@ -916,6 +919,7 @@ clean!(regression_65, "xyz", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/67
 clean!(regression_67, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "/*\n!/dir");
     wd.create_dir("dir");
     wd.create_dir("foo");
@@ -928,6 +932,7 @@ clean!(regression_67, "test", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/87
 clean!(regression_87, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "foo\n**no-vcs**");
     wd.create("foo", "test");
     wd.assert_err(&mut cmd);
@@ -935,6 +940,7 @@ clean!(regression_87, "test", ".", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/90
 clean!(regression_90, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "!.foo");
     wd.create(".foo", "test");
 
@@ -995,6 +1001,7 @@ clean!(regression_127, "Sherlock", ".", |wd: WorkDir, mut cmd: Command| {
     // ripgrep should ignore 'foo/sherlock' giving us results only from
     // 'foo/watson' but on Windows ripgrep will include both 'foo/sherlock' and
     // 'foo/watson' in the search results.
+    wd.create_dir(".git");
     wd.create(".gitignore", "foo/sherlock\n");
     wd.create_dir("foo");
     wd.create("foo/sherlock", hay::SHERLOCK);
@@ -1022,6 +1029,7 @@ clean!(regression_128, "x", ".", |wd: WorkDir, mut cmd: Command| {
 // TODO(burntsushi): Darwin doesn't like this test for some reason.
 #[cfg(not(target_os = "macos"))]
 clean!(regression_131, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", "TopÑapa");
     wd.create("TopÑapa", "test");
     wd.assert_err(&mut cmd);
@@ -1309,6 +1317,7 @@ clean!(regression_599, "^$", "input.txt", |wd: WorkDir, mut cmd: Command| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/807
 clean!(regression_807, "test", ".", |wd: WorkDir, mut cmd: Command| {
+    wd.create_dir(".git");
     wd.create(".gitignore", ".a/b");
     wd.create_dir(".a/b");
     wd.create_dir(".a/c");
