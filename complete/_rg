@@ -111,9 +111,17 @@ _rg() {
     "--no-ignore-vcs[don't respect version control ignore files]"
     $no'--ignore-vcs[respect version control ignore files]'
 
+    + '(json)' # json options
+    '--json[output results in a JSON Lines format]'
+    $no"--no-json[output results in the standard format]"
+
     + '(line)' # Line-number options
     {-n,--line-number}'[show line numbers for matches]'
     {-N,--no-line-number}"[don't show line numbers for matches]"
+
+    + '(line terminator)' # line terminator options
+    '--crlf[use CRLF as a line terminator]'
+    $no"--no-crlf[do not use CRLF as a line terminator]"
 
     + '(max-depth)' # Directory-depth options
     '--max-depth=[specify max number of directories to descend]:number of directories'
@@ -131,12 +139,23 @@ _rg() {
     '--mmap[search using memory maps when possible]'
     "--no-mmap[don't search using memory maps]"
 
+    + '(multiline)' # multiline options
+    {-U,--multiline}'[permit matching across multiple lines]'
+    $no"--no-multiline[restrict matches to at most one line each]"
+    '--multiline-dotall[make "." match newline in multiline mode]'
+
     + '(only)' # Only-match options
     '(passthru replace)'{-o,--only-matching}'[show only matching part of each line]'
 
     + '(passthru)' # Pass-through options
     '(--vimgrep count only replace)--passthru[show both matching and non-matching lines]'
     '!(--vimgrep count only replace)--passthrough'
+
+    + '(pcre2)' # PCRE2 options
+    {-P,--pcre2}'[Enable matching with PCRE2]'
+    $no"--no-pcre2[don't use PCRE2]"
+    "--pcre2-unicode[Enable PCRE2 Unicode mode]"
+    $no"--pcre2-unicode[Disable PCRE2 Unicode mode]"
 
     + '(pre)' # Preprocessing options
     '(-z --search-zip)--pre=[specify preprocessor utility]:preprocessor utility:_command_names -e'
@@ -158,6 +177,7 @@ _rg() {
 
     + stats # Statistics options
     '(--files file-match)--stats[show search statistics]'
+    $no"--no-stats[don't show search statistics]"
 
     + '(text)' # Binary-search options
     {-a,--text}'[search binary files as if they were text]'
@@ -165,6 +185,10 @@ _rg() {
 
     + '(threads)' # Thread-count options
     '(--sort-files)'{-j+,--threads=}'[specify approximate number of threads to use]:number of threads'
+
+    + '(trim)' # trim options
+    '--trim[trim any ASCII whitespace prefix from each line]'
+    $no"--no-trim[don't trim ASCII whitespace prefix from each line]"
 
     + type # Type options
     '*'{-t+,--type=}'[only search files matching specified type]: :_rg_types'
@@ -203,6 +227,7 @@ _rg() {
     '--max-filesize=[specify size above which files should be ignored]:file size (bytes)'
     "--no-config[don't load configuration files]"
     '(-0 --null)'{-0,--null}'[print NUL byte after file names]'
+    '--null-data[use NUL as a line terminator]'
     '--path-separator=[specify path separator to use when printing file names]:separator'
     '(-q --quiet)'{-q,--quiet}'[suppress normal output]'
     '--regex-size-limit=[specify upper size limit of compiled regex]:regex size (bytes)'

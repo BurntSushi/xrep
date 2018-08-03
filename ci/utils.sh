@@ -55,13 +55,6 @@ gcc_prefix() {
     esac
 }
 
-is_ssse3_target() {
-    case "$(architecture)" in
-        amd64) return 0 ;;
-        *)     return 1 ;;
-    esac
-}
-
 is_x86() {
     case "$(architecture)" in
       amd64|i386) return 0 ;;

@@ -470,7 +470,6 @@ impl GlobSetBuilder {
     }
 
     /// Add a new pattern to this set.
-    #[allow(dead_code)]
     pub fn add(&mut self, pat: Glob) -> &mut GlobSetBuilder {
         self.pats.push(pat);
         self

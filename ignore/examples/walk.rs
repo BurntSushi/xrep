@@ -1,5 +1,3 @@
-#![allow(dead_code, unused_imports, unused_mut, unused_variables)]
-
 extern crate crossbeam;
 extern crate ignore;
 extern crate walkdir;
@@ -8,7 +6,6 @@ use std::env;
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use crossbeam::sync::MsQueue;
@@ -48,13 +45,11 @@ fn main() {
             })
         });
     } else if simple {
-        let mut stdout = io::BufWriter::new(io::stdout());
         let walker = WalkDir::new(path);
         for result in walker {
             queue.push(Some(DirEntry::X(result.unwrap())));
         }
     } else {
-        let mut stdout = io::BufWriter::new(io::stdout());
         let walker = WalkBuilder::new(path).build();
         for result in walker {
             queue.push(Some(DirEntry::Y(result.unwrap())));

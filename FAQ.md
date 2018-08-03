@@ -157,13 +157,37 @@ tool. With that said,
 How do I use lookaround and/or backreferences?
 </h3>
 
-This isn't currently possible. ripgrep uses finite automata to implement
-regular expression search, and in turn, guarantees linear time searching on all
-inputs. It is difficult to efficiently support lookaround and backreferences in
-finite automata engines, so ripgrep does not provide these features.
+ripgrep's default regex engine does not support lookaround or backreferences.
+This is primarily because the default regex engine is implemented using finite
+state machines in order to guarantee a linear worst case time complexity on all
+inputs. Backreferences are not possible to implement in this paradigm, and
+lookaround appears difficult to do efficiently.
 
-If a production quality regular expression engine with these features is ever
-written in Rust, then it is possible ripgrep will provide it as an opt-in
+However, ripgrep optionally supports using PCRE2 as the regex engine instead of
+the default one based on finite state machines. You can enable PCRE2 with the
+`-P/--pcre2` flag. For example, in the root of the ripgrep repo, you can easily
+find all palindromes:
+
+```
+$ rg -P '(\w{10})\1'
+tests/misc.rs
+483:    cmd.arg("--max-filesize").arg("44444444444444444444");
+globset/src/glob.rs
+1206:    matches!(match7, "a*a*a*a*a*a*a*a*a", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+```
+
+If your version of ripgrep doesn't support PCRE2, then you'll get an error
+message when you try to use the `-P/--pcre2` flag:
+
+```
+$ rg -P '(\w{10})\1'
+PCRE2 is not available in this build of ripgrep
+```
+
+Most of the releases distributed by the ripgrep project here on GitHub will
+come bundled with PCRE2 enabled. If you installed ripgrep through a different
+means (like your system's package manager), then please reach out to the
+maintainer of that package to see whether it's possible to enable the PCRE2
 feature.
 
 

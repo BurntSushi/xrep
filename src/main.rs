@@ -1,43 +1,34 @@
 extern crate atty;
-extern crate bytecount;
 #[macro_use]
 extern crate clap;
-extern crate encoding_rs;
-extern crate encoding_rs_io;
 extern crate globset;
 extern crate grep;
 extern crate ignore;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate memchr;
-extern crate memmap;
 extern crate num_cpus;
 extern crate regex;
 extern crate same_file;
+#[macro_use]
+extern crate serde_json;
 extern crate termcolor;
 #[cfg(windows)]
 extern crate winapi;
 
-use std::error::Error;
+use std::io;
 use std::process;
-use std::result;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
+
+use ignore::WalkState;
 
 use args::Args;
-use worker::Work;
+use subject::Subject;
 
-macro_rules! errored {
-    ($($tt:tt)*) => {
-        return Err(From::from(format!($($tt)*)));
-    }
-}
+#[macro_use]
+mod messages;
 
 mod app;
 mod args;
@@ -45,20 +36,17 @@ mod config;
 mod decompressor;
 mod preprocessor;
 mod logger;
-mod pathutil;
-mod printer;
-mod search_buffer;
-mod search_stream;
+mod path_printer;
+mod search;
+mod subject;
 mod unescape;
-mod worker;
 
-pub type Result<T> = result::Result<T, Box<Error>>;
+pub type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
-fn main() {
-    reset_sigpipe();
-    match Args::parse().map(Arc::new).and_then(run) {
-        Ok(0) => process::exit(1),
-        Ok(_) => process::exit(0),
+pub fn main() {
+    match Args::parse().and_then(run) {
+        Ok(true) => process::exit(0),
+        Ok(false) => process::exit(1),
         Err(err) => {
             eprintln!("{}", err);
             process::exit(2);
@@ -66,382 +54,242 @@ fn main() {
     }
 }
 
-fn run(args: Arc<Args>) -> Result<u64> {
-    if args.never_match() {
-        return Ok(0);
-    }
-    let threads = args.threads();
-    if args.files() {
-        if threads == 1 || args.is_one_path() {
-            run_files_one_thread(&args)
-        } else {
-            run_files_parallel(args)
-        }
-    } else if args.type_list() {
-        run_types(&args)
-    } else if threads == 1 || args.is_one_path() {
-        run_one_thread(&args)
-    } else {
-        run_parallel(&args)
+fn run(args: Args) -> Result<bool> {
+    use args::Command::*;
+
+    match args.command()? {
+        Search => search(args),
+        SearchParallel => search_parallel(args),
+        SearchNever => Ok(false),
+        Files => files(args),
+        FilesParallel => files_parallel(args),
+        Types => types(args),
     }
 }
 
-fn run_parallel(args: &Arc<Args>) -> Result<u64> {
-    let start_time = Instant::now();
-    let bufwtr = Arc::new(args.buffer_writer());
-    let quiet_matched = args.quiet_matched();
-    let paths_searched = Arc::new(AtomicUsize::new(0));
-    let match_line_count = Arc::new(AtomicUsize::new(0));
-    let paths_matched = Arc::new(AtomicUsize::new(0));
+/// The top-level entry point for single-threaded search. This recursively
+/// steps through the file list (current directory by default) and searches
+/// each file sequentially.
+fn search(args: Args) -> Result<bool> {
+    let started_at = Instant::now();
+    let quit_after_match = args.quit_after_match()?;
+    let subject_builder = args.subject_builder();
+    let mut stats = args.stats()?;
+    let mut searcher = args.search_worker(args.stdout())?;
+    let mut matched = false;
 
-    args.walker_parallel().run(|| {
-        let args = Arc::clone(args);
-        let quiet_matched = quiet_matched.clone();
-        let paths_searched = paths_searched.clone();
-        let match_line_count = match_line_count.clone();
-        let paths_matched = paths_matched.clone();
+    for result in args.walker()? {
+        let subject = match subject_builder.build_from_result(result) {
+            Some(subject) => subject,
+            None => continue,
+        };
+        let search_result = match searcher.search(&subject) {
+            Ok(search_result) => search_result,
+            Err(err) => {
+                // A broken pipe means graceful termination.
+                if err.kind() == io::ErrorKind::BrokenPipe {
+                    break;
+                }
+                message!("{}: {}", subject.path().display(), err);
+                continue;
+            }
+        };
+        matched = matched || search_result.has_match();
+        if let Some(ref mut stats) = stats {
+            *stats += search_result.stats().unwrap();
+        }
+        if matched && quit_after_match {
+            break;
+        }
+    }
+    if let Some(ref stats) = stats {
+        let elapsed = Instant::now().duration_since(started_at);
+        // We don't care if we couldn't print this successfully.
+        let _ = searcher.print_stats(elapsed, stats);
+    }
+    Ok(matched)
+}
+
+/// The top-level entry point for multi-threaded search. The parallelism is
+/// itself achieved by the recursive directory traversal. All we need to do is
+/// feed it a worker for performing a search on each file.
+fn search_parallel(args: Args) -> Result<bool> {
+    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::Ordering::SeqCst;
+
+    let quit_after_match = args.quit_after_match()?;
+    let started_at = Instant::now();
+    let subject_builder = Arc::new(args.subject_builder());
+    let bufwtr = Arc::new(args.buffer_writer()?);
+    let stats = Arc::new(args.stats()?.map(Mutex::new));
+    let matched = Arc::new(AtomicBool::new(false));
+    let mut searcher_err = None;
+    args.walker_parallel()?.run(|| {
+        let args = args.clone();
         let bufwtr = Arc::clone(&bufwtr);
-        let mut buf = bufwtr.buffer();
-        let mut worker = args.worker();
-        Box::new(move |result| {
-            use ignore::WalkState::*;
+        let stats = Arc::clone(&stats);
+        let matched = Arc::clone(&matched);
+        let subject_builder = Arc::clone(&subject_builder);
+        let mut searcher = match args.search_worker(bufwtr.buffer()) {
+            Ok(searcher) => searcher,
+            Err(err) => {
+                searcher_err = Some(err);
+                return Box::new(move |_| {
+                    WalkState::Quit
+                });
+            }
+        };
 
-            if quiet_matched.has_match() {
-                return Quit;
-            }
-            let dent = match get_or_log_dir_entry(
-                result,
-                args.stdout_handle(),
-                args.files(),
-                args.no_messages(),
-                args.no_ignore_messages(),
-            ) {
-                None => return Continue,
-                Some(dent) => dent,
+        Box::new(move |result| {
+            let subject = match subject_builder.build_from_result(result) {
+                Some(subject) => subject,
+                None => return WalkState::Continue,
             };
-            paths_searched.fetch_add(1, Ordering::SeqCst);
-            buf.clear();
-            {
-                // This block actually executes the search and prints the
-                // results into outbuf.
-                let mut printer = args.printer(&mut buf);
-                let count =
-                    if dent.is_stdin() {
-                        worker.run(&mut printer, Work::Stdin)
-                    } else {
-                        worker.run(&mut printer, Work::DirEntry(dent))
-                    };
-                match_line_count.fetch_add(count as usize, Ordering::SeqCst);
-                if quiet_matched.set_match(count > 0) {
-                    return Quit;
+            searcher.printer().get_mut().clear();
+            let search_result = match searcher.search(&subject) {
+                Ok(search_result) => search_result,
+                Err(err) => {
+                    message!("{}: {}", subject.path().display(), err);
+                    return WalkState::Continue;
                 }
-                if args.stats() && count > 0 {
-                    paths_matched.fetch_add(1, Ordering::SeqCst);
-                }
+            };
+            if search_result.has_match() {
+                matched.store(true, SeqCst);
             }
-            // BUG(burntsushi): We should handle this error instead of ignoring
-            // it. See: https://github.com/BurntSushi/ripgrep/issues/200
-            let _ = bufwtr.print(&buf);
-            Continue
+            if let Some(ref locked_stats) = *stats {
+                let mut stats = locked_stats.lock().unwrap();
+                *stats += search_result.stats().unwrap();
+            }
+            if let Err(err) = bufwtr.print(searcher.printer().get_mut()) {
+                // A broken pipe means graceful termination.
+                if err.kind() == io::ErrorKind::BrokenPipe {
+                    return WalkState::Quit;
+                }
+                // Otherwise, we continue on our merry way.
+                message!("{}: {}", subject.path().display(), err);
+            }
+            if matched.load(SeqCst) && quit_after_match {
+                WalkState::Quit
+            } else {
+                WalkState::Continue
+            }
         })
     });
-    if !args.paths().is_empty() && paths_searched.load(Ordering::SeqCst) == 0 {
-        if !args.no_messages() {
-            eprint_nothing_searched();
-        }
+    if let Some(err) = searcher_err.take() {
+        return Err(err);
     }
-    let match_line_count = match_line_count.load(Ordering::SeqCst) as u64;
-    let paths_searched = paths_searched.load(Ordering::SeqCst) as u64;
-    let paths_matched = paths_matched.load(Ordering::SeqCst) as u64;
-    if args.stats() {
-        print_stats(
-            match_line_count,
-            paths_searched,
-            paths_matched,
-            start_time.elapsed(),
-        );
+    if let Some(ref locked_stats) = *stats {
+        let elapsed = Instant::now().duration_since(started_at);
+        let stats = locked_stats.lock().unwrap();
+        let mut searcher = args.search_worker(args.stdout())?;
+        // We don't care if we couldn't print this successfully.
+        let _ = searcher.print_stats(elapsed, &stats);
     }
-    Ok(match_line_count)
+    Ok(matched.load(SeqCst))
 }
 
-fn run_one_thread(args: &Arc<Args>) -> Result<u64> {
-    let start_time = Instant::now();
-    let mut stdout = args.stdout();
-    let mut worker = args.worker();
-    let mut paths_searched: u64 = 0;
-    let mut match_line_count = 0;
-    let mut paths_matched: u64 = 0;
-    for result in args.walker() {
-        let dent = match get_or_log_dir_entry(
-            result,
-            args.stdout_handle(),
-            args.files(),
-            args.no_messages(),
-            args.no_ignore_messages(),
-        ) {
+/// The top-level entry point for listing files without searching them. This
+/// recursively steps through the file list (current directory by default) and
+/// prints each path sequentially using a single thread.
+fn files(args: Args) -> Result<bool> {
+    let quit_after_match = args.quit_after_match()?;
+    let subject_builder = args.subject_builder();
+    let mut matched = false;
+    let mut path_printer = args.path_printer(args.stdout())?;
+    for result in args.walker()? {
+        let subject = match subject_builder.build_from_result(result) {
+            Some(subject) => subject,
             None => continue,
-            Some(dent) => dent,
         };
-        let mut printer = args.printer(&mut stdout);
-        if match_line_count > 0 {
-            if args.quiet() {
+        matched = true;
+        if quit_after_match {
+            break;
+        }
+        if let Err(err) = path_printer.write_path(subject.path()) {
+            // A broken pipe means graceful termination.
+            if err.kind() == io::ErrorKind::BrokenPipe {
                 break;
             }
-            if let Some(sep) = args.file_separator() {
-                printer = printer.file_separator(sep);
-            }
-        }
-        paths_searched += 1;
-        let count =
-            if dent.is_stdin() {
-                worker.run(&mut printer, Work::Stdin)
-            } else {
-                worker.run(&mut printer, Work::DirEntry(dent))
-            };
-        match_line_count += count;
-        if args.stats() && count > 0 {
-            paths_matched += 1;
+            // Otherwise, we have some other error that's preventing us from
+            // writing to stdout, so we should bubble it up.
+            return Err(err.into());
         }
     }
-    if !args.paths().is_empty() && paths_searched == 0 {
-        if !args.no_messages() {
-            eprint_nothing_searched();
-        }
-    }
-    if args.stats() {
-        print_stats(
-            match_line_count,
-            paths_searched,
-            paths_matched,
-            start_time.elapsed(),
-        );
-    }
-    Ok(match_line_count)
+    Ok(matched)
 }
 
-fn run_files_parallel(args: Arc<Args>) -> Result<u64> {
-    let print_args = Arc::clone(&args);
-    let (tx, rx) = mpsc::channel::<ignore::DirEntry>();
-    let print_thread = thread::spawn(move || {
-        let mut printer = print_args.printer(print_args.stdout());
-        let mut file_count = 0;
-        for dent in rx.iter() {
-            if !print_args.quiet() {
-                printer.path(dent.path());
-            }
-            file_count += 1;
+/// The top-level entry point for listing files without searching them. This
+/// recursively steps through the file list (current directory by default) and
+/// prints each path sequentially using multiple threads.
+fn files_parallel(args: Args) -> Result<bool> {
+    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::Ordering::SeqCst;
+    use std::sync::mpsc;
+    use std::thread;
+
+    let quit_after_match = args.quit_after_match()?;
+    let subject_builder = Arc::new(args.subject_builder());
+    let mut path_printer = args.path_printer(args.stdout())?;
+    let matched = Arc::new(AtomicBool::new(false));
+    let (tx, rx) = mpsc::channel::<Subject>();
+
+    let print_thread = thread::spawn(move || -> io::Result<()> {
+        for subject in rx.iter() {
+            path_printer.write_path(subject.path())?;
         }
-        file_count
+        Ok(())
     });
-    args.walker_parallel().run(move || {
-        let args = Arc::clone(&args);
+    args.walker_parallel()?.run(|| {
+        let subject_builder = Arc::clone(&subject_builder);
+        let matched = Arc::clone(&matched);
         let tx = tx.clone();
+
         Box::new(move |result| {
-            if let Some(dent) = get_or_log_dir_entry(
-                result,
-                args.stdout_handle(),
-                args.files(),
-                args.no_messages(),
-                args.no_ignore_messages(),
-            ) {
-                tx.send(dent).unwrap();
-                if args.quiet() {
-                    return ignore::WalkState::Quit
+            let subject = match subject_builder.build_from_result(result) {
+                Some(subject) => subject,
+                None => return WalkState::Continue,
+            };
+            matched.store(true, SeqCst);
+            if quit_after_match {
+                WalkState::Quit
+            } else {
+                match tx.send(subject) {
+                    Ok(_) => WalkState::Continue,
+                    Err(_) => WalkState::Quit,
                 }
             }
-            ignore::WalkState::Continue
         })
     });
-    Ok(print_thread.join().unwrap())
-}
-
-fn run_files_one_thread(args: &Arc<Args>) -> Result<u64> {
-    let mut printer = args.printer(args.stdout());
-    let mut file_count = 0;
-    for result in args.walker() {
-        let dent = match get_or_log_dir_entry(
-            result,
-            args.stdout_handle(),
-            args.files(),
-            args.no_messages(),
-            args.no_ignore_messages(),
-        ) {
-            None => continue,
-            Some(dent) => dent,
-        };
-        file_count += 1;
-        if args.quiet() {
-            break;
-        } else {
-            printer.path(dent.path());
+    drop(tx);
+    if let Err(err) = print_thread.join().unwrap() {
+        // A broken pipe means graceful termination, so fall through.
+        // Otherwise, something bad happened while writing to stdout, so bubble
+        // it up.
+        if err.kind() != io::ErrorKind::BrokenPipe {
+            return Err(err.into());
         }
     }
-    Ok(file_count)
+    Ok(matched.load(SeqCst))
 }
 
-fn run_types(args: &Arc<Args>) -> Result<u64> {
-    let mut printer = args.printer(args.stdout());
-    let mut ty_count = 0;
-    for def in args.type_defs() {
-        printer.type_def(def);
-        ty_count += 1;
-    }
-    Ok(ty_count)
-}
+/// The top-level entry point for --type-list.
+fn types(args: Args) -> Result<bool> {
+    let mut count = 0;
+    let mut stdout = args.stdout();
+    for def in args.type_defs()? {
+        count += 1;
+        stdout.write_all(def.name().as_bytes())?;
+        stdout.write_all(b": ")?;
 
-fn get_or_log_dir_entry(
-    result: result::Result<ignore::DirEntry, ignore::Error>,
-    stdout_handle: Option<&same_file::Handle>,
-    files_only: bool,
-    no_messages: bool,
-    no_ignore_messages: bool,
-) -> Option<ignore::DirEntry> {
-    match result {
-        Err(err) => {
-            if !no_messages {
-                eprintln!("{}", err);
+        let mut first = true;
+        for glob in def.globs() {
+            if !first {
+                stdout.write_all(b", ")?;
             }
-            None
+            stdout.write_all(glob.as_bytes())?;
+            first = false;
         }
-        Ok(dent) => {
-            if let Some(err) = dent.error() {
-                if !no_messages && !no_ignore_messages {
-                    eprintln!("{}", err);
-                }
-            }
-            if dent.file_type().is_none() {
-                return Some(dent); // entry is stdin
-            }
-            // A depth of 0 means the user gave the path explicitly, so we
-            // should always try to search it.
-            if dent.depth() == 0 && !ignore_entry_is_dir(&dent) {
-                return Some(dent);
-            } else if !ignore_entry_is_file(&dent) {
-                return None;
-            }
-            // If we are redirecting stdout to a file, then don't search that
-            // file.
-            if !files_only && is_stdout_file(&dent, stdout_handle, no_messages) {
-                return None;
-            }
-            Some(dent)
-        }
+        stdout.write_all(b"\n")?;
     }
-}
-
-/// Returns true if and only if the given `ignore::DirEntry` points to a
-/// directory.
-///
-/// This works around a bug in Rust's standard library:
-/// https://github.com/rust-lang/rust/issues/46484
-#[cfg(windows)]
-fn ignore_entry_is_dir(dent: &ignore::DirEntry) -> bool {
-    use std::os::windows::fs::MetadataExt;
-    use winapi::um::winnt::FILE_ATTRIBUTE_DIRECTORY;
-
-    dent.metadata().map(|md| {
-        md.file_attributes() & FILE_ATTRIBUTE_DIRECTORY != 0
-    }).unwrap_or(false)
-}
-
-/// Returns true if and only if the given `ignore::DirEntry` points to a
-/// directory.
-#[cfg(not(windows))]
-fn ignore_entry_is_dir(dent: &ignore::DirEntry) -> bool {
-    dent.file_type().map_or(false, |ft| ft.is_dir())
-}
-
-/// Returns true if and only if the given `ignore::DirEntry` points to a
-/// file.
-///
-/// This works around a bug in Rust's standard library:
-/// https://github.com/rust-lang/rust/issues/46484
-#[cfg(windows)]
-fn ignore_entry_is_file(dent: &ignore::DirEntry) -> bool {
-    !ignore_entry_is_dir(dent)
-}
-
-/// Returns true if and only if the given `ignore::DirEntry` points to a
-/// file.
-#[cfg(not(windows))]
-fn ignore_entry_is_file(dent: &ignore::DirEntry) -> bool {
-    dent.file_type().map_or(false, |ft| ft.is_file())
-}
-
-fn is_stdout_file(
-    dent: &ignore::DirEntry,
-    stdout_handle: Option<&same_file::Handle>,
-    no_messages: bool,
-) -> bool {
-    let stdout_handle = match stdout_handle {
-        None => return false,
-        Some(stdout_handle) => stdout_handle,
-    };
-    // If we know for sure that these two things aren't equal, then avoid
-    // the costly extra stat call to determine equality.
-    if !maybe_dent_eq_handle(dent, stdout_handle) {
-        return false;
-    }
-    match same_file::Handle::from_path(dent.path()) {
-        Ok(h) => stdout_handle == &h,
-        Err(err) => {
-            if !no_messages {
-                eprintln!("{}: {}", dent.path().display(), err);
-            }
-            false
-        }
-    }
-}
-
-#[cfg(unix)]
-fn maybe_dent_eq_handle(
-    dent: &ignore::DirEntry,
-    handle: &same_file::Handle,
-) -> bool {
-    dent.ino() == Some(handle.ino())
-}
-
-#[cfg(not(unix))]
-fn maybe_dent_eq_handle(_: &ignore::DirEntry, _: &same_file::Handle) -> bool {
-    true
-}
-
-fn eprint_nothing_searched() {
-    eprintln!("No files were searched, which means ripgrep probably \
-               applied a filter you didn't expect. \
-               Try running again with --debug.");
-}
-
-fn print_stats(
-    match_count: u64,
-    paths_searched: u64,
-    paths_matched: u64,
-    time_elapsed: Duration,
-) {
-    let time_elapsed =
-        time_elapsed.as_secs() as f64
-        + (time_elapsed.subsec_nanos() as f64 * 1e-9);
-    println!("\n{} matched lines\n\
-              {} files contained matches\n\
-              {} files searched\n\
-              {:.3} seconds", match_count, paths_matched,
-             paths_searched, time_elapsed);
-}
-
-// The Rust standard library suppresses the default SIGPIPE behavior, so that
-// writing to a closed pipe doesn't kill the process. The goal is to instead
-// handle errors through the normal result mechanism. Ripgrep needs some
-// refactoring before it will be able to do that, however, so we re-enable the
-// standard SIGPIPE behavior as a workaround. See
-// https://github.com/BurntSushi/ripgrep/issues/200.
-#[cfg(unix)]
-fn reset_sigpipe() {
-    unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
-    }
-}
-
-#[cfg(not(unix))]
-fn reset_sigpipe() {
-    // no-op
+    Ok(count > 0)
 }

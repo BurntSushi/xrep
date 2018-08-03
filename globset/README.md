@@ -4,7 +4,7 @@ Cross platform single glob and glob set matching. Glob set matching is the
 process of matching one or more glob patterns against a single candidate path
 simultaneously, and returning all of the globs that matched.
 
-[![Linux build status](https://api.travis-ci.org/BurntSushi/ripgrep.png)](https://travis-ci.org/BurntSushi/ripgrep)
+[![Linux build status](https://api.travis-ci.org/BurntSushi/ripgrep.svg)](https://travis-ci.org/BurntSushi/ripgrep)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/github/BurntSushi/ripgrep?svg=true)](https://ci.appveyor.com/project/BurntSushi/ripgrep)
 [![](https://img.shields.io/crates/v/globset.svg)](https://crates.io/crates/globset)
 

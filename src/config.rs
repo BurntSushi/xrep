@@ -12,10 +12,7 @@ use std::path::{Path, PathBuf};
 use Result;
 
 /// Return a sequence of arguments derived from ripgrep rc configuration files.
-///
-/// If no_messages is false and there was a problem reading a config file,
-/// then errors are printed to stderr.
-pub fn args(no_messages: bool) -> Vec<OsString> {
+pub fn args() -> Vec<OsString> {
     let config_path = match env::var_os("RIPGREP_CONFIG_PATH") {
         None => return vec![],
         Some(config_path) => {
@@ -28,20 +25,20 @@ pub fn args(no_messages: bool) -> Vec<OsString> {
     let (args, errs) = match parse(&config_path) {
         Ok((args, errs)) => (args, errs),
         Err(err) => {
-            if !no_messages {
-                eprintln!("{}", err);
-            }
+            message!("{}", err);
             return vec![];
         }
     };
-    if !no_messages && !errs.is_empty() {
+    if !errs.is_empty() {
         for err in errs {
-            eprintln!("{}:{}", config_path.display(), err);
+            message!("{}:{}", config_path.display(), err);
         }
     }
     debug!(
         "{}: arguments loaded from config file: {:?}",
-        config_path.display(), args);
+        config_path.display(),
+        args
+    );
     args
 }
 
@@ -59,7 +56,7 @@ fn parse<P: AsRef<Path>>(
     let path = path.as_ref();
     match File::open(&path) {
         Ok(file) => parse_reader(file),
-        Err(err) => errored!("{}: {}", path.display(), err),
+        Err(err) => Err(From::from(format!("{}: {}", path.display(), err))),
     }
 }
 

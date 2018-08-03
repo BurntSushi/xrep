@@ -1,8 +1,6 @@
-# Inspired from https://github.com/habitat-sh/habitat/blob/master/appveyor.yml
 cache:
   - c:\cargo\registry
   - c:\cargo\git
-  - c:\projects\ripgrep\target
 
 init:
   - mkdir c:\cargo
@@ -19,14 +17,20 @@ environment:
     PROJECT_NAME: ripgrep
     RUST_BACKTRACE: full
   matrix:
-    - TARGET: i686-pc-windows-gnu
-      CHANNEL: stable
-    - TARGET: i686-pc-windows-msvc
-      CHANNEL: stable
     - TARGET: x86_64-pc-windows-gnu
       CHANNEL: stable
+      BITS: 64
+      MSYS2: 1
     - TARGET: x86_64-pc-windows-msvc
       CHANNEL: stable
+      BITS: 64
+    - TARGET: i686-pc-windows-gnu
+      CHANNEL: stable
+      BITS: 32
+      MSYS2: 1
+    - TARGET: i686-pc-windows-msvc
+      CHANNEL: stable
+      BITS: 32
 
 matrix:
   fast_finish: true
@@ -35,8 +39,9 @@ matrix:
 # (Based on from https://github.com/rust-lang/libc/blob/master/appveyor.yml)
 install:
   - curl -sSf -o rustup-init.exe https://win.rustup.rs/
-  - rustup-init.exe -y --default-host %TARGET% --no-modify-path
-  - if defined MSYS2_BITS set PATH=%PATH%;C:\msys64\mingw%MSYS2_BITS%\bin
+  - rustup-init.exe -y --default-host %TARGET%
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - if defined MSYS2 set PATH=C:\msys64\mingw%BITS%\bin;%PATH%
   - rustc -V
   - cargo -V
 
@@ -46,11 +51,11 @@ build: false
 # Equivalent to Travis' `script` phase
 # TODO modify this phase as you see fit
 test_script:
-  - cargo test --verbose --all
+  - cargo test --verbose --all --features pcre2
 
 before_deploy:
   # Generate artifacts for release
-  - cargo build --release
+  - cargo build --release --features pcre2
   - mkdir staging
   - copy target\release\rg.exe staging
   - ps: copy target\release\build\ripgrep-*\out\_rg.ps1 staging

@@ -35,7 +35,6 @@ path = "tests/tests.rs"
 members = [
   "globset",
   "grep",
-  "grep2",
   "grep-matcher",
   "grep-pcre2",
   "grep-printer",
@@ -46,20 +45,15 @@ members = [
 
 [dependencies]
 atty = "0.2.11"
-bytecount = "0.3.2"
-encoding_rs = "0.8"
-encoding_rs_io = "0.1"
 globset = { version = "0.4.0", path = "globset" }
-grep = { version = "0.1.8", path = "grep" }
+grep = { version = "0.2.0", path = "grep" }
 ignore = { version = "0.4.0", path = "ignore" }
 lazy_static = "1"
-libc = "0.2"
 log = "0.4"
-memchr = "2"
-memmap = "0.6"
 num_cpus = "1"
 regex = "1"
 same-file = "1"
+serde_json = "1"
 termcolor = "1"
 
 [dependencies.clap]
@@ -69,7 +63,7 @@ features = ["suggestions", "color"]
 
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"
-features = ["std", "winnt"]
+features = ["std", "fileapi", "winnt"]
 
 [build-dependencies]
 lazy_static = "1"
@@ -80,15 +74,9 @@ default-features = false
 features = ["suggestions", "color"]
 
 [features]
-avx-accel = [
-  "bytecount/avx-accel",
-  "grep2/avx-accel",
-]
-simd-accel = [
-  "bytecount/simd-accel",
-  "encoding_rs/simd-accel",
-  "grep2/simd-accel",
-]
+avx-accel = ["grep/avx-accel"]
+simd-accel = ["grep/simd-accel"]
+pcre2 = ["grep/pcre2"]
 
 [profile.release]
-debug = true
+debug = 1

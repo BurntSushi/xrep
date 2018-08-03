@@ -7,7 +7,7 @@ available for [every release](https://github.com/BurntSushi/ripgrep/releases).
 ripgrep is similar to other popular search tools like The Silver Searcher,
 ack and grep.
 
-[![Linux build status](https://travis-ci.org/BurntSushi/ripgrep.svg?branch=master)](https://travis-ci.org/BurntSushi/ripgrep)
+[![Linux build status](https://travis-ci.org/BurntSushi/ripgrep.svg)](https://travis-ci.org/BurntSushi/ripgrep)
 [![Windows build status](https://ci.appveyor.com/api/projects/status/github/BurntSushi/ripgrep?svg=true)](https://ci.appveyor.com/project/BurntSushi/ripgrep)
 [![Crates.io](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
 
@@ -85,14 +85,16 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
 
 ### Why should I use ripgrep?
 
-* It can replace many use cases served by both The Silver Searcher and GNU grep
-  because it is generally faster than both. (See [the FAQ](FAQ.md#posix4ever)
-  for more details on whether ripgrep can truly replace grep.)
-* Like The Silver Searcher, ripgrep defaults to recursive directory search
-  and won't search files ignored by your `.gitignore` files. It also ignores
-  hidden and binary files by default. ripgrep also implements full support
-  for `.gitignore`, whereas there are many bugs related to that functionality
-  in The Silver Searcher.
+* It can replace many use cases served by other search tools
+  because it contains most of their features and is generally faster. (See
+  [the FAQ](FAQ.md#posix4ever) for more details on whether ripgrep can truly
+  replace grep.)
+* Like other tools specialized to code search, ripgrep defaults to recursive
+  directory search and won't search files ignored by your `.gitignore` files.
+  It also ignores hidden and binary files by default. ripgrep also implements
+  full support for `.gitignore`, whereas there are many bugs related to that
+  functionality in other code search tools claiming to provide the same
+  functionality.
 * ripgrep can search specific types of files. For example, `rg -tpy foo`
   limits your search to Python files and `rg -Tjs foo` excludes Javascript
   files from your search. ripgrep can be taught about new file types with
@@ -117,22 +119,24 @@ bugs, and Unicode support.
 
 ### Why shouldn't I use ripgrep?
 
-I'd like to try to convince you why you *shouldn't* use ripgrep. This should
-give you a glimpse at some important downsides or missing features of
-ripgrep.
+Despite initially not wanting to add every feature under the sun to ripgrep,
+over time, ripgrep has grown support for most features found in other file
+searching tools. This includes searching for results spanning across multiple
+lines, and opt-in support for PCRE2, which provides look-around and
+backreference support.
 
-* ripgrep uses a regex engine based on finite automata, so if you want fancy
-  regex features such as backreferences or lookaround, ripgrep won't provide
-  them to you. ripgrep does support lots of things though, including, but not
-  limited to: lazy quantification (e.g., `a+?`), repetitions (e.g., `a{2,5}`),
-  begin/end assertions (e.g., `^\w+$`), word boundaries (e.g., `\bfoo\b`), and
-  support for Unicode categories (e.g., `\p{Sc}` to match currency symbols or
-  `\p{Lu}` to match any uppercase letter). (Fancier regexes will never be
-  supported.)
-* ripgrep doesn't have multiline search. (Will happen as an opt-in feature.)
+At this point, the primary reasons not to use ripgrep probably consist of one
+or more of the following:
 
-In other words, if you like fancy regexes or multiline search, then ripgrep
-may not quite meet your needs (yet).
+* You need a portable and ubiquitous tool. While ripgrep works on Windows,
+  macOS and Linux, it is not ubiquitous and it does not conform to any
+  standard such as POSIX. The best tool for this job is good old grep.
+* There still exists some other minor feature (or bug) found in another tool
+  that isn't in ripgrep.
+* There is a performance edge case where ripgrep doesn't do well where another
+  tool does do well. (Please file a bug report!)
+* ripgrep isn't possible to install on your machine or isn't available for your
+  platform. (Please file a bug report!)
 
 
 ### Is it really faster than everything else?
@@ -145,7 +149,8 @@ Summarizing, ripgrep is fast because:
 * It is built on top of
   [Rust's regex engine](https://github.com/rust-lang-nursery/regex).
   Rust's regex engine uses finite automata, SIMD and aggressive literal
-  optimizations to make searching very fast.
+  optimizations to make searching very fast. (PCRE2 support can be opted into
+  with the `-P/--pcre2` flag.)
 * Rust's regex library maintains performance with full Unicode support by
   building UTF-8 decoding directly into its deterministic finite automaton
   engine.
@@ -167,6 +172,11 @@ Summarizing, ripgrep is fast because:
 Andy Lester, author of [ack](https://beyondgrep.com/), has published an
 excellent table comparing the features of ack, ag, git-grep, GNU grep and
 ripgrep: https://beyondgrep.com/feature-comparison/
+
+Note that ripgrep has grown a few significant new features recently that
+are not yet present in Andy's table. This includes, but is not limited to,
+configuration files, passthru, support for searching compressed files,
+multiline search and opt-in fancy regex support via PCRE2.
 
 
 ### Installation
@@ -207,13 +217,15 @@ If you're a **MacPorts** user, then you can install ripgrep from the
 $ sudo port install ripgrep
 ```
 
-If you're a **Windows Chocolatey** user, then you can install ripgrep from the [official repo](https://chocolatey.org/packages/ripgrep):
+If you're a **Windows Chocolatey** user, then you can install ripgrep from the
+[official repo](https://chocolatey.org/packages/ripgrep):
 
 ```
 $ choco install ripgrep
 ```
 
-If you're a **Windows Scoop** user, then you can install ripgrep from the [official bucket](https://github.com/lukesampson/scoop/blob/master/bucket/ripgrep.json):
+If you're a **Windows Scoop** user, then you can install ripgrep from the
+[official bucket](https://github.com/lukesampson/scoop/blob/master/bucket/ripgrep.json):
 
 ```
 $ scoop install ripgrep
@@ -225,32 +237,37 @@ If you're an **Arch Linux** user, then you can install ripgrep from the official
 $ pacman -S ripgrep
 ```
 
-If you're a **Gentoo** user, you can install ripgrep from the [official repo](https://packages.gentoo.org/packages/sys-apps/ripgrep):
+If you're a **Gentoo** user, you can install ripgrep from the
+[official repo](https://packages.gentoo.org/packages/sys-apps/ripgrep):
 
 ```
 $ emerge sys-apps/ripgrep
 ```
 
-If you're a **Fedora 27+** user, you can install ripgrep from official repositories.
+If you're a **Fedora 27+** user, you can install ripgrep from official
+repositories.
 
 ```
 $ sudo dnf install ripgrep
 ```
 
-If you're a **Fedora 24+** user, you can install ripgrep from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
+If you're a **Fedora 24+** user, you can install ripgrep from
+[copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
 $ sudo dnf copr enable carlwgeorge/ripgrep
 $ sudo dnf install ripgrep
 ```
 
-If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the [official repo](http://software.opensuse.org/package/ripgrep):
+If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the
+[official repo](http://software.opensuse.org/package/ripgrep):
 
 ```
 $ sudo zypper install ripgrep
 ```
 
-If you're a **RHEL/CentOS 7** user, you can install ripgrep from [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
+If you're a **RHEL/CentOS 7** user, you can install ripgrep from
+[copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
 $ sudo yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/repo/epel-7/carlwgeorge-ripgrep-epel-7.repo
@@ -280,25 +297,29 @@ seem to work right and generate a number of very strange bug reports that I
 don't know how to fix and don't have the time to fix. Therefore, it is no
 longer a recommended installation option.)
 
-If you're a **FreeBSD** user, then you can install ripgrep from the [official ports](https://www.freshports.org/textproc/ripgrep/):
+If you're a **FreeBSD** user, then you can install ripgrep from the
+[official ports](https://www.freshports.org/textproc/ripgrep/):
 
 ```
 # pkg install ripgrep
 ```
 
-If you're an **OpenBSD** user, then you can install ripgrep from the [official ports](http://openports.se/textproc/ripgrep):
+If you're an **OpenBSD** user, then you can install ripgrep from the
+[official ports](http://openports.se/textproc/ripgrep):
 
 ```
 $ doas pkg_add ripgrep
 ```
 
-If you're a **NetBSD** user, then you can install ripgrep from [pkgsrc](http://pkgsrc.se/textproc/ripgrep):
+If you're a **NetBSD** user, then you can install ripgrep from
+[pkgsrc](http://pkgsrc.se/textproc/ripgrep):
 
 ```
 # pkgin install ripgrep
 ```
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
+
 * Note that the minimum supported version of Rust for ripgrep is **1.23.0**,
   although ripgrep may work with older versions.
 * Note that the binary may be bigger than expected because it contains debug
@@ -346,6 +367,35 @@ ripgrep dependencies (responsible for counting lines and transcoding). They
 are not necessary to get SIMD optimizations for search; those are enabled
 automatically. Hopefully, some day, the `simd-accel` and `avx-accel` features
 will similarly become unnecessary.
+
+Finally, optional PCRE2 support can be built with ripgrep by enabling the
+`pcre2` feature:
+
+```
+$ cargo build --release --features 'pcre2'
+```
+
+(Tip: use `--features 'pcre2 simd-accel avx-accel'` to also include compile
+time SIMD optimizations.)
+
+Enabling the PCRE2 feature will attempt to automatically find and link with
+your system's PCRE2 library via `pkg-config`. If one doesn't exist, then
+ripgrep will build PCRE2 from source using your system's C compiler and then
+statically link it into the final executable. Static linking can be forced even
+when there is an available PCRE2 system library by either building ripgrep with
+the MUSL target or by setting `PCRE2_SYS_STATIC=1`.
+
+ripgrep can be built with the MUSL target on Linux by first installing the MUSL
+library on your system (consult your friendly neighborhood package manager).
+Then you just need to add MUSL support to your Rust toolchain and rebuild
+ripgrep, which yields a fully static executable:
+
+```
+$ rustup target add x86_64-unknown-linux-musl
+$ cargo build --release --target x86_64-unknown-linux-musl
+```
+
+Applying the `--features` flag from above works as expected.
 
 
 ### Running tests

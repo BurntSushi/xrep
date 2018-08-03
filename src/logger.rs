@@ -34,19 +34,30 @@ impl Log for Logger {
         match (record.file(), record.line()) {
             (Some(file), Some(line)) => {
                 eprintln!(
-                    "{}/{}/{}:{}: {}",
-                    record.level(), record.target(),
-                    file, line, record.args());
+                    "{}|{}|{}:{}: {}",
+                    record.level(),
+                    record.target(),
+                    file,
+                    line,
+                    record.args()
+                );
             }
             (Some(file), None) => {
                 eprintln!(
-                    "{}/{}/{}: {}",
-                    record.level(), record.target(), file, record.args());
+                    "{}|{}|{}: {}",
+                    record.level(),
+                    record.target(),
+                    file,
+                    record.args()
+                );
             }
             _ => {
                 eprintln!(
-                    "{}/{}: {}",
-                    record.level(), record.target(), record.args());
+                    "{}|{}: {}",
+                    record.level(),
+                    record.target(),
+                    record.args()
+                );
             }
         }
     }

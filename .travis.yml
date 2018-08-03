@@ -17,6 +17,8 @@ addons:
       # Needed for testing decompression search.
       - xz-utils
       - liblz4-tool
+      # For building MUSL static builds on Linux.
+      - musl-tools
 matrix:
   fast_finish: true
   include:

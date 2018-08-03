@@ -4,6 +4,7 @@ extern crate clap;
 extern crate lazy_static;
 
 use std::env;
+use std::ffi::OsString;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::Path;
@@ -18,6 +19,22 @@ use app::{RGArg, RGArgKind};
 mod app;
 
 fn main() {
+    // If our version of Rust has runtime SIMD detection, then set a cfg so
+    // we know we can test for it. We use this when generating ripgrep's
+    // --version output.
+    let version = rustc_version();
+    let parsed = match Version::parse(&version) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            eprintln!("failed to parse `rustc --version`: {}", err);
+            return;
+        }
+    };
+    let minimum = Version { major: 1, minor: 27, patch: 0 };
+    if version.contains("nightly") || parsed >= minimum {
+        println!("cargo:rustc-cfg=ripgrep_runtime_cpu");
+    }
+
     // OUT_DIR is set by Cargo and it's where any additional build artifacts
     // are written.
     let outdir = match env::var_os("OUT_DIR") {
@@ -181,4 +198,64 @@ fn formatted_doc_txt(arg: &RGArg) -> io::Result<String> {
 
 fn ioerr(msg: String) -> io::Error {
     io::Error::new(io::ErrorKind::Other, msg)
+}
+
+fn rustc_version() -> String {
+    let rustc = env::var_os("RUSTC").unwrap_or(OsString::from("rustc"));
+    let output = process::Command::new(&rustc)
+        .arg("--version")
+        .output()
+        .unwrap()
+        .stdout;
+    String::from_utf8(output).unwrap()
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+struct Version {
+    major: u32,
+    minor: u32,
+    patch: u32,
+}
+
+impl Version {
+    fn parse(mut s: &str) -> Result<Version, String> {
+        if !s.starts_with("rustc ") {
+            return Err(format!("unrecognized version string: {}", s));
+        }
+        s = &s["rustc ".len()..];
+
+        let parts: Vec<&str> = s.split(".").collect();
+        if parts.len() < 3 {
+            return Err(format!("not enough version parts: {:?}", parts));
+        }
+
+        let mut num = String::new();
+        for c in parts[0].chars() {
+            if !c.is_digit(10) {
+                break;
+            }
+            num.push(c);
+        }
+        let major = num.parse::<u32>().map_err(|e| e.to_string())?;
+
+        num.clear();
+        for c in parts[1].chars() {
+            if !c.is_digit(10) {
+                break;
+            }
+            num.push(c);
+        }
+        let minor = num.parse::<u32>().map_err(|e| e.to_string())?;
+
+        num.clear();
+        for c in parts[2].chars() {
+            if !c.is_digit(10) {
+                break;
+            }
+            num.push(c);
+        }
+        let patch = num.parse::<u32>().map_err(|e| e.to_string())?;
+
+        Ok(Version { major, minor, patch })
+    }
 }

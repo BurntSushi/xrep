@@ -3,8 +3,6 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{self, Stdio};
 
-use Result;
-
 /// PreprocessorReader provides an `io::Read` impl to read kids output.
 #[derive(Debug)]
 pub struct PreprocessorReader {
@@ -26,7 +24,7 @@ impl PreprocessorReader {
     pub fn from_cmd_path(
         cmd: PathBuf,
         path: &Path,
-    ) -> Result<PreprocessorReader> {
+    ) -> io::Result<PreprocessorReader> {
         let child = process::Command::new(&cmd)
             .arg(path)
             .stdin(Stdio::from(File::open(path)?))
@@ -34,10 +32,13 @@ impl PreprocessorReader {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|err| {
-                format!(
-                    "error running preprocessor command '{}': {}",
-                    cmd.display(),
-                    err,
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    format!(
+                        "error running preprocessor command '{}': {}",
+                        cmd.display(),
+                        err,
+                    ),
                 )
             })?;
         Ok(PreprocessorReader {

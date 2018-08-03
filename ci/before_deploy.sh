@@ -8,7 +8,11 @@ set -ex
 
 # Generate artifacts for release
 mk_artifacts() {
-    cargo build --target "$TARGET" --release
+    if is_arm; then
+        cargo build --target "$TARGET" --release
+    else
+        cargo build --target "$TARGET" --release --features 'pcre2'
+    fi
 }
 
 mk_tarball() {
