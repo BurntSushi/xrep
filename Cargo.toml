@@ -36,7 +36,7 @@ members = ["grep", "globset", "ignore"]
 
 [dependencies]
 atty = "0.2.11"
-bytecount = "0.3.1"
+bytecount = "0.3.2"
 encoding_rs = "0.8"
 encoding_rs_io = "0.1"
 globset = { version = "0.4.0", path = "globset" }
