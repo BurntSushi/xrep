@@ -98,6 +98,7 @@ use {Error, Match};
 
 const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("agda", &["*.agda", "*.lagda"]),
+    ("ats", &["*.ats", "*.dats", "*.sats", "*.hats"]),
     ("aidl", &["*.aidl"]),
     ("amake", &["*.mk", "*.bp"]),
     ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
@@ -107,7 +108,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("bazel", &["*.bzl", "WORKSPACE", "BUILD"]),
     ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
     ("bzip2", &["*.bz2"]),
-    ("c", &["*.c", "*.h", "*.H"]),
+    ("c", &["*.c", "*.h", "*.H", "*.cats"]),
     ("cabal", &["*.cabal"]),
     ("cbor", &["*.cbor"]),
     ("ceylon", &["*.ceylon"]),
@@ -129,6 +130,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("cython", &["*.pyx"]),
     ("dart", &["*.dart"]),
     ("d", &["*.d"]),
+    ("dhall", &["*.dhall"]),
     ("docker", &["*Dockerfile*"]),
     ("elisp", &["*.el"]),
     ("elixir", &["*.ex", "*.eex", "*.exs"]),
@@ -150,6 +152,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("haskell", &["*.hs", "*.lhs"]),
     ("hs", &["*.hs", "*.lhs"]),
     ("html", &["*.htm", "*.html", "*.ejs"]),
+    ("idris", &["*.idr", "*.lidr"]),
     ("java", &["*.java", "*.jsp"]),
     ("jinja", &["*.j2", "*.jinja", "*.jinja2"]),
     ("js", &[
