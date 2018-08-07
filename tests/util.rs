@@ -1,11 +1,10 @@
 use std::env;
 use std::error;
-use std::fmt;
+use std::ffi::OsStr;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process;
-use std::str::FromStr;
+use std::process::{self, Command};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
@@ -13,24 +12,60 @@ use std::time::Duration;
 static TEST_DIR: &'static str = "ripgrep-tests";
 static NEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// `WorkDir` represents a directory in which tests are run.
+/// Setup an empty work directory and return a command pointing to the ripgrep
+/// executable whose CWD is set to the work directory.
+///
+/// The name given will be used to create the directory. Generally, it should
+/// correspond to the test name.
+pub fn setup(test_name: &str) -> (Dir, TestCommand) {
+    let dir = Dir::new(test_name);
+    let cmd = dir.command();
+    (dir, cmd)
+}
+
+/// Like `setup`, but uses PCRE2 as the underlying regex engine.
+pub fn setup_pcre2(test_name: &str) -> (Dir, TestCommand) {
+    let mut dir = Dir::new(test_name);
+    dir.pcre2(true);
+    let cmd = dir.command();
+    (dir, cmd)
+}
+
+/// Break the given string into lines, sort them and then join them back
+/// together. This is useful for testing output from ripgrep that may not
+/// always be in the same order.
+pub fn sort_lines(lines: &str) -> String {
+    let mut lines: Vec<&str> = lines.trim().lines().collect();
+    lines.sort();
+    format!("{}\n", lines.join("\n"))
+}
+
+/// Returns true if and only if the given program can be successfully executed
+/// with a `--help` flag.
+pub fn cmd_exists(program: &str) -> bool {
+    Command::new(program).arg("--help").output().is_ok()
+}
+
+/// Dir represents a directory in which tests should be run.
 ///
 /// Directories are created from a global atomic counter to avoid duplicates.
-#[derive(Debug)]
-pub struct WorkDir {
+#[derive(Clone, Debug)]
+pub struct Dir {
     /// The directory in which this test executable is running.
     root: PathBuf,
     /// The directory in which the test should run. If a test needs to create
     /// files, they should go in here. This directory is also used as the CWD
     /// for any processes created by the test.
     dir: PathBuf,
+    /// Set to true when the test should use PCRE2 as the regex engine.
+    pcre2: bool,
 }
 
-impl WorkDir {
+impl Dir {
     /// Create a new test working directory with the given name. The name
     /// does not need to be distinct for each invocation, but should correspond
     /// to a logical grouping of tests.
-    pub fn new(name: &str) -> WorkDir {
+    pub fn new(name: &str) -> Dir {
         let id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
         let root = env::current_exe()
             .unwrap()
@@ -42,10 +77,22 @@ impl WorkDir {
             .join(name)
             .join(&format!("{}", id));
         nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
-        WorkDir {
+        Dir {
             root: root,
             dir: dir,
+            pcre2: false,
         }
+    }
+
+    /// Use PCRE2 for this test.
+    pub fn pcre2(&mut self, yes: bool) {
+        self.pcre2 = yes;
+    }
+
+    /// Returns true if and only if this test is configured to use PCRE2 as
+    /// the regex engine.
+    pub fn is_pcre2(&self) -> bool {
+        self.pcre2
     }
 
     /// Create a new file with the given name and contents in this directory,
@@ -75,18 +122,19 @@ impl WorkDir {
     /// Create a new file with the given name and contents in this directory,
     /// or panic on error.
     pub fn create_bytes<P: AsRef<Path>>(&self, name: P, contents: &[u8]) {
-        let path = self.dir.join(name);
-        nice_err(&path, self.try_create_bytes(&path, contents));
+        let path = self.dir.join(&name);
+        nice_err(&path, self.try_create_bytes(name, contents));
     }
 
     /// Try to create a new file with the given name and contents in this
     /// directory.
-    fn try_create_bytes<P: AsRef<Path>>(
+    pub fn try_create_bytes<P: AsRef<Path>>(
         &self,
-        path: P,
+        name: P,
         contents: &[u8],
     ) -> io::Result<()> {
-        let mut file = File::create(&path)?;
+        let path = self.dir.join(name);
+        let mut file = File::create(path)?;
         file.write_all(contents)?;
         file.flush()
     }
@@ -106,11 +154,22 @@ impl WorkDir {
 
     /// Creates a new command that is set to use the ripgrep executable in
     /// this working directory.
-    pub fn command(&self) -> process::Command {
+    ///
+    /// This also:
+    ///
+    /// * Unsets the `RIPGREP_CONFIG_PATH` environment variable.
+    /// * Sets the `--path-separator` to `/` so that paths have the same output
+    ///   on all systems. Tests that need to check `--path-separator` itself
+    ///   can simply pass it again to override it.
+    pub fn command(&self) -> TestCommand {
         let mut cmd = process::Command::new(&self.bin());
         cmd.env_remove("RIPGREP_CONFIG_PATH");
         cmd.current_dir(&self.dir);
-        cmd
+        cmd.arg("--path-separator").arg("/");
+        if self.is_pcre2() {
+            cmd.arg("--pcre2");
+        }
+        TestCommand { dir: self.clone(), cmd: cmd }
     }
 
     /// Returns the path to the ripgrep executable.
@@ -174,16 +233,54 @@ impl WorkDir {
         let _ = fs::remove_file(&target);
         nice_err(&target, symlink_file(&src, &target));
     }
+}
+
+/// A simple wrapper around a process::Command with some conveniences.
+#[derive(Debug)]
+pub struct TestCommand {
+    /// The dir used to launched this command.
+    dir: Dir,
+    /// The actual command we use to control the process.
+    cmd: Command,
+}
+
+impl TestCommand {
+    /// Returns a mutable reference to the underlying command.
+    pub fn cmd(&mut self) -> &mut Command {
+        &mut self.cmd
+    }
+
+    /// Add an argument to pass to the command.
+    pub fn arg<A: AsRef<OsStr>>(&mut self, arg: A) -> &mut TestCommand {
+        self.cmd.arg(arg);
+        self
+    }
+
+    /// Add any number of arguments to the command.
+    pub fn args<I, A>(
+        &mut self,
+        args: I,
+    ) -> &mut TestCommand
+    where I: IntoIterator<Item=A>,
+          A: AsRef<OsStr>
+    {
+        self.cmd.args(args);
+        self
+    }
+
+    /// Set the working directory for this command.
+    ///
+    /// Note that this does not need to be called normally, since the creation
+    /// of this TestCommand causes its working directory to be set to the
+    /// test's directory automatically.
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut TestCommand {
+        self.cmd.current_dir(dir);
+        self
+    }
 
     /// Runs and captures the stdout of the given command.
-    ///
-    /// If the return type could not be created from a string, then this
-    /// panics.
-    pub fn stdout<E: fmt::Debug, T: FromStr<Err=E>>(
-        &self,
-        cmd: &mut process::Command,
-    ) -> T {
-        let o = self.output(cmd);
+    pub fn stdout(&mut self) -> String {
+        let o = self.output();
         let stdout = String::from_utf8_lossy(&o.stdout);
         match stdout.parse() {
             Ok(t) => t,
@@ -197,23 +294,13 @@ impl WorkDir {
         }
     }
 
-    /// Gets the output of a command. If the command failed, then this panics.
-    pub fn output(&self, cmd: &mut process::Command) -> process::Output {
-        let output = cmd.output().unwrap();
-        self.expect_success(cmd, output)
-    }
-
     /// Pipe `input` to a command, and collect the output.
-    pub fn pipe(
-        &self,
-        cmd: &mut process::Command,
-        input: &str
-    ) -> process::Output {
-        cmd.stdin(process::Stdio::piped());
-        cmd.stdout(process::Stdio::piped());
-        cmd.stderr(process::Stdio::piped());
+    pub fn pipe(&mut self, input: &str) -> String {
+        self.cmd.stdin(process::Stdio::piped());
+        self.cmd.stdout(process::Stdio::piped());
+        self.cmd.stderr(process::Stdio::piped());
 
-        let mut child = cmd.spawn().unwrap();
+        let mut child = self.cmd.spawn().unwrap();
 
         // Pipe input to child process using a separate thread to avoid
         // risk of deadlock between parent and child process.
@@ -223,20 +310,86 @@ impl WorkDir {
             write!(stdin, "{}", input)
         });
 
-        let output = self.expect_success(
-            cmd,
-            child.wait_with_output().unwrap(),
-        );
+        let output = self.expect_success(child.wait_with_output().unwrap());
         worker.join().unwrap().unwrap();
-        output
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        match stdout.parse() {
+            Ok(t) => t,
+            Err(err) => {
+                panic!(
+                    "could not convert from string: {:?}\n\n{}",
+                    err,
+                    stdout
+                );
+            }
+        }
     }
 
-    /// If `o` is not the output of a successful process run
-    fn expect_success(
-        &self,
-        cmd: &process::Command,
-        o: process::Output
-    ) -> process::Output {
+    /// Gets the output of a command. If the command failed, then this panics.
+    pub fn output(&mut self) -> process::Output {
+        let output = self.cmd.output().unwrap();
+        self.expect_success(output)
+    }
+
+    /// Runs the command and asserts that it resulted in an error exit code.
+    pub fn assert_err(&mut self) {
+        let o = self.cmd.output().unwrap();
+        if o.status.success() {
+            panic!(
+                "\n\n===== {:?} =====\n\
+                 command succeeded but expected failure!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\n=====\n",
+                self.cmd,
+                self.dir.dir.display(),
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+        }
+    }
+
+    /// Runs the command and asserts that its exit code matches expected exit
+    /// code.
+    pub fn assert_exit_code(&mut self, expected_code: i32) {
+        let code = self.cmd.output().unwrap().status.code().unwrap();
+        assert_eq!(
+            expected_code, code,
+            "\n\n===== {:?} =====\n\
+             expected exit code did not match\
+             \n\nexpected: {}\
+             \n\nfound: {}\
+             \n\n=====\n",
+            self.cmd,
+            expected_code,
+            code
+        );
+    }
+
+    /// Runs the command and asserts that something was printed to stderr.
+    pub fn assert_non_empty_stderr(&mut self) {
+        let o = self.cmd.output().unwrap();
+        if o.status.success() || o.stderr.is_empty() {
+            panic!(
+                "\n\n===== {:?} =====\n\
+                 command succeeded but expected failure!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\n=====\n",
+                self.cmd,
+                self.dir.dir.display(),
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+        }
+    }
+
+    fn expect_success(&self, o: process::Output) -> process::Output {
         if !o.status.success() {
             let suggest =
                 if o.stderr.is_empty() {
@@ -254,81 +407,21 @@ impl WorkDir {
                     \n\nstdout: {}\
                     \n\nstderr: {}\
                     \n\n==========\n",
-                   suggest, cmd, self.dir.display(), o.status,
+                   suggest, self.cmd, self.dir.dir.display(), o.status,
                    String::from_utf8_lossy(&o.stdout),
                    String::from_utf8_lossy(&o.stderr));
         }
         o
     }
-
-    /// Runs the given command and asserts that it resulted in an error exit
-    /// code.
-    pub fn assert_err(&self, cmd: &mut process::Command) {
-        let o = cmd.output().unwrap();
-        if o.status.success() {
-            panic!(
-                "\n\n===== {:?} =====\n\
-                 command succeeded but expected failure!\
-                 \n\ncwd: {}\
-                 \n\nstatus: {}\
-                 \n\nstdout: {}\n\nstderr: {}\
-                 \n\n=====\n",
-                cmd,
-                self.dir.display(),
-                o.status,
-                String::from_utf8_lossy(&o.stdout),
-                String::from_utf8_lossy(&o.stderr)
-            );
-        }
-    }
-
-    /// Runs the given command and asserts that its exit code matches expected
-    /// exit code.
-    pub fn assert_exit_code(
-        &self,
-        expected_code: i32,
-        cmd: &mut process::Command,
-    ) {
-        let code = cmd.status().unwrap().code().unwrap();
-
-        assert_eq!(
-            expected_code, code,
-            "\n\n===== {:?} =====\n\
-             expected exit code did not match\
-             \n\nexpected: {}\
-             \n\nfound: {}\
-             \n\n=====\n",
-            cmd, expected_code, code
-        );
-    }
-
-    /// Runs the given command and asserts that something was printed to
-    /// stderr.
-    pub fn assert_non_empty_stderr(&self, cmd: &mut process::Command) {
-        let o = cmd.output().unwrap();
-        if o.status.success() || o.stderr.is_empty() {
-            panic!("\n\n===== {:?} =====\n\
-                    command succeeded but expected failure!\
-                    \n\ncwd: {}\
-                    \n\nstatus: {}\
-                    \n\nstdout: {}\n\nstderr: {}\
-                    \n\n=====\n",
-                   cmd, self.dir.display(), o.status,
-                   String::from_utf8_lossy(&o.stdout),
-                   String::from_utf8_lossy(&o.stderr));
-        }
-    }
 }
 
-fn nice_err<P: AsRef<Path>, T, E: error::Error>(
-    path: P,
+fn nice_err<T, E: error::Error>(
+    path: &Path,
     res: Result<T, E>,
 ) -> T {
     match res {
         Ok(t) => t,
-        Err(err) => {
-            panic!("{}: {:?}", path.as_ref().display(), err);
-        }
+        Err(err) => panic!("{}: {:?}", path.display(), err),
     }
 }
 

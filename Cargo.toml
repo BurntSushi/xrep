@@ -73,6 +73,10 @@ version = "2.29.4"
 default-features = false
 features = ["suggestions", "color"]
 
+[dev-dependencies]
+serde = "1"
+serde_derive = "1"
+
 [features]
 avx-accel = ["grep/avx-accel"]
 simd-accel = ["grep/simd-accel"]
