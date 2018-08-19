@@ -1,3 +1,68 @@
+0.10.0 (TBD)
+============
+This is a new minor version release of ripgrep that contains some major new
+features, a huge number of bug fixes, and is the first release based on
+libripgrep. The entirety of ripgrep's core search and printing code has been
+rewritten and generalized so that anyone can make use of it.
+
+Major new features include PCRE2 support, multi-line search and a JSON output
+format.
+
+**BREAKING CHANGES**:
+
+* The match semantics of `-w/--word-regexp` have changed slightly. They used
+  to be `\b(?:<your pattern>)\b`, but now it's
+  `(?:^|\W)(?:<your pattern>)(?:$|\W)`.
+  See [#389](https://github.com/BurntSushi/ripgrep/issues/389) for more
+  details.
+
+Feature enhancements:
+
+* [FEATURE #162](https://github.com/BurntSushi/ripgrep/issues/162):
+  libripgrep is now a thing, composed of the following crates:
+  `grep`, `grep-matcher`, `grep-pcre2`, `grep-printer`, `grep-regex` and
+  `grep-searcher`.
+* [FEATURE #176](https://github.com/BurntSushi/ripgrep/issues/176):
+  Add `-U/--multiline` flag that permits matching over multiple lines.
+* [FEATURE #188](https://github.com/BurntSushi/ripgrep/issues/188):
+  Add `-P/--pcre2` flag that gives support for look-around and backreferences.
+* [FEATURE #244](https://github.com/BurntSushi/ripgrep/issues/244):
+  Add `--json` flag that prints results in a JSON Lines format.
+* [FEATURE #416](https://github.com/BurntSushi/ripgrep/issues/416):
+  Add `--crlf` flag to permit `$` to work with carriage returns on Windows.
+* [FEATURE #917](https://github.com/BurntSushi/ripgrep/issues/917):
+  The `--trim` flag strips prefix whitespace from all lines printed.
+* [FEATURE #993](https://github.com/BurntSushi/ripgrep/issues/993):
+  Add `--null-data` flag, which makes ripgrep use NUL as a line terminator.
+* [FEATURE #997](https://github.com/BurntSushi/ripgrep/issues/997):
+  The `--passthru` flag now works with the `--replace` flag.
+
+Bug fixes:
+
+* [BUG #2](https://github.com/BurntSushi/ripgrep/issues/2):
+  Searching with non-zero context can now use memory maps if appropriate.
+* [BUG #200](https://github.com/BurntSushi/ripgrep/issues/200):
+  ripgrep will now stop correctly when its output pipe is closed.
+* [BUG #389](https://github.com/BurntSushi/ripgrep/issues/389):
+  The `-w/--word-regexp` flag now works more intuitively.
+* [BUG #643](https://github.com/BurntSushi/ripgrep/issues/643):
+  Detection of readable stdin has improved on Windows.
+* [BUG #441](https://github.com/BurntSushi/ripgrep/issues/441),
+  [BUG #690](https://github.com/BurntSushi/ripgrep/issues/690),
+  [BUG #980](https://github.com/BurntSushi/ripgrep/issues/980):
+  Matching empty lines now works correctly in several corner cases.
+* [BUG #764](https://github.com/BurntSushi/ripgrep/issues/764):
+  Color escape sequences now coalesce, which reduces output size.
+* [BUG #922](https://github.com/BurntSushi/ripgrep/issues/922):
+  ripgrep is now more robust with respect to memory maps failing.
+* [BUG #937](https://github.com/BurntSushi/ripgrep/issues/937):
+  Color escape sequences are no longer emitted for empty matches.
+* [BUG #940](https://github.com/BurntSushi/ripgrep/issues/940):
+  Context from the `--passthru` flag should not impact process exit status.
+* [BUG #1013](https://github.com/BurntSushi/ripgrep/issues/1013):
+  Add compile time and runtime CPU features to `--version` output.
+
+
 0.9.0 (2018-08-03)
 ==================
 This is a new minor version release of ripgrep that contains some minor new
