@@ -166,8 +166,8 @@ _rg() {
     $no'(pcre2-unicode)--no-pcre2[disable matching with PCRE2]'
 
     + '(pcre2-unicode)' # PCRE2 Unicode options
-    $no'(--no-pcre2-unicode)--pcre2-unicode[enable PCRE2 Unicode mode (with -P)]'
-    '(--no-pcre2-unicode)--no-pcre2-unicode[disable PCRE2 Unicode mode (with -P)]'
+    $no'(--no-pcre2 --no-pcre2-unicode)--pcre2-unicode[enable PCRE2 Unicode mode (with -P)]'
+    '(--no-pcre2 --pcre2-unicode)--no-pcre2-unicode[disable PCRE2 Unicode mode (with -P)]'
 
     + '(pre)' # Preprocessing options
     '(-z --search-zip)--pre=[specify preprocessor utility]:preprocessor utility:_command_names -e'
