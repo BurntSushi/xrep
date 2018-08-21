@@ -125,7 +125,7 @@ fn compile_cpu_features() -> Vec<&'static str> {
 }
 
 /// Returns the relevant CPU features enabled at runtime.
-#[cfg(all(ripgrep_runtime_cpu, target_arch = "x86_64"))]
+#[cfg(target_arch = "x86_64")]
 fn runtime_cpu_features() -> Vec<&'static str> {
     // This is kind of a dirty violation of abstraction, since it assumes
     // knowledge about what specific SIMD features are being used.
@@ -145,7 +145,7 @@ fn runtime_cpu_features() -> Vec<&'static str> {
 }
 
 /// Returns the relevant CPU features enabled at runtime.
-#[cfg(not(all(ripgrep_runtime_cpu, target_arch = "x86_64")))]
+#[cfg(not(target_arch = "x86_64"))]
 fn runtime_cpu_features() -> Vec<&'static str> {
     vec![]
 }

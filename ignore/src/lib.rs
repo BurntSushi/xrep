@@ -46,7 +46,7 @@ See the documentation for `WalkBuilder` for many other options.
 
 #![deny(missing_docs)]
 
-extern crate crossbeam;
+extern crate crossbeam_channel as channel;
 extern crate globset;
 #[macro_use]
 extern crate lazy_static;

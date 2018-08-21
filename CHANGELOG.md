@@ -10,6 +10,11 @@ format.
 
 **BREAKING CHANGES**:
 
+* The minimum version required to compile Rust has now changed to track the
+  latest stable version of Rust. Patch releases will continue to compile with
+  the same version of Rust as the previous patch release, but new minor
+  versions will use the current stable version of the Rust compile as its
+  minimum supported version.
 * The match semantics of `-w/--word-regexp` have changed slightly. They used
   to be `\b(?:<your pattern>)\b`, but now it's
   `(?:^|\W)(?:<your pattern>)(?:$|\W)`.

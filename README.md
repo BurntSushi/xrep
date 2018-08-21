@@ -292,7 +292,7 @@ $ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep
 $ sudo dpkg -i ripgrep_0.9.0_amd64.deb
 ```
 
-If you run Debian Buster (currently Debian testing) or Debian sid, ripgrep is 
+If you run Debian Buster (currently Debian testing) or Debian sid, ripgrep is
 [officially maintained by Debian](https://tracker.debian.org/pkg/rust-ripgrep).
 ```
 $ sudo apt-get install ripgrep
@@ -326,7 +326,7 @@ If you're a **NetBSD** user, then you can install ripgrep from
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 
-* Note that the minimum supported version of Rust for ripgrep is **1.23.0**,
+* Note that the minimum supported version of Rust for ripgrep is **1.28.0**,
   although ripgrep may work with older versions.
 * Note that the binary may be bigger than expected because it contains debug
   symbols. This is intentional. To remove debug symbols and therefore reduce
@@ -347,7 +347,10 @@ ripgrep isn't currently in any other package repositories.
 
 ripgrep is written in Rust, so you'll need to grab a
 [Rust installation](https://www.rust-lang.org/) in order to compile it.
-ripgrep compiles with Rust 1.23.0 (stable) or newer. Building is easy:
+ripgrep compiles with Rust 1.28.0 (stable) or newer. In general, ripgrep tracks
+the latest stable release of the Rust compiler.
+
+To build ripgrep:
 
 ```
 $ git clone https://github.com/BurntSushi/ripgrep
