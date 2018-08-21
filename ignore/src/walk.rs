@@ -84,7 +84,8 @@ impl DirEntry {
     /// Returns an error, if one exists, associated with processing this entry.
     ///
     /// An example of an error is one that occurred while parsing an ignore
-    /// file.
+    /// file. Errors related to traversing a directory tree itself are reported
+    /// as part of yielding the directory entry, and not with this method.
     pub fn error(&self) -> Option<&Error> {
         self.err.as_ref()
     }
