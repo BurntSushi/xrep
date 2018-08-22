@@ -58,6 +58,8 @@ Bug fixes:
   Matching empty lines now works correctly in several corner cases.
 * [BUG #764](https://github.com/BurntSushi/ripgrep/issues/764):
   Color escape sequences now coalesce, which reduces output size.
+* [BUG #842](https://github.com/BurntSushi/ripgrep/issues/842):
+  Add man page to binary Debian package.
 * [BUG #922](https://github.com/BurntSushi/ripgrep/issues/922):
   ripgrep is now more robust with respect to memory maps failing.
 * [BUG #937](https://github.com/BurntSushi/ripgrep/issues/937):
