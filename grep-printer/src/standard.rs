@@ -1201,6 +1201,9 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         if !self.wtr().borrow().supports_color() || spec.is_none() {
             return self.write_line(line);
         }
+        if self.exceeds_max_columns(line) {
+            return self.write_exceeded_line();
+        }
 
         let mut last_written =
             if !self.config().trim_ascii {
