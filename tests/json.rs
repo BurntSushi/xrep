@@ -241,6 +241,49 @@ rgtest!(notutf8, |dir: Dir, mut cmd: TestCommand| {
     );
 });
 
+rgtest!(notutf8_file, |dir: Dir, mut cmd: TestCommand| {
+    use std::ffi::OsStr;
+
+    // This test does not work with PCRE2 because PCRE2 does not support the
+    // `u` flag.
+    if dir.is_pcre2() {
+        return;
+    }
+
+    let name = "foo";
+    let contents = &b"quux\xFFbaz"[..];
+
+    // APFS does not support creating files with invalid UTF-8 bytes, so just
+    // skip the test if we can't create our file.
+    if !dir.try_create_bytes(OsStr::new(name), contents).is_ok() {
+        return;
+    }
+    cmd.arg("--json").arg(r"(?-u)\xFF");
+
+    let msgs = json_decode(&cmd.stdout());
+
+    assert_eq!(
+        msgs[0].unwrap_begin(),
+        Begin { path: Some(Data::text("foo")) }
+    );
+    assert_eq!(
+        msgs[1].unwrap_match(),
+        Match {
+            path: Some(Data::text("foo")),
+            lines: Data::bytes("cXV1eP9iYXo="),
+            line_number: Some(1),
+            absolute_offset: 0,
+            submatches: vec![
+                SubMatch {
+                    m: Data::bytes("/w=="),
+                    start: 4,
+                    end: 5,
+                },
+            ],
+        }
+    );
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/416
 //
 // This test in particular checks that our match does _not_ include the `\r`

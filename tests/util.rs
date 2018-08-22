@@ -103,6 +103,7 @@ impl Dir {
 
     /// Try to create a new file with the given name and contents in this
     /// directory.
+    #[allow(dead_code)] // unused on Windows
     pub fn try_create<P: AsRef<Path>>(
         &self,
         name: P,
@@ -222,6 +223,7 @@ impl Dir {
     /// Creates a file symlink to the src with the given target name
     /// in this directory.
     #[cfg(windows)]
+    #[allow(dead_code)] // unused on Windows
     pub fn link_file<S: AsRef<Path>, T: AsRef<Path>>(
         &self,
         src: S,
