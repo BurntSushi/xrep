@@ -28,26 +28,36 @@ Synopsis
 DESCRIPTION
 -----------
 ripgrep (rg) recursively searches your current directory for a regex pattern.
-By default, ripgrep will respect your `.gitignore` and automatically skip
-hidden files/directories and binary files.
+By default, ripgrep will respect your .gitignore and automatically skip hidden
+files/directories and binary files.
 
-ripgrep's regex engine uses finite automata and guarantees linear time
-searching. Because of this, features like backreferences and arbitrary
-lookaround are not supported.
+ripgrep's default regex engine uses finite automata and guarantees linear
+time searching. Because of this, features like backreferences and arbitrary
+look-around are not supported. However, if ripgrep is built with PCRE2, then
+the --pcre2 flag can be used to enable backreferences and look-around.
+
+ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
+configuration file. The file can specify one shell argument per line. Lines
+starting with '#' are ignored. For more details, see the man page or the
+README.
 
 
 REGEX SYNTAX
 ------------
-ripgrep uses Rust's regex engine, which documents its syntax:
-https://docs.rs/regex/0.2.5/regex/#syntax
+ripgrep uses Rust's regex engine by default, which documents its syntax:
+https://docs.rs/regex/*/regex/#syntax
 
 ripgrep uses byte-oriented regexes, which has some additional documentation:
-https://docs.rs/regex/0.2.5/regex/bytes/index.html#syntax
+https://docs.rs/regex/*/regex/bytes/index.html#syntax
 
 To a first approximation, ripgrep uses Perl-like regexes without look-around or
 backreferences. This makes them very similar to the "extended" (ERE) regular
 expressions supported by `egrep`, but with a few additional features like
 Unicode character classes.
+
+If you're using ripgrep with the --pcre2 flag, then please consult
+https://www.pcre.org or the PCRE2 man pages for documentation on the supported
+syntax.
 
 
 POSITIONAL ARGUMENTS

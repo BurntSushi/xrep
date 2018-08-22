@@ -13,12 +13,13 @@ use clap::{self, App, AppSettings};
 
 const ABOUT: &str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.
-By default, ripgrep will respect your `.gitignore` and automatically skip
-hidden files/directories and binary files.
+By default, ripgrep will respect your .gitignore and automatically skip hidden
+files/directories and binary files.
 
-ripgrep's regex engine uses finite automata and guarantees linear time
-searching. Because of this, features like backreferences and arbitrary
-lookaround are not supported.
+ripgrep's default regex engine uses finite automata and guarantees linear
+time searching. Because of this, features like backreferences and arbitrary
+look-around are not supported. However, if ripgrep is built with PCRE2, then
+the --pcre2 flag can be used to enable backreferences and look-around.
 
 ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
 configuration file. The file can specify one shell argument per line. Lines
