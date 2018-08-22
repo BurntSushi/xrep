@@ -26,7 +26,7 @@ memchr = "2"
 regex = "1"
 same-file = "1"
 thread_local = "0.3.2"
-walkdir = "2.2.0"
+walkdir = "2.2.1"
 
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"

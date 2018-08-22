@@ -22,7 +22,7 @@ grep-searcher = { version = "0.1.0", path = "../grep-searcher" }
 [dev-dependencies]
 atty = "0.2.11"
 termcolor = "1"
-walkdir = "2.2.0"
+walkdir = "2.2.1"
 
 [features]
 avx-accel = ["grep-searcher/avx-accel"]

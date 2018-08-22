@@ -66,6 +66,8 @@ Bug fixes:
   Color escape sequences are no longer emitted for empty matches.
 * [BUG #940](https://github.com/BurntSushi/ripgrep/issues/940):
   Context from the `--passthru` flag should not impact process exit status.
+* [BUG #984](https://github.com/BurntSushi/ripgrep/issues/984):
+  Fixes bug in `ignore` crate where first path was always treated as a symlink.
 * [BUG #1013](https://github.com/BurntSushi/ripgrep/issues/1013):
   Add compile time and runtime CPU features to `--version` output.
 

@@ -359,21 +359,29 @@ impl DirEntryRaw {
     }
 
     #[cfg(not(unix))]
-    fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
         let md = fs::metadata(&pb).map_err(|err| {
             Error::Io(err).with_path(&pb)
         })?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
-            follow_link: true,
+            follow_link: link,
             depth: depth,
             metadata: md,
         })
     }
 
     #[cfg(unix)]
-    fn from_link(depth: usize, pb: PathBuf) -> Result<DirEntryRaw, Error> {
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
         let md = fs::metadata(&pb).map_err(|err| {
@@ -382,7 +390,7 @@ impl DirEntryRaw {
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
-            follow_link: true,
+            follow_link: link,
             depth: depth,
             ino: md.ino(),
         })
@@ -957,7 +965,7 @@ impl WalkParallel {
                 if path == Path::new("-") {
                     DirEntry::new_stdin()
                 } else {
-                    match DirEntryRaw::from_link(0, path) {
+                    match DirEntryRaw::from_path(0, path, false) {
                         Ok(dent) => DirEntry::new_raw(dent, None),
                         Err(err) => {
                             if f(Err(err)).is_quit() {
@@ -1209,7 +1217,7 @@ impl Worker {
         let is_symlink = dent.file_type().map_or(false, |ft| ft.is_symlink());
         if self.follow_links && is_symlink {
             let path = dent.path().to_path_buf();
-            dent = match DirEntryRaw::from_link(depth, path) {
+            dent = match DirEntryRaw::from_path(depth, path, true) {
                 Ok(dent) => DirEntry::new_raw(dent, None),
                 Err(err) => {
                     return (self.f)(Err(err));
@@ -1426,7 +1434,7 @@ mod tests {
 
     use tempdir::TempDir;
 
-    use super::{WalkBuilder, WalkState};
+    use super::{DirEntry, WalkBuilder, WalkState};
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();
@@ -1477,28 +1485,32 @@ mod tests {
         prefix: &Path,
         builder: &WalkBuilder,
     ) -> Vec<String> {
-        let paths = Arc::new(Mutex::new(vec![]));
-        let prefix = Arc::new(prefix.to_path_buf());
+        let mut paths = vec![];
+        for dent in walk_collect_entries_parallel(builder) {
+            let path = dent.path().strip_prefix(prefix).unwrap();
+            if path.as_os_str().is_empty() {
+                continue;
+            }
+            paths.push(normal_path(path.to_str().unwrap()));
+        }
+        paths.sort();
+        paths
+    }
+
+    fn walk_collect_entries_parallel(builder: &WalkBuilder) -> Vec<DirEntry> {
+        let dents = Arc::new(Mutex::new(vec![]));
         builder.build_parallel().run(|| {
-            let paths = paths.clone();
-            let prefix = prefix.clone();
+            let dents = dents.clone();
             Box::new(move |result| {
-                let dent = match result {
-                    Err(_) => return WalkState::Continue,
-                    Ok(dent) => dent,
-                };
-                let path = dent.path().strip_prefix(&**prefix).unwrap();
-                if path.as_os_str().is_empty() {
-                    return WalkState::Continue;
+                if let Ok(dent) = result {
+                    dents.lock().unwrap().push(dent);
                 }
-                let mut paths = paths.lock().unwrap();
-                paths.push(normal_path(path.to_str().unwrap()));
                 WalkState::Continue
             })
         });
-        let mut paths = paths.lock().unwrap();
-        paths.sort();
-        paths.to_vec()
+
+        let dents = dents.lock().unwrap();
+        dents.to_vec()
     }
 
     fn mkpaths(paths: &[&str]) -> Vec<String> {
@@ -1691,6 +1703,27 @@ mod tests {
         assert_paths(td.path(), &builder.follow_links(true), &[
             "a", "a/b", "a/b/foo", "z", "z/foo",
         ]);
+    }
+
+    #[cfg(unix)] // because symlinks on windows are weird
+    #[test]
+    fn first_path_not_symlink() {
+        let td = TempDir::new("walk-test-").unwrap();
+        mkdirp(td.path().join("foo"));
+
+        let dents = WalkBuilder::new(td.path().join("foo"))
+            .build()
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(1, dents.len());
+        assert!(!dents[0].path_is_symlink());
+
+        let dents = walk_collect_entries_parallel(
+            &WalkBuilder::new(td.path().join("foo")),
+        );
+        assert_eq!(1, dents.len());
+        assert!(!dents[0].path_is_symlink());
     }
 
     #[cfg(unix)] // because symlinks on windows are weird
