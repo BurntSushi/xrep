@@ -172,36 +172,11 @@ impl Subject {
     }
 
     /// Returns true if and only if this subject points to a directory.
-    ///
-    /// This works around a bug in Rust's standard library:
-    /// https://github.com/rust-lang/rust/issues/46484
-    #[cfg(windows)]
-    fn is_dir(&self) -> bool {
-        use std::os::windows::fs::MetadataExt;
-        use winapi::um::winnt::FILE_ATTRIBUTE_DIRECTORY;
-
-        self.dent.metadata().map(|md| {
-            md.file_attributes() & FILE_ATTRIBUTE_DIRECTORY != 0
-        }).unwrap_or(false)
-    }
-
-    /// Returns true if and only if this subject points to a directory.
-    #[cfg(not(windows))]
     fn is_dir(&self) -> bool {
         self.dent.file_type().map_or(false, |ft| ft.is_dir())
     }
 
     /// Returns true if and only if this subject points to a file.
-    ///
-    /// This works around a bug in Rust's standard library:
-    /// https://github.com/rust-lang/rust/issues/46484
-    #[cfg(windows)]
-    fn is_file(&self) -> bool {
-        !self.is_dir()
-    }
-
-    /// Returns true if and only if this subject points to a file.
-    #[cfg(not(windows))]
     fn is_file(&self) -> bool {
         self.dent.file_type().map_or(false, |ft| ft.is_file())
     }
