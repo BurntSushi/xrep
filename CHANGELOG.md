@@ -105,7 +105,7 @@ multi-line search support and a JSON output format.
 
 Feature enhancements:
 
-* Added or improved file type filtering for Android, Bazel, Fuschia, Haskell,
+* Added or improved file type filtering for Android, Bazel, Fuchsia, Haskell,
   Java and Puppet.
 * [FEATURE #411](https://github.com/BurntSushi/ripgrep/issues/411):
   Add a `--stats` flag, which emits aggregate statistics after search results.
