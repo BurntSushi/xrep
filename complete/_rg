@@ -188,8 +188,21 @@ _rg() {
     {-r+,--replace=}'[specify string used to replace matches]:replace string'
 
     + '(sort)' # File-sorting options
-    '(threads)--sort-files[sort results by file path (disables parallelism)]'
-    $no"--no-sort-files[don't sort results by file path]"
+    '(threads)--sort=[sort results in ascending order (disables parallelism)]:sort method:((
+      none\:"no sorting"
+      path\:"sort by file path"
+      modified\:"sort by last modified time"
+      accessed\:"sort by last accessed time"
+      created\:"sort by creation time"
+    ))'
+    '(threads)--sortr=[sort results in descending order (disables parallelism)]:sort method:((
+      none\:"no sorting"
+      path\:"sort by file path"
+      modified\:"sort by last modified time"
+      accessed\:"sort by last accessed time"
+      created\:"sort by creation time"
+    ))'
+    '!(threads)--sort-files[sort results by file path (disables parallelism)]'
 
     + '(stats)' # Statistics options
     '(--files file-match)--stats[show search statistics]'
@@ -200,7 +213,7 @@ _rg() {
     $no"(--null-data)--no-text[don't search binary files as if they were text]"
 
     + '(threads)' # Thread-count options
-    '(--sort-files)'{-j+,--threads=}'[specify approximate number of threads to use]:number of threads'
+    '(sort)'{-j+,--threads=}'[specify approximate number of threads to use]:number of threads'
 
     + '(trim)' # Trim options
     '--trim[trim any ASCII whitespace prefix from each line]'

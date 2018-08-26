@@ -600,6 +600,8 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_search_zip(&mut args);
     flag_smart_case(&mut args);
     flag_sort_files(&mut args);
+    flag_sort(&mut args);
+    flag_sortr(&mut args);
     flag_stats(&mut args);
     flag_text(&mut args);
     flag_threads(&mut args);
@@ -1923,8 +1925,10 @@ This overrides the -s/--case-sensitive and -i/--ignore-case flags.
 }
 
 fn flag_sort_files(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Sort results by file path. Implies --threads=1.";
+    const SHORT: &str = "DEPRECATED";
     const LONG: &str = long!("\
+DEPRECATED: Use --sort or --sortr instead.
+
 Sort results by file path. Note that this currently disables all parallelism
 and runs search in a single thread.
 
@@ -1932,12 +1936,83 @@ This flag can be disabled with --no-sort-files.
 ");
     let arg = RGArg::switch("sort-files")
         .help(SHORT).long_help(LONG)
-        .overrides("no-sort-files");
+        .hidden()
+        .overrides("no-sort-files")
+        .overrides("sort")
+        .overrides("sortr");
     args.push(arg);
 
     let arg = RGArg::switch("no-sort-files")
         .hidden()
-        .overrides("sort-files");
+        .overrides("sort-files")
+        .overrides("sort")
+        .overrides("sortr");
+    args.push(arg);
+}
+
+fn flag_sort(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Sort results in ascending order. Implies --threads=1.";
+    const LONG: &str = long!("\
+This flag enables sorting of results in ascending order. The possible values
+for this flag are:
+
+    path        Sort by file path.
+    modified    Sort by the last modified time on a file.
+    accessed    Sort by the last accessed time on a file.
+    created     Sort by the cretion time on a file.
+    none        Do not sort results.
+
+If the sorting criteria isn't available on your system (for example, creation
+time is not available on ext4 file systems), then ripgrep will attempt to
+detect this and print an error without searching any results. Otherwise, the
+sort order is unspecified.
+
+To sort results in reverse or descending order, use the --sortr flag. Also,
+this flag overrides --sortr.
+
+Note that sorting results currently always forces ripgrep to abandon
+parallelism and run in a single thread.
+");
+    let arg = RGArg::flag("sort", "SORTBY")
+        .help(SHORT).long_help(LONG)
+        .possible_values(&["path", "modified", "accessed", "created", "none"])
+        .overrides("sortr")
+        .overrides("sort-files")
+        .overrides("no-sort-files");
+    args.push(arg);
+}
+
+fn flag_sortr(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Sort results in descending order. Implies --threads=1.";
+    const LONG: &str = long!("\
+This flag enables sorting of results in descending order. The possible values
+for this flag are:
+
+    path        Sort by file path.
+    modified    Sort by the last modified time on a file.
+    accessed    Sort by the last accessed time on a file.
+    created     Sort by the cretion time on a file.
+    none        Do not sort results.
+
+If the sorting criteria isn't available on your system (for example, creation
+time is not available on ext4 file systems), then ripgrep will attempt to
+detect this and print an error without searching any results. Otherwise, the
+sort order is unspecified.
+
+To sort results in ascending order, use the --sort flag. Also, this flag
+overrides --sort.
+
+Note that sorting results currently always forces ripgrep to abandon
+parallelism and run in a single thread.
+");
+    let arg = RGArg::flag("sortr", "SORTBY")
+        .help(SHORT).long_help(LONG)
+        .possible_values(&["path", "modified", "accessed", "created", "none"])
+        .overrides("sort")
+        .overrides("sort-files")
+        .overrides("no-sort-files");
     args.push(arg);
 }
 

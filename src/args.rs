@@ -1,10 +1,11 @@
 use std::cmp;
 use std::env;
 use std::ffi::OsStr;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use atty;
 use clap;
@@ -360,6 +361,120 @@ enum OutputKind {
     JSON,
 }
 
+/// The sort criteria, if present.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SortBy {
+    /// Whether to reverse the sort criteria (i.e., descending order).
+    reverse: bool,
+    /// The actual sorting criteria.
+    kind: SortByKind,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SortByKind {
+    /// No sorting at all.
+    None,
+    /// Sort by path.
+    Path,
+    /// Sort by last modified time.
+    LastModified,
+    /// Sort by last accessed time.
+    LastAccessed,
+    /// Sort by creation time.
+    Created,
+}
+
+impl SortBy {
+    fn asc(kind: SortByKind) -> SortBy {
+        SortBy { reverse: false, kind: kind }
+    }
+
+    fn desc(kind: SortByKind) -> SortBy {
+        SortBy { reverse: true, kind: kind }
+    }
+
+    fn none() -> SortBy {
+        SortBy::asc(SortByKind::None)
+    }
+
+    /// Try to check that the sorting criteria selected is actually supported.
+    /// If it isn't, then an error is returned.
+    fn check(&self) -> Result<()> {
+        match self.kind {
+            SortByKind::None | SortByKind::Path => {}
+            SortByKind::LastModified => {
+                env::current_exe()?.metadata()?.modified()?;
+            }
+            SortByKind::LastAccessed => {
+                env::current_exe()?.metadata()?.accessed()?;
+            }
+            SortByKind::Created => {
+                env::current_exe()?.metadata()?.created()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn configure_walk_builder(self, builder: &mut WalkBuilder) {
+        // This isn't entirely optimal. In particular, we will wind up issuing
+        // a stat for many files redundantly. Aside from having potentially
+        // inconsistent results with respect to sorting, this is also slow.
+        // We could fix this here at the expense of memory by caching stat
+        // calls. A better fix would be to find a way to push this down into
+        // directory traversal itself, but that's a somewhat nasty change.
+        match self.kind {
+            SortByKind::None => {}
+            SortByKind::Path => {
+                if self.reverse {
+                    builder.sort_by_file_name(|a, b| a.cmp(b).reverse());
+                } else {
+                    builder.sort_by_file_name(|a, b| a.cmp(b));
+                }
+            }
+            SortByKind::LastModified => {
+                builder.sort_by_file_path(move |a, b| {
+                    sort_by_metadata_time(
+                        a, b,
+                        self.reverse,
+                        |md| md.modified(),
+                    )
+                });
+            }
+            SortByKind::LastAccessed => {
+                builder.sort_by_file_path(move |a, b| {
+                    sort_by_metadata_time(
+                        a, b,
+                        self.reverse,
+                        |md| md.accessed(),
+                    )
+                });
+            }
+            SortByKind::Created => {
+                builder.sort_by_file_path(move |a, b| {
+                    sort_by_metadata_time(
+                        a, b,
+                        self.reverse,
+                        |md| md.created(),
+                    )
+                });
+            }
+        }
+    }
+}
+
+impl SortByKind {
+    fn new(kind: &str) -> SortByKind {
+        match kind {
+            "none" => SortByKind::None,
+            "path" => SortByKind::Path,
+            "modified" => SortByKind::LastModified,
+            "accessed" => SortByKind::LastAccessed,
+            "created" => SortByKind::Created,
+            _ => SortByKind::None,
+        }
+    }
+}
+
 impl ArgMatches {
     /// Create an ArgMatches from clap's parse result.
     fn new(clap_matches: clap::ArgMatches<'static>) -> ArgMatches {
@@ -678,9 +793,9 @@ impl ArgMatches {
         if !self.no_ignore() {
             builder.add_custom_ignore_filename(".rgignore");
         }
-        if self.is_present("sort-files") {
-            builder.sort_by_file_name(|a, b| a.cmp(b));
-        }
+        let sortby = self.sort_by()?;
+        sortby.check()?;
+        sortby.configure_walk_builder(&mut builder);
         Ok(builder)
     }
 }
@@ -1234,6 +1349,22 @@ impl ArgMatches {
         self.value_of_lossy("replace").map(|s| s.into_bytes())
     }
 
+    /// Returns the sorting criteria based on command line parameters.
+    fn sort_by(&self) -> Result<SortBy> {
+        // For backcompat, continue supporting deprecated --sort-files flag.
+        if self.is_present("sort-files") {
+            return Ok(SortBy::asc(SortByKind::Path));
+        }
+        let sortby = match self.value_of_lossy("sort") {
+            None => match self.value_of_lossy("sortr") {
+                None => return Ok(SortBy::none()),
+                Some(choice) => SortBy::desc(SortByKind::new(&choice)),
+            }
+            Some(choice) => SortBy::asc(SortByKind::new(&choice)),
+        };
+        Ok(sortby)
+    }
+
     /// Returns true if and only if aggregate statistics for a search should
     /// be tracked.
     ///
@@ -1289,7 +1420,7 @@ impl ArgMatches {
 
     /// Return the number of threads that should be used for parallelism.
     fn threads(&self) -> Result<usize> {
-        if self.is_present("sort-files") {
+        if self.sort_by()?.kind != SortByKind::None {
             return Ok(1);
         }
         let threads = self.usize_of("threads")?.unwrap_or(0);
@@ -1500,6 +1631,34 @@ fn u64_to_usize(
         Ok(Some(value as usize))
     } else {
         Err(From::from(format!("number too large for {}", arg_name)))
+    }
+}
+
+/// Builds a comparator for sorting two files according to a system time
+/// extracted from the file's metadata.
+///
+/// If there was a problem extracting the metadata or if the time is not
+/// available, then both entries compare equal.
+fn sort_by_metadata_time<G>(
+    p1: &Path,
+    p2: &Path,
+    reverse: bool,
+    get_time: G,
+) -> cmp::Ordering
+where G: Fn(&fs::Metadata) -> io::Result<SystemTime>
+{
+    let t1 = match p1.metadata().and_then(|md| get_time(&md)) {
+        Ok(t) => t,
+        Err(_) => return cmp::Ordering::Equal,
+    };
+    let t2 = match p2.metadata().and_then(|md| get_time(&md)) {
+        Ok(t) => t,
+        Err(_) => return cmp::Ordering::Equal,
+    };
+    if reverse {
+        t1.cmp(&t2).reverse()
+    } else {
+        t1.cmp(&t2)
     }
 }
 
