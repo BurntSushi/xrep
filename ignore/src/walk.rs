@@ -453,10 +453,14 @@ pub struct WalkBuilder {
     max_filesize: Option<u64>,
     follow_links: bool,
     same_file_system: bool,
-    sorter: Option<Arc<
-        Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
-    >>,
+    sorter: Option<Sorter>,
     threads: usize,
+}
+
+#[derive(Clone)]
+enum Sorter {
+    ByName(Arc<Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static>),
+    ByPath(Arc<Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static>),
 }
 
 impl fmt::Debug for WalkBuilder {
@@ -496,7 +500,7 @@ impl WalkBuilder {
     pub fn build(&self) -> Walk {
         let follow_links = self.follow_links;
         let max_depth = self.max_depth;
-        let cmp = self.sorter.clone();
+        let sorter = self.sorter.clone();
         let its = self.paths.iter().map(move |p| {
             if p == Path::new("-") {
                 (p.to_path_buf(), None)
@@ -507,11 +511,19 @@ impl WalkBuilder {
                 if let Some(max_depth) = max_depth {
                     wd = wd.max_depth(max_depth);
                 }
-                if let Some(ref cmp) = cmp {
-                    let cmp = cmp.clone();
-                    wd = wd.sort_by(move |a, b| {
-                        cmp(a.file_name(), b.file_name())
-                    });
+                if let Some(ref sorter) = sorter {
+                    match sorter.clone() {
+                        Sorter::ByName(cmp) => {
+                            wd = wd.sort_by(move |a, b| {
+                                cmp(a.file_name(), b.file_name())
+                            });
+                        }
+                        Sorter::ByPath(cmp) => {
+                            wd = wd.sort_by(move |a, b| {
+                                cmp(a.path(), b.path())
+                            });
+                        }
+                    }
                 }
                 (p.to_path_buf(), Some(WalkEventIter::from(wd)))
             }
@@ -726,6 +738,30 @@ impl WalkBuilder {
         self
     }
 
+    /// Set a function for sorting directory entries by their path.
+    ///
+    /// If a compare function is set, the resulting iterator will return all
+    /// paths in sorted order. The compare function will be called to compare
+    /// entries from the same directory.
+    ///
+    /// This is like `sort_by_file_name`, except the comparator accepts
+    /// a `&Path` instead of the base file name, which permits it to sort by
+    /// more criteria.
+    ///
+    /// This method will override any previous sorter set by this method or
+    /// by `sort_by_file_name`.
+    ///
+    /// Note that this is not used in the parallel iterator.
+    pub fn sort_by_file_path<F>(
+        &mut self,
+        cmp: F,
+    ) -> &mut WalkBuilder
+    where F: Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static
+    {
+        self.sorter = Some(Sorter::ByPath(Arc::new(cmp)));
+        self
+    }
+
     /// Set a function for sorting directory entries by file name.
     ///
     /// If a compare function is set, the resulting iterator will return all
@@ -733,11 +769,14 @@ impl WalkBuilder {
     /// names from entries from the same directory using only the name of the
     /// entry.
     ///
+    /// This method will override any previous sorter set by this method or
+    /// by `sort_by_file_path`.
+    ///
     /// Note that this is not used in the parallel iterator.
     pub fn sort_by_file_name<F>(&mut self, cmp: F) -> &mut WalkBuilder
     where F: Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
     {
-        self.sorter = Some(Arc::new(cmp));
+        self.sorter = Some(Sorter::ByName(Arc::new(cmp)));
         self
     }
 
