@@ -586,6 +586,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_no_pcre2_unicode(&mut args);
     flag_null(&mut args);
     flag_null_data(&mut args);
+    flag_one_file_system(&mut args);
     flag_only_matching(&mut args);
     flag_path_separator(&mut args);
     flag_passthru(&mut args);
@@ -1644,6 +1645,33 @@ Using this flag implies -a/--text.
     let arg = RGArg::switch("null-data")
         .help(SHORT).long_help(LONG)
         .overrides("crlf");
+    args.push(arg);
+}
+
+fn flag_one_file_system(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Do not descend into directories on other file systems.";
+    const LONG: &str = long!("\
+When enabled, ripgrep will not cross file system boundaries relative to where
+the search started from.
+
+Note that this applies to each path argument given to ripgrep. For example, in
+the command 'rg --one-file-system /foo/bar /quux/baz', ripgrep will search both
+'/foo/bar' and '/quux/baz' even if they are on different file systems, but will
+not cross a file system boundary when traversing each path's directory tree.
+
+This is similar to find's '-xdev' or '-mount' flag.
+
+This flag can be disabled with --no-one-file-system.
+");
+    let arg = RGArg::switch("one-file-system")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-one-file-system");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-one-file-system")
+        .hidden()
+        .overrides("one-file-system");
     args.push(arg);
 }
 

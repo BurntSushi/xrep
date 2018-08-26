@@ -663,6 +663,7 @@ impl ArgMatches {
             .follow_links(self.is_present("follow"))
             .max_filesize(self.max_file_size()?)
             .threads(self.threads()?)
+            .same_file_system(self.is_present("one-file-system"))
             .overrides(self.overrides()?)
             .types(self.types()?)
             .hidden(!self.hidden())

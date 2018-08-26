@@ -60,7 +60,7 @@ extern crate tempdir;
 extern crate thread_local;
 extern crate walkdir;
 #[cfg(windows)]
-extern crate winapi;
+extern crate winapi_util;
 
 use std::error;
 use std::fmt;

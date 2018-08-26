@@ -452,6 +452,7 @@ pub struct WalkBuilder {
     max_depth: Option<usize>,
     max_filesize: Option<u64>,
     follow_links: bool,
+    same_file_system: bool,
     sorter: Option<Arc<
         Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
     >>,
@@ -485,6 +486,7 @@ impl WalkBuilder {
             max_depth: None,
             max_filesize: None,
             follow_links: false,
+            same_file_system: false,
             sorter: None,
             threads: 0,
         }
@@ -501,6 +503,7 @@ impl WalkBuilder {
             } else {
                 let mut wd = WalkDir::new(p);
                 wd = wd.follow_links(follow_links || p.is_file());
+                wd = wd.same_file_system(self.same_file_system);
                 if let Some(max_depth) = max_depth {
                     wd = wd.max_depth(max_depth);
                 }
@@ -535,6 +538,7 @@ impl WalkBuilder {
             max_depth: self.max_depth,
             max_filesize: self.max_filesize,
             follow_links: self.follow_links,
+            same_file_system: self.same_file_system,
             threads: self.threads,
         }
     }
@@ -736,6 +740,19 @@ impl WalkBuilder {
         self.sorter = Some(Arc::new(cmp));
         self
     }
+
+    /// Do not cross file system boundaries.
+    ///
+    /// When this option is enabled, directory traversal will not descend into
+    /// directories that are on a different file system from the root path.
+    ///
+    /// Currently, this option is only supported on Unix and Windows. If this
+    /// option is used on an unsupported platform, then directory traversal
+    /// will immediately return an error and will not yield any entries.
+    pub fn same_file_system(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.same_file_system = yes;
+        self
+    }
 }
 
 /// Walk is a recursive directory iterator over file paths in one or more
@@ -935,6 +952,7 @@ pub struct WalkParallel {
     max_filesize: Option<u64>,
     max_depth: Option<usize>,
     follow_links: bool,
+    same_file_system: bool,
     threads: usize,
 }
 
@@ -949,24 +967,42 @@ impl WalkParallel {
         let mut f = mkf();
         let threads = self.threads();
         // TODO: Figure out how to use a bounded channel here. With an
-        // unbounded channel, the workers can run away and will up memory
+        // unbounded channel, the workers can run away and fill up memory
         // with all of the file paths. But a bounded channel doesn't work since
         // our producers are also are consumers, so they end up getting stuck.
         //
         // We probably need to rethink parallel traversal completely to fix
-        // this.
+        // this. The best case scenario would be finding a way to use rayon
+        // to do this.
         let (tx, rx) = channel::unbounded();
         let mut any_work = false;
         // Send the initial set of root paths to the pool of workers.
         // Note that we only send directories. For files, we send to them the
         // callback directly.
         for path in self.paths {
-            let dent =
+            let (dent, root_device) =
                 if path == Path::new("-") {
-                    DirEntry::new_stdin()
+                    (DirEntry::new_stdin(), None)
                 } else {
+                    let root_device =
+                        if !self.same_file_system {
+                            None
+                        } else {
+                            match device_num(&path) {
+                                Ok(root_device) => Some(root_device),
+                                Err(err) => {
+                                    let err = Error::Io(err).with_path(path);
+                                    if f(Err(err)).is_quit() {
+                                        return;
+                                    }
+                                    continue;
+                                }
+                            }
+                        };
                     match DirEntryRaw::from_path(0, path, false) {
-                        Ok(dent) => DirEntry::new_raw(dent, None),
+                        Ok(dent) => {
+                            (DirEntry::new_raw(dent, None), root_device)
+                        }
                         Err(err) => {
                             if f(Err(err)).is_quit() {
                                 return;
@@ -978,6 +1014,7 @@ impl WalkParallel {
             tx.send(Message::Work(Work {
                 dent: dent,
                 ignore: self.ig_root.clone(),
+                root_device: root_device,
             }));
             any_work = true;
         }
@@ -1042,6 +1079,9 @@ struct Work {
     dent: DirEntry,
     /// Any ignore matchers that have been built for this directory's parents.
     ignore: Ignore,
+    /// The root device number. When present, only files with the same device
+    /// number should be considered.
+    root_device: Option<u64>,
 }
 
 impl Work {
@@ -1163,6 +1203,23 @@ impl Worker {
                     continue;
                 }
             };
+            let descend =
+                if let Some(root_device) = work.root_device {
+                    match is_same_file_system(root_device, work.dent.path()) {
+                        Ok(true) => true,
+                        Ok(false) => false,
+                        Err(err) => {
+                            if (self.f)(Err(err)).is_quit() {
+                                self.quit_now();
+                                return;
+                            }
+                            false
+                        }
+                    }
+                } else {
+                    true
+                };
+
             let depth = work.dent.depth();
             match (self.f)(Ok(work.dent)) {
                 WalkState::Continue => {}
@@ -1172,11 +1229,20 @@ impl Worker {
                     return;
                 }
             }
+            if !descend {
+                continue;
+            }
             if self.max_depth.map_or(false, |max| depth >= max) {
                 continue;
             }
             for result in readdir {
-                if self.run_one(&work.ignore, depth + 1, result).is_quit() {
+                let state = self.run_one(
+                    &work.ignore,
+                    depth + 1,
+                    work.root_device,
+                    result,
+                );
+                if state.is_quit() {
                     self.quit_now();
                     return;
                 }
@@ -1200,6 +1266,7 @@ impl Worker {
         &mut self,
         ig: &Ignore,
         depth: usize,
+        root_device: Option<u64>,
         result: Result<fs::DirEntry, io::Error>,
     ) -> WalkState {
         let fs_dent = match result {
@@ -1232,16 +1299,22 @@ impl Worker {
         let is_dir = dent.is_dir();
         let max_size = self.max_filesize;
         let should_skip_path = skip_path(ig, dent.path(), is_dir);
-        let should_skip_filesize = if !is_dir && max_size.is_some() {
-            skip_filesize(max_size.unwrap(), dent.path(), &dent.metadata().ok())
-        } else {
-            false
-        };
+        let should_skip_filesize =
+            if !is_dir && max_size.is_some() {
+                skip_filesize(
+                    max_size.unwrap(),
+                    dent.path(),
+                    &dent.metadata().ok(),
+                )
+            } else {
+                false
+            };
 
         if !should_skip_path && !should_skip_filesize {
             self.tx.send(Message::Work(Work {
                 dent: dent,
                 ignore: ig.clone(),
+                root_device: root_device,
             }));
         }
         WalkState::Continue
@@ -1412,7 +1485,11 @@ fn skip_filesize(
     }
 }
 
-fn skip_path(ig: &Ignore, path: &Path, is_dir: bool) -> bool {
+fn skip_path(
+    ig: &Ignore,
+    path: &Path,
+    is_dir: bool,
+) -> bool {
     let m = ig.matched(path, is_dir);
     if m.is_ignore() {
         debug!("ignoring {}: {:?}", path.display(), m);
@@ -1425,6 +1502,37 @@ fn skip_path(ig: &Ignore, path: &Path, is_dir: bool) -> bool {
     }
 }
 
+/// Returns true if and only if the given path is on the same device as the
+/// given root device.
+fn is_same_file_system(root_device: u64, path: &Path) -> Result<bool, Error> {
+    let dent_device = device_num(path)
+        .map_err(|err| Error::Io(err).with_path(path))?;
+    Ok(root_device == dent_device)
+}
+
+#[cfg(unix)]
+fn device_num<P: AsRef<Path>>(path: P)-> io::Result<u64> {
+    use std::os::unix::fs::MetadataExt;
+
+    path.as_ref().metadata().map(|md| md.dev())
+}
+
+ #[cfg(windows)]
+fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
+    use winapi_util::{Handle, file};
+
+    let h = Handle::from_path_any(path)?;
+    file::information(h).map(|info| info.volume_serial_number())
+}
+
+#[cfg(not(any(unix, windows)))]
+fn device_num<P: AsRef<Path>>(_: P)-> io::Result<u64> {
+    Err(io::Error::new(
+        io::ErrorKind::Other,
+        "walkdir: same_file_system option not supported on this platform",
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::{self, File};
@@ -1434,7 +1542,7 @@ mod tests {
 
     use tempdir::TempDir;
 
-    use super::{DirEntry, WalkBuilder, WalkState};
+    use super::{DirEntry, WalkBuilder, WalkState, device_num};
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();
@@ -1525,9 +1633,9 @@ mod tests {
         expected: &[&str],
     ) {
         let got = walk_collect(prefix, builder);
-        assert_eq!(got, mkpaths(expected));
+        assert_eq!(got, mkpaths(expected), "single threaded");
         let got = walk_collect_parallel(prefix, builder);
-        assert_eq!(got, mkpaths(expected));
+        assert_eq!(got, mkpaths(expected), "parallel");
     }
 
     #[test]
@@ -1739,6 +1847,40 @@ mod tests {
         ]);
         assert_paths(td.path(), &builder.follow_links(true), &[
             "a", "a/b",
+        ]);
+    }
+
+    // It's a little tricky to test the 'same_file_system' option since
+    // we need an environment with more than one file system. We adopt a
+    // heuristic where /sys is typically a distinct volume on Linux and roll
+    // with that.
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn same_file_system() {
+        // If for some reason /sys doesn't exist or isn't a directory, just
+        // skip this test.
+        if !Path::new("/sys").is_dir() {
+            return;
+        }
+
+        // If our test directory actually isn't a different volume from /sys,
+        // then this test is meaningless and we shouldn't run it.
+        let td = TempDir::new("walk-test-").unwrap();
+        if device_num(td.path()).unwrap() == device_num("/sys").unwrap() {
+            return;
+        }
+
+        mkdirp(td.path().join("same_file"));
+        symlink("/sys", td.path().join("same_file").join("alink"));
+
+        // Create a symlink to sys and enable following symlinks. If the
+        // same_file_system option doesn't work, then this probably will hit a
+        // permission error. Otherwise, it should just skip over the symlink
+        // completely.
+        let mut builder = WalkBuilder::new(td.path());
+        builder.follow_links(true).same_file_system(true);
+        assert_paths(td.path(), &builder, &[
+            "same_file", "same_file/alink",
         ]);
     }
 }

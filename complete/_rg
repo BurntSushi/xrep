@@ -81,6 +81,10 @@ _rg() {
     {-H,--with-filename}'[show file name for matches]'
     "--no-filename[don't show file name for matches]"
 
+    + '(file-system)' # File system options
+    "--one-file-system[don't descend into directories on other file systems]"
+    $no'--no-one-file-system[descend into directories on other file systems]'
+
     + '(fixed)' # Fixed-string options
     {-F,--fixed-strings}'[treat pattern as literal string instead of regular expression]'
     $no"--no-fixed-strings[don't treat pattern as literal string]"
