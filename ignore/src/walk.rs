@@ -36,6 +36,14 @@ impl DirEntry {
         self.dent.path()
     }
 
+    /// The full path that this entry represents.
+    /// Analogous to [`path`], but moves ownership of the path.
+    ///
+    /// [`path`]: struct.DirEntry.html#method.path
+    pub fn into_path(self) -> PathBuf {
+        self.dent.into_path()
+    }
+
     /// Whether this entry corresponds to a symbolic link or not.
     pub fn path_is_symlink(&self) -> bool {
         self.dent.path_is_symlink()
@@ -141,6 +149,15 @@ impl DirEntryInner {
             Stdin => Path::new("<stdin>"),
             Walkdir(ref x) => x.path(),
             Raw(ref x) => x.path(),
+        }
+    }
+
+    fn into_path(self) -> PathBuf {
+        use self::DirEntryInner::*;
+        match self {
+            Stdin => PathBuf::from("<stdin>"),
+            Walkdir(x) => x.into_path(),
+            Raw(x) => x.into_path(),
         }
     }
 
@@ -260,6 +277,10 @@ impl fmt::Debug for DirEntryRaw {
 impl DirEntryRaw {
     fn path(&self) -> &Path {
         &self.path
+    }
+
+    fn into_path(self) -> PathBuf {
+        self.path
     }
 
     fn path_is_symlink(&self) -> bool {
