@@ -83,7 +83,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate termcolor;
 
-pub use color::{ColorError, ColorSpecs, UserColorSpec};
+pub use color::{ColorError, ColorSpecs, UserColorSpec, default_color_specs};
 #[cfg(feature = "serde1")]
 pub use json::{JSON, JSONBuilder, JSONSink};
 pub use standard::{Standard, StandardBuilder, StandardSink};

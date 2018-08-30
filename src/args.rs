@@ -1,14 +1,14 @@
 use std::cmp;
 use std::env;
 use std::ffi::OsStr;
-use std::fs::{self, File};
-use std::io::{self, BufRead};
+use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use atty;
 use clap;
+use grep::cli;
 use grep::matcher::LineTerminator;
 #[cfg(feature = "pcre2")]
 use grep::pcre2::{
@@ -20,6 +20,7 @@ use grep::printer::{
     JSON, JSONBuilder,
     Standard, StandardBuilder,
     Summary, SummaryBuilder, SummaryKind,
+    default_color_specs,
 };
 use grep::regex::{
     RegexMatcher as RustRegexMatcher,
@@ -34,11 +35,10 @@ use ignore::{Walk, WalkBuilder, WalkParallel};
 use log;
 use num_cpus;
 use path_printer::{PathPrinter, PathPrinterBuilder};
-use regex::{self, Regex};
-use same_file::Handle;
+use regex;
 use termcolor::{
     WriteColor,
-    BufferedStandardStream, BufferWriter, ColorChoice, StandardStream,
+    BufferWriter, ColorChoice,
 };
 
 use app;
@@ -47,7 +47,6 @@ use logger::Logger;
 use messages::{set_messages, set_ignore_messages};
 use search::{PatternMatcher, Printer, SearchWorker, SearchWorkerBuilder};
 use subject::SubjectBuilder;
-use unescape::{escape, unescape};
 use Result;
 
 /// The command that ripgrep should execute based on the command line
@@ -314,13 +313,8 @@ impl Args {
 
     /// Execute the given function with a writer to stdout that enables color
     /// support based on the command line configuration.
-    pub fn stdout(&self) -> Box<WriteColor + Send> {
-        let color_choice = self.matches().color_choice();
-        if atty::is(atty::Stream::Stdout) {
-            Box::new(StandardStream::stdout(color_choice))
-        } else {
-            Box::new(BufferedStandardStream::stdout(color_choice))
-        }
+    pub fn stdout(&self) -> cli::StandardStream {
+        cli::stdout(self.matches().color_choice())
     }
 
     /// Return the type definitions compiled into ripgrep.
@@ -628,8 +622,8 @@ impl ArgMatches {
             .caseless(self.case_insensitive())
             .multi_line(true)
             .word(self.is_present("word-regexp"));
-        // For whatever reason, the JIT craps out during compilation with a
-        // "no more memory" error on 32 bit systems. So don't use it there.
+        // For whatever reason, the JIT craps out during regex compilation with
+        // a "no more memory" error on 32 bit systems. So don't use it there.
         if !cfg!(target_pointer_width = "32") {
             builder.jit(true);
         }
@@ -638,7 +632,7 @@ impl ArgMatches {
             if self.encoding()?.is_some() {
                 // SAFETY: If an encoding was specified, then we're guaranteed
                 // to get valid UTF-8, so we can disable PCRE2's UTF checking.
-                // (Feeding invalid UTF-8 to PCRE2 is UB.)
+                // (Feeding invalid UTF-8 to PCRE2 is undefined behavior.)
                 unsafe {
                     builder.disable_utf_check();
                 }
@@ -853,7 +847,7 @@ impl ArgMatches {
         } else if preference == "ansi" {
             ColorChoice::AlwaysAnsi
         } else if preference == "auto" {
-            if atty::is(atty::Stream::Stdout) || self.is_present("pretty") {
+            if cli::is_tty_stdout() || self.is_present("pretty") {
                 ColorChoice::Auto
             } else {
                 ColorChoice::Never
@@ -869,15 +863,7 @@ impl ArgMatches {
     /// is returned.
     fn color_specs(&self) -> Result<ColorSpecs> {
         // Start with a default set of color specs.
-        let mut specs = vec![
-            #[cfg(unix)]
-            "path:fg:magenta".parse().unwrap(),
-            #[cfg(windows)]
-            "path:fg:cyan".parse().unwrap(),
-            "line:fg:green".parse().unwrap(),
-            "match:fg:red".parse().unwrap(),
-            "match:style:bold".parse().unwrap(),
-        ];
+        let mut specs = default_color_specs();
         for spec_str in self.values_of_lossy_vec("colors") {
             specs.push(spec_str.parse()?);
         }
@@ -913,9 +899,9 @@ impl ArgMatches {
     ///
     /// If one was not provided, the default `--` is returned.
     fn context_separator(&self) -> Vec<u8> {
-        match self.value_of_lossy("context-separator") {
+        match self.value_of_os("context-separator") {
             None => b"--".to_vec(),
-            Some(sep) => unescape(&sep),
+            Some(sep) => cli::unescape_os(&sep),
         }
     }
 
@@ -990,7 +976,7 @@ impl ArgMatches {
         if self.is_present("no-heading") || self.is_present("vimgrep") {
             false
         } else {
-            atty::is(atty::Stream::Stdout)
+            cli::is_tty_stdout()
             || self.is_present("heading")
             || self.is_present("pretty")
         }
@@ -1042,7 +1028,7 @@ impl ArgMatches {
         // generally want to show line numbers by default when printing to a
         // tty for human consumption, except for one interesting case: when
         // we're only searching stdin. This makes pipelines work as expected.
-        (atty::is(atty::Stream::Stdout) && !self.is_only_stdin(paths))
+        (cli::is_tty_stdout() && !self.is_only_stdin(paths))
         || self.is_present("line-number")
         || self.is_present("column")
         || self.is_present("pretty")
@@ -1177,8 +1163,7 @@ impl ArgMatches {
         let file_is_stdin = self.values_of_os("file")
             .map_or(false, |mut files| files.any(|f| f == "-"));
         let search_cwd =
-            atty::is(atty::Stream::Stdin)
-            || !stdin_is_readable()
+            !cli::is_readable_stdin()
             || (self.is_present("file") && file_is_stdin)
             || self.is_present("files")
             || self.is_present("type-list");
@@ -1194,9 +1179,9 @@ impl ArgMatches {
     /// If the provided path separator is more than a single byte, then an
     /// error is returned.
     fn path_separator(&self) -> Result<Option<u8>> {
-        let sep = match self.value_of_lossy("path-separator") {
+        let sep = match self.value_of_os("path-separator") {
             None => return Ok(None),
-            Some(sep) => unescape(&sep),
+            Some(sep) => cli::unescape_os(&sep),
         };
         if sep.is_empty() {
             Ok(None)
@@ -1207,7 +1192,7 @@ impl ArgMatches {
                  In some shells on Windows '/' is automatically \
                  expanded. Use '//' instead.",
                  sep.len(),
-                 escape(&sep),
+                 cli::escape(&sep),
             )))
         } else {
             Ok(Some(sep[0]))
@@ -1254,18 +1239,12 @@ impl ArgMatches {
                 }
             }
         }
-        if let Some(files) = self.values_of_os("file") {
-            for file in files {
-                if file == "-" {
-                    let stdin = io::stdin();
-                    for line in stdin.lock().lines() {
-                        pats.push(self.pattern_from_str(&line?));
-                    }
+        if let Some(paths) = self.values_of_os("file") {
+            for path in paths {
+                if path == "-" {
+                    pats.extend(cli::patterns_from_stdin()?);
                 } else {
-                    let f = File::open(file)?;
-                    for line in io::BufReader::new(f).lines() {
-                        pats.push(self.pattern_from_str(&line?));
-                    }
+                    pats.extend(cli::patterns_from_path(path)?);
                 }
             }
         }
@@ -1287,7 +1266,7 @@ impl ArgMatches {
     ///
     /// If the pattern is not valid UTF-8, then an error is returned.
     fn pattern_from_os_str(&self, pat: &OsStr) -> Result<String> {
-        let s = pattern_to_str(pat)?;
+        let s = cli::pattern_from_os(pat)?;
         Ok(self.pattern_from_str(s))
     }
 
@@ -1495,40 +1474,11 @@ impl ArgMatches {
         &self,
         arg_name: &str,
     ) -> Result<Option<u64>> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^([0-9]+)([KMG])?$").unwrap();
-        }
-
-        let arg_value = match self.value_of_lossy(arg_name) {
-            Some(x) => x,
-            None => return Ok(None)
+        let size = match self.value_of_lossy(arg_name) {
+            None => return Ok(None),
+            Some(size) => size,
         };
-        let caps = RE
-            .captures(&arg_value)
-            .ok_or_else(|| {
-                format!("invalid format for {}", arg_name)
-            })?;
-
-        let value = caps[1].parse::<u64>()?;
-        let suffix = caps.get(2).map(|x| x.as_str());
-
-        let v_10 = value.checked_mul(1024);
-        let v_20 = v_10.and_then(|x| x.checked_mul(1024));
-        let v_30 = v_20.and_then(|x| x.checked_mul(1024));
-        let try_suffix = |x: Option<u64>| {
-            if x.is_some() {
-                Ok(x)
-            } else {
-                Err(From::from(format!("number too large for {}", arg_name)))
-            }
-        };
-        match suffix {
-            None => Ok(Some(value)),
-            Some("K") => try_suffix(v_10),
-            Some("M") => try_suffix(v_20),
-            Some("G") => try_suffix(v_30),
-            _ => Err(From::from(format!("invalid suffix for {}", arg_name)))
-        }
+        Ok(Some(cli::parse_human_readable_size(&size)?))
     }
 }
 
@@ -1560,21 +1510,6 @@ impl ArgMatches {
     fn values_of_os(&self, name: &str) -> Option<clap::OsValues> {
         self.0.values_of_os(name)
     }
-}
-
-/// Convert an OsStr to a Unicode string.
-///
-/// Patterns _must_ be valid UTF-8, so if the given OsStr isn't valid UTF-8,
-/// this returns an error.
-fn pattern_to_str(s: &OsStr) -> Result<&str> {
-    s.to_str().ok_or_else(|| {
-        From::from(format!(
-            "Argument '{}' is not valid UTF-8. \
-             Use hex escape sequences to match arbitrary \
-             bytes in a pattern (e.g., \\xFF).",
-             s.to_string_lossy()
-        ))
-    })
 }
 
 /// Inspect an error resulting from building a Rust regex matcher, and if it's
@@ -1637,26 +1572,4 @@ where G: Fn(&fs::Metadata) -> io::Result<SystemTime>
     } else {
         t1.cmp(&t2)
     }
-}
-
-/// Returns true if and only if stdin is deemed searchable.
-#[cfg(unix)]
-fn stdin_is_readable() -> bool {
-    use std::os::unix::fs::FileTypeExt;
-
-    let ft = match Handle::stdin().and_then(|h| h.as_file().metadata()) {
-        Err(_) => return false,
-        Ok(md) => md.file_type(),
-    };
-    ft.is_file() || ft.is_fifo()
-}
-
-/// Returns true if and only if stdin is deemed searchable.
-#[cfg(windows)]
-fn stdin_is_readable() -> bool {
-    use winapi_util as winutil;
-
-    winutil::file::typ(winutil::HandleRef::stdin())
-        .map(|t| t.is_disk() || t.is_pipe())
-        .unwrap_or(false)
 }

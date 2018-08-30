@@ -4,6 +4,25 @@ use std::str::FromStr;
 
 use termcolor::{Color, ColorSpec, ParseColorError};
 
+/// Returns a default set of color specifications.
+///
+/// This may change over time, but the color choices are meant to be fairly
+/// conservative that work across terminal themes.
+///
+/// Additional color specifications can be added to the list returned. More
+/// recently added specifications override previously added specifications.
+pub fn default_color_specs() -> Vec<UserColorSpec> {
+    vec![
+        #[cfg(unix)]
+        "path:fg:magenta".parse().unwrap(),
+        #[cfg(windows)]
+        "path:fg:cyan".parse().unwrap(),
+        "line:fg:green".parse().unwrap(),
+        "match:fg:red".parse().unwrap(),
+        "match:style:bold".parse().unwrap(),
+    ]
+}
+
 /// An error that can occur when parsing color specifications.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ColorError {
@@ -225,6 +244,15 @@ impl ColorSpecs {
             }
         }
         merged
+    }
+
+    /// Create a default set of specifications that have color.
+    ///
+    /// This is distinct from `ColorSpecs`'s `Default` implementation in that
+    /// this provides a set of default color choices, where as the `Default`
+    /// implementation provides no color choices.
+    pub fn default_with_color() -> ColorSpecs {
+        ColorSpecs::new(&default_color_specs())
     }
 
     /// Return the color specification for coloring file paths.

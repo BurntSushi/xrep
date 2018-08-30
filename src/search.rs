@@ -1,7 +1,10 @@
+use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
+use grep::cli;
 use grep::matcher::Matcher;
 #[cfg(feature = "pcre2")]
 use grep::pcre2::{RegexMatcher as PCRE2RegexMatcher};
@@ -11,8 +14,6 @@ use grep::searcher::Searcher;
 use serde_json as json;
 use termcolor::WriteColor;
 
-use decompressor::{DecompressionReader, is_compressed};
-use preprocessor::PreprocessorReader;
 use subject::Subject;
 
 /// The configuration for the search worker. Among a few other things, the
@@ -39,6 +40,8 @@ impl Default for Config {
 #[derive(Clone, Debug)]
 pub struct SearchWorkerBuilder {
     config: Config,
+    command_builder: cli::CommandReaderBuilder,
+    decomp_builder: cli::DecompressionReaderBuilder,
 }
 
 impl Default for SearchWorkerBuilder {
@@ -50,7 +53,17 @@ impl Default for SearchWorkerBuilder {
 impl SearchWorkerBuilder {
     /// Create a new builder for configuring and constructing a search worker.
     pub fn new() -> SearchWorkerBuilder {
-        SearchWorkerBuilder { config: Config::default() }
+        let mut cmd_builder = cli::CommandReaderBuilder::new();
+        cmd_builder.async_stderr(true);
+
+        let mut decomp_builder = cli::DecompressionReaderBuilder::new();
+        decomp_builder.async_stderr(true);
+
+        SearchWorkerBuilder {
+            config: Config::default(),
+            command_builder: cmd_builder,
+            decomp_builder: decomp_builder,
+        }
     }
 
     /// Create a new search worker using the given searcher, matcher and
@@ -62,7 +75,12 @@ impl SearchWorkerBuilder {
         printer: Printer<W>,
     ) -> SearchWorker<W> {
         let config = self.config.clone();
-        SearchWorker { config, matcher, searcher, printer }
+        let command_builder = self.command_builder.clone();
+        let decomp_builder = self.decomp_builder.clone();
+        SearchWorker {
+            config, command_builder, decomp_builder,
+            matcher, searcher, printer,
+        }
     }
 
     /// Forcefully use JSON to emit statistics, even if the underlying printer
@@ -237,6 +255,8 @@ impl<W: WriteColor> Printer<W> {
 #[derive(Debug)]
 pub struct SearchWorker<W> {
     config: Config,
+    command_builder: cli::CommandReaderBuilder,
+    decomp_builder: cli::DecompressionReaderBuilder,
     matcher: PatternMatcher,
     searcher: Searcher,
     printer: Printer<W>,
@@ -279,17 +299,46 @@ impl<W: WriteColor> SearchWorker<W> {
             // A `return` here appeases the borrow checker. NLL will fix this.
             return self.search_reader(path, stdin.lock());
         } else if self.config.preprocessor.is_some() {
-            let cmd = self.config.preprocessor.clone().unwrap();
-            let rdr = PreprocessorReader::from_cmd_path(cmd, path)?;
-            self.search_reader(path, rdr)
-        } else if self.config.search_zip && is_compressed(path) {
-            match DecompressionReader::from_path(path) {
-                None => Ok(SearchResult::default()),
-                Some(rdr) => self.search_reader(path, rdr),
-            }
+            self.search_preprocessor(path)
+        } else if self.should_decompress(path) {
+            self.search_decompress(path)
         } else {
             self.search_path(path)
         }
+    }
+
+    /// Returns true if and only if the given file path should be
+    /// decompressed before searching.
+    fn should_decompress(&self, path: &Path) -> bool {
+        if !self.config.search_zip {
+            return false;
+        }
+        self.decomp_builder.get_matcher().has_command(path)
+    }
+
+    fn search_preprocessor(
+        &mut self,
+        path: &Path,
+    ) -> io::Result<SearchResult> {
+        let bin = self.config.preprocessor.clone().unwrap();
+        let mut cmd = Command::new(&bin);
+        cmd.arg(path).stdin(Stdio::from(File::open(path)?));
+
+        let rdr = self.command_builder.build(&mut cmd)?;
+        self.search_reader(path, rdr).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("preprocessor command failed: '{:?}': {}", cmd, err),
+            )
+        })
+    }
+
+    fn search_decompress(
+        &mut self,
+        path: &Path,
+    ) -> io::Result<SearchResult> {
+        let rdr = self.decomp_builder.build(path)?;
+        self.search_reader(path, rdr)
     }
 
     /// Search the contents of the given file path.

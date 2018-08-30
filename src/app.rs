@@ -80,7 +80,7 @@ pub fn app() -> App<'static, 'static> {
 /// Return the "long" format of ripgrep's version string.
 ///
 /// If a revision hash is given, then it is used. If one isn't given, then
-/// the RIPGREP_BUILD_GIT_HASH env var is inspect for it. If that isn't set,
+/// the RIPGREP_BUILD_GIT_HASH env var is inspected for it. If that isn't set,
 /// then a revision hash is not included in the version string returned.
 pub fn long_version(revision_hash: Option<&str>) -> String {
     // Do we have a git hash?
@@ -537,7 +537,11 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     // The positional arguments must be defined first and in order.
     arg_pattern(&mut args);
     arg_path(&mut args);
-    // Flags can be defined in any order, but we do it alphabetically.
+    // Flags can be defined in any order, but we do it alphabetically. Note
+    // that each function may define multiple flags. For example,
+    // `flag_encoding` defines `--encoding` and `--no-encoding`. Most `--no`
+    // flags are hidden and merely mentioned in the docs of the corresponding
+    // "positive" flag.
     flag_after_context(&mut args);
     flag_before_context(&mut args);
     flag_byte_offset(&mut args);

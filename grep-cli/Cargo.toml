@@ -1,0 +1,25 @@
+[package]
+name = "grep-cli"
+version = "0.1.0"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+Utilities for search oriented command line applications.
+"""
+documentation = "https://docs.rs/grep-cli"
+homepage = "https://github.com/BurntSushi/ripgrep"
+repository = "https://github.com/BurntSushi/ripgrep"
+readme = "README.md"
+keywords = ["regex", "grep", "cli", "utility", "util"]
+license = "Unlicense/MIT"
+
+[dependencies]
+atty = "0.2.11"
+globset = { version = "0.4.1", path = "../globset" }
+lazy_static = "1.1"
+log = "0.4"
+regex = "1"
+same-file = "1"
+termcolor = "1"
+
+[target.'cfg(windows)'.dependencies.winapi-util]
+version = "0.1.1"

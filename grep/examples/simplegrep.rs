@@ -1,19 +1,18 @@
-extern crate atty;
 extern crate grep;
 extern crate termcolor;
 extern crate walkdir;
 
 use std::env;
-use std::error;
 use std::ffi::OsString;
 use std::path::Path;
 use std::process;
 use std::result;
 
+use grep::cli;
 use grep::printer::{ColorSpecs, StandardBuilder};
 use grep::regex::RegexMatcher;
 use grep::searcher::{BinaryDetection, SearcherBuilder};
-use termcolor::{ColorChoice, StandardStream};
+use termcolor::ColorChoice;
 use walkdir::WalkDir;
 
 macro_rules! fail {
@@ -22,7 +21,7 @@ macro_rules! fail {
     }
 }
 
-type Result<T> = result::Result<T, Box<error::Error>>;
+type Result<T> = result::Result<T, Box<::std::error::Error>>;
 
 fn main() {
     if let Err(err) = try_main() {
@@ -39,26 +38,18 @@ fn try_main() -> Result<()> {
     if args.len() == 2 {
         args.push(OsString::from("./"));
     }
-    let pattern = match args[1].clone().into_string() {
-        Ok(pattern) => pattern,
-        Err(_) => {
-            fail!(
-                "pattern is not valid UTF-8: '{:?}'",
-                args[1].to_string_lossy()
-            );
-        }
-    };
-    search(&pattern, &args[2..])
+    search(cli::pattern_from_os(&args[1])?, &args[2..])
 }
 
 fn search(pattern: &str, paths: &[OsString]) -> Result<()> {
     let matcher = RegexMatcher::new_line_matcher(&pattern)?;
     let mut searcher = SearcherBuilder::new()
         .binary_detection(BinaryDetection::quit(b'\x00'))
+        .line_number(false)
         .build();
     let mut printer = StandardBuilder::new()
-        .color_specs(colors())
-        .build(StandardStream::stdout(color_choice()));
+        .color_specs(ColorSpecs::default_with_color())
+        .build(cli::stdout(color_choice()));
 
     for path in paths {
         for result in WalkDir::new(path) {
@@ -90,18 +81,9 @@ fn search(pattern: &str, paths: &[OsString]) -> Result<()> {
 }
 
 fn color_choice() -> ColorChoice {
-    if atty::is(atty::Stream::Stdout) {
+    if cli::is_tty_stdout() {
         ColorChoice::Auto
     } else {
         ColorChoice::Never
     }
-}
-
-fn colors() -> ColorSpecs {
-    ColorSpecs::new(&[
-        "path:fg:magenta".parse().unwrap(),
-        "line:fg:green".parse().unwrap(),
-        "match:fg:red".parse().unwrap(),
-        "match:style:bold".parse().unwrap(),
-    ])
 }
