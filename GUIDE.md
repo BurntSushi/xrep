@@ -227,7 +227,7 @@ with the following contents:
 ```
 
 ripgrep treats `.ignore` files with higher precedence than `.gitignore` files
-(and treats `.rgignore` files with higher precdence than `.ignore` files).
+(and treats `.rgignore` files with higher precedence than `.ignore` files).
 This means ripgrep will see the `!log/` whitelist rule first and search that
 directory.
 
@@ -580,7 +580,7 @@ override it.
 
 If you're confused about what configuration file ripgrep is reading arguments
 from, then running ripgrep with the `--debug` flag should help clarify things.
-The debug output should note what config file is being loaded and the arugments
+The debug output should note what config file is being loaded and the arguments
 that have been read from the configuration.
 
 Finally, if you want to make absolutely sure that ripgrep *isn't* reading a
