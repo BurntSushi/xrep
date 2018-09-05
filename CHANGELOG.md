@@ -44,6 +44,8 @@ Feature enhancements:
   Add `--null-data` flag, which makes ripgrep use NUL as a line terminator.
 * [FEATURE #997](https://github.com/BurntSushi/ripgrep/issues/997):
   The `--passthru` flag now works with the `--replace` flag.
+* FEATURE:
+  Add `--line-buffered` and `--block-buffered` for forcing a buffer strategy.
 
 Bug fixes:
 

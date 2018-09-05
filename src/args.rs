@@ -314,7 +314,14 @@ impl Args {
     /// Execute the given function with a writer to stdout that enables color
     /// support based on the command line configuration.
     pub fn stdout(&self) -> cli::StandardStream {
-        cli::stdout(self.matches().color_choice())
+        let color = self.matches().color_choice();
+        if self.matches().is_present("line-buffered") {
+            cli::stdout_buffered_line(color)
+        } else if self.matches().is_present("block-buffered") {
+            cli::stdout_buffered_block(color)
+        } else {
+            cli::stdout(color)
+        }
     }
 
     /// Return the type definitions compiled into ripgrep.

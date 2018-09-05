@@ -44,6 +44,12 @@ _rg() {
     '(: * -)'{-h,--help}'[display help information]'
     '(: * -)'{-V,--version}'[display version information]'
 
+    + '(buffered)' # buffering options
+    '--line-buffered[force line buffering]'
+    $no"--no-line-buffered[don't force line buffering]"
+    '--block-buffered[force block buffering]'
+    $no"--no-block-buffered[don't force block buffering]"
+
     + '(case)' # Case-sensitivity options
     {-i,--ignore-case}'[search case-insensitively]'
     {-s,--case-sensitive}'[search case-sensitively]'

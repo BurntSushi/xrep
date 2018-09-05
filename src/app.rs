@@ -544,6 +544,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     // "positive" flag.
     flag_after_context(&mut args);
     flag_before_context(&mut args);
+    flag_block_buffered(&mut args);
     flag_byte_offset(&mut args);
     flag_case_sensitive(&mut args);
     flag_color(&mut args);
@@ -571,6 +572,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_ignore_file(&mut args);
     flag_invert_match(&mut args);
     flag_json(&mut args);
+    flag_line_buffered(&mut args);
     flag_line_number(&mut args);
     flag_line_regexp(&mut args);
     flag_max_columns(&mut args);
@@ -682,6 +684,36 @@ This overrides the --context flag.
         .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
+    args.push(arg);
+}
+
+fn flag_block_buffered(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Force block buffering.";
+    const LONG: &str = long!("\
+When enabled, ripgrep will use block buffering. That is, whenever a matching
+line is found, it will be written to an in-memory buffer and will not be
+written to stdout until the buffer reaches a certain size. This is the default
+when ripgrep's stdout is redirected to a pipeline or a file. When ripgrep's
+stdout is connected to a terminal, line buffering will be used. Forcing block
+buffering can be useful when dumping a large amount of contents to a terminal.
+
+Forceful block buffering can be disabled with --no-block-buffered. Note that
+using --no-block-buffered causes ripgrep to revert to its default behavior of
+automatically detecting the buffering strategy. To force line buffering, use
+the --line-buffered flag.
+");
+    let arg = RGArg::switch("block-buffered")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-block-buffered")
+        .overrides("line-buffered")
+        .overrides("no-line-buffered");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-block-buffered")
+        .hidden()
+        .overrides("block-buffered")
+        .overrides("line-buffered")
+        .overrides("no-line-buffered");
     args.push(arg);
 }
 
@@ -1242,6 +1274,37 @@ The JSON Lines format can be disabled with --no-json.
     let arg = RGArg::switch("no-json")
         .hidden()
         .overrides("json");
+    args.push(arg);
+}
+
+fn flag_line_buffered(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Force line buffering.";
+    const LONG: &str = long!("\
+When enabled, ripgrep will use line buffering. That is, whenever a matching
+line is found, it will be flushed to stdout immediately. This is the default
+when ripgrep's stdout is connected to a terminal, but otherwise, ripgrep will
+use block buffering, which is typically faster. This flag forces ripgrep to
+use line buffering even if it would otherwise use block buffering. This is
+typically useful in shell pipelines, e.g.,
+'tail -f something.log | rg foo --line-buffered | rg bar'.
+
+Forceful line buffering can be disabled with --no-line-buffered. Note that
+using --no-line-buffered causes ripgrep to revert to its default behavior of
+automatically detecting the buffering strategy. To force block buffering, use
+the --block-buffered flag.
+");
+    let arg = RGArg::switch("line-buffered")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-line-buffered")
+        .overrides("block-buffered")
+        .overrides("no-block-buffered");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-line-buffered")
+        .hidden()
+        .overrides("line-buffered")
+        .overrides("block-buffered")
+        .overrides("no-block-buffered");
     args.push(arg);
 }
 
