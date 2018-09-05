@@ -816,6 +816,24 @@ be, to a very large extent, the result of luck. Sherlock Holmes
     eqnice!(expected, cmd.stdout());
 });
 
+rgtest!(preprocessing_glob, |dir: Dir, mut cmd: TestCommand| {
+    if !cmd_exists("xzcat") {
+        return;
+    }
+
+    dir.create("sherlock", SHERLOCK);
+    dir.create_bytes("sherlock.xz", include_bytes!("./data/sherlock.xz"));
+    cmd.args(&["--pre", "xzcat", "--pre-glob", "*.xz", "Sherlock"]);
+
+    let expected = "\
+sherlock.xz:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock.xz:be, to a very large extent, the result of luck. Sherlock Holmes
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    eqnice!(sort_lines(expected), sort_lines(&cmd.stdout()));
+});
+
 rgtest!(compressed_gzip, |dir: Dir, mut cmd: TestCommand| {
     if !cmd_exists("gzip") {
         return;

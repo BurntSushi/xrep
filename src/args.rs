@@ -285,6 +285,7 @@ impl Args {
         builder
             .json_stats(self.matches().is_present("json"))
             .preprocessor(self.matches().preprocessor())
+            .preprocessor_globs(self.matches().preprocessor_globs()?)
             .search_zip(self.matches().is_present("search-zip"));
         Ok(builder.build(matcher, searcher, printer))
     }
@@ -1321,6 +1322,17 @@ impl ArgMatches {
             return None;
         }
         Some(Path::new(path).to_path_buf())
+    }
+
+    /// Builds the set of globs for filtering files to apply to the --pre
+    /// flag. If no --pre-globs are available, then this always returns an
+    /// empty set of globs.
+    fn preprocessor_globs(&self) -> Result<Override> {
+        let mut builder = OverrideBuilder::new(env::current_dir()?);
+        for glob in self.values_of_lossy_vec("pre-glob") {
+            builder.add(&glob)?;
+        }
+        Ok(builder.build()?)
     }
 
     /// Parse the regex-size-limit argument option into a byte count.

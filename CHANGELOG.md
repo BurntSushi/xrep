@@ -46,6 +46,8 @@ Feature enhancements:
   The `--passthru` flag now works with the `--replace` flag.
 * FEATURE:
   Add `--line-buffered` and `--block-buffered` for forcing a buffer strategy.
+* FEATURE:
+  Add `--pre-glob` for filtering files through the `--pre` flag.
 
 Bug fixes:
 

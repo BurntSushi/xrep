@@ -11,6 +11,7 @@ use grep::pcre2::{RegexMatcher as PCRE2RegexMatcher};
 use grep::printer::{JSON, Standard, Summary, Stats};
 use grep::regex::{RegexMatcher as RustRegexMatcher};
 use grep::searcher::Searcher;
+use ignore::overrides::Override;
 use serde_json as json;
 use termcolor::WriteColor;
 
@@ -23,6 +24,7 @@ use subject::Subject;
 struct Config {
     json_stats: bool,
     preprocessor: Option<PathBuf>,
+    preprocessor_globs: Override,
     search_zip: bool,
 }
 
@@ -31,6 +33,7 @@ impl Default for Config {
         Config {
             json_stats: false,
             preprocessor: None,
+            preprocessor_globs: Override::empty(),
             search_zip: false,
         }
     }
@@ -105,6 +108,17 @@ impl SearchWorkerBuilder {
         cmd: Option<PathBuf>,
     ) -> &mut SearchWorkerBuilder {
         self.config.preprocessor = cmd;
+        self
+    }
+
+    /// Set the globs for determining which files should be run through the
+    /// preprocessor. By default, with no globs and a preprocessor specified,
+    /// every file is run through the preprocessor.
+    pub fn preprocessor_globs(
+        &mut self,
+        globs: Override,
+    ) -> &mut SearchWorkerBuilder {
+        self.config.preprocessor_globs = globs;
         self
     }
 
@@ -298,7 +312,7 @@ impl<W: WriteColor> SearchWorker<W> {
             let stdin = io::stdin();
             // A `return` here appeases the borrow checker. NLL will fix this.
             return self.search_reader(path, stdin.lock());
-        } else if self.config.preprocessor.is_some() {
+        } else if self.should_preprocess(path) {
             self.search_preprocessor(path)
         } else if self.should_decompress(path) {
             self.search_decompress(path)
@@ -316,6 +330,20 @@ impl<W: WriteColor> SearchWorker<W> {
         self.decomp_builder.get_matcher().has_command(path)
     }
 
+    /// Returns true if and only if the given file path should be run through
+    /// the preprocessor.
+    fn should_preprocess(&self, path: &Path) -> bool {
+        if !self.config.preprocessor.is_some() {
+            return false;
+        }
+        if self.config.preprocessor_globs.is_empty() {
+            return true;
+        }
+        !self.config.preprocessor_globs.matched(path, false).is_ignore()
+    }
+
+    /// Search the given file path by first asking the preprocessor for the
+    /// data to search instead of opening the path directly.
     fn search_preprocessor(
         &mut self,
         path: &Path,
@@ -333,6 +361,9 @@ impl<W: WriteColor> SearchWorker<W> {
         })
     }
 
+    /// Attempt to decompress the data at the given file path and search the
+    /// result. If the given file path isn't recognized as a compressed file,
+    /// then search it without doing any decompression.
     fn search_decompress(
         &mut self,
         path: &Path,

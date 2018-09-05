@@ -183,6 +183,9 @@ _rg() {
     '(-z --search-zip)--pre=[specify preprocessor utility]:preprocessor utility:_command_names -e'
     $no'--no-pre[disable preprocessor utility]'
 
+    + pre-glob # Preprocessing glob options
+    '*--pre-glob[include/exclude files for preprocessing with --pre]'
+
     + '(pretty-vimgrep)' # Pretty/vimgrep display options
     '(heading)'{-p,--pretty}'[alias for --color=always --heading -n]'
     '(heading passthru)--vimgrep[show results in vim-compatible format]'

@@ -598,6 +598,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_passthru(&mut args);
     flag_pcre2(&mut args);
     flag_pre(&mut args);
+    flag_pre_glob(&mut args);
     flag_pretty(&mut args);
     flag_quiet(&mut args);
     flag_regex_size_limit(&mut args);
@@ -1819,6 +1820,97 @@ This flag can be disabled with --no-pcre2.
     args.push(arg);
 }
 
+fn flag_pre(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "search outputs of COMMAND FILE for each FILE";
+    const LONG: &str = long!("\
+For each input FILE, search the standard output of COMMAND FILE rather than the
+contents of FILE. This option expects the COMMAND program to either be an
+absolute path or to be available in your PATH. Either an empty string COMMAND
+or the `--no-pre` flag will disable this behavior.
+
+    WARNING: When this flag is set, ripgrep will unconditionally spawn a
+    process for every file that is searched. Therefore, this can incur an
+    unnecessarily large performance penalty if you don't otherwise need the
+    flexibility offered by this flag.
+
+A preprocessor is not run when ripgrep is searching stdin.
+
+When searching over sets of files that may require one of several decoders
+as preprocessors, COMMAND should be a wrapper program or script which first
+classifies FILE based on magic numbers/content or based on the FILE name and
+then dispatches to an appropriate preprocessor. Each COMMAND also has its
+standard input connected to FILE for convenience.
+
+For example, a shell script for COMMAND might look like:
+
+    case \"$1\" in
+    *.pdf)
+        exec pdftotext \"$1\" -
+        ;;
+    *)
+        case $(file \"$1\") in
+        *Zstandard*)
+            exec pzstd -cdq
+            ;;
+        *)
+            exec cat
+            ;;
+        esac
+        ;;
+    esac
+
+The above script uses `pdftotext` to convert a PDF file to plain text. For
+all other files, the script uses the `file` utility to sniff the type of the
+file based on its contents. If it is a compressed file in the Zstandard format,
+then `pzstd` is used to decompress the contents to stdout.
+
+This overrides the -z/--search-zip flag.
+");
+    let arg = RGArg::flag("pre", "COMMAND")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-pre")
+        .overrides("search-zip");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-pre")
+        .hidden()
+        .overrides("pre");
+    args.push(arg);
+}
+
+fn flag_pre_glob(args: &mut Vec<RGArg>) {
+    const SHORT: &str =
+        "Include or exclude files from a preprocessing command.";
+    const LONG: &str = long!("\
+This flag works in conjunction with the --pre flag. Namely, when one or more
+--pre-glob flags are given, then only files that match the given set of globs
+will be handed to the command specified by the --pre flag. Any non-matching
+files will be searched without using the preprocessor command.
+
+This flag is useful when searching many files with the --pre flag. Namely,
+it permits the ability to avoid process overhead for files that don't need
+preprocessing. For example, given the following shell script, 'pre-pdftotext':
+
+    #!/bin/sh
+
+    pdftotext \"$1\" -
+
+then it is possible to use '--pre pre-pdftotext --pre-glob \'*.pdf\'' to make
+it so ripgrep only executes the 'pre-pdftotext' command on files with a '.pdf'
+extension.
+
+Multiple --pre-glob flags may be used. Globbing rules match .gitignore globs.
+Precede a glob with a ! to exclude it.
+
+This flag has no effect if the --pre flag is not used.
+");
+    let arg = RGArg::flag("pre-glob", "GLOB")
+        .help(SHORT).long_help(LONG)
+        .multiple()
+        .allow_leading_hyphen();
+    args.push(arg);
+}
+
 fn flag_pretty(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Alias for --color always --heading --line-number.";
     const LONG: &str = long!("\
@@ -1921,64 +2013,6 @@ This flag can be disabled with --no-search-zip.
     let arg = RGArg::switch("no-search-zip")
         .hidden()
         .overrides("search-zip");
-    args.push(arg);
-}
-
-fn flag_pre(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "search outputs of COMMAND FILE for each FILE";
-    const LONG: &str = long!("\
-For each input FILE, search the standard output of COMMAND FILE rather than the
-contents of FILE. This option expects the COMMAND program to either be an
-absolute path or to be available in your PATH. Either an empty string COMMAND
-or the `--no-pre` flag will disable this behavior.
-
-    WARNING: When this flag is set, ripgrep will unconditionally spawn a
-    process for every file that is searched. Therefore, this can incur an
-    unnecessarily large performance penalty if you don't otherwise need the
-    flexibility offered by this flag.
-
-A preprocessor is not run when ripgrep is searching stdin.
-
-When searching over sets of files that may require one of several decoders
-as preprocessors, COMMAND should be a wrapper program or script which first
-classifies FILE based on magic numbers/content or based on the FILE name and
-then dispatches to an appropriate preprocessor. Each COMMAND also has its
-standard input connected to FILE for convenience.
-
-For example, a shell script for COMMAND might look like:
-
-    case \"$1\" in
-    *.pdf)
-        exec pdftotext \"$1\" -
-        ;;
-    *)
-        case $(file \"$1\") in
-        *Zstandard*)
-            exec pzstd -cdq
-            ;;
-        *)
-            exec cat
-            ;;
-        esac
-        ;;
-    esac
-
-The above script uses `pdftotext` to convert a PDF file to plain text. For
-all other files, the script uses the `file` utility to sniff the type of the
-file based on its contents. If it is a compressed file in the Zstandard format,
-then `pzstd` is used to decompress the contents to stdout.
-
-This overrides the -z/--search-zip flag.
-");
-    let arg = RGArg::flag("pre", "COMMAND")
-        .help(SHORT).long_help(LONG)
-        .overrides("no-pre")
-        .overrides("search-zip");
-    args.push(arg);
-
-    let arg = RGArg::switch("no-pre")
-        .hidden()
-        .overrides("pre");
     args.push(arg);
 }
 
