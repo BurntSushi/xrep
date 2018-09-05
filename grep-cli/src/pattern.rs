@@ -183,7 +183,7 @@ pub fn patterns_from_reader<R: io::Read>(rdr: R) -> io::Result<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{pattern_from_bytes, pattern_from_os};
+    use super::*;
 
     #[test]
     fn bytes() {

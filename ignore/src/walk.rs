@@ -1704,7 +1704,7 @@ mod tests {
 
     use tempdir::TempDir;
 
-    use super::{DirEntry, WalkBuilder, WalkState, device_num};
+    use super::{DirEntry, WalkBuilder, WalkState};
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();
@@ -2019,6 +2019,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn same_file_system() {
+        use super::device_num;
+
         // If for some reason /sys doesn't exist or isn't a directory, just
         // skip this test.
         if !Path::new("/sys").is_dir() {
