@@ -2067,7 +2067,7 @@ for this flag are:
     path        Sort by file path.
     modified    Sort by the last modified time on a file.
     accessed    Sort by the last accessed time on a file.
-    created     Sort by the cretion time on a file.
+    created     Sort by the creation time on a file.
     none        Do not sort results.
 
 If the sorting criteria isn't available on your system (for example, creation
@@ -2100,7 +2100,7 @@ for this flag are:
     path        Sort by file path.
     modified    Sort by the last modified time on a file.
     accessed    Sort by the last accessed time on a file.
-    created     Sort by the cretion time on a file.
+    created     Sort by the creation time on a file.
     none        Do not sort results.
 
 If the sorting criteria isn't available on your system (for example, creation
