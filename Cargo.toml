@@ -81,6 +81,7 @@ debug = 1
 
 [package.metadata.deb]
 features = ["pcre2"]
+section = "utils"
 assets = [
   ["target/release/rg", "usr/bin/", "755"],
   ["COPYING", "usr/share/doc/ripgrep/", "644"],
