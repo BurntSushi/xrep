@@ -166,10 +166,10 @@ fn union_required(expr: &Hir, lits: &mut Literals) {
                     lits.cut();
                     continue;
                 }
-                if lits2.contains_empty() {
+                if lits2.contains_empty() || !is_simple(&e) {
                     lits.cut();
                 }
-                if !lits.cross_product(&lits2) {
+                if !lits.cross_product(&lits2) || !lits2.any_complete() {
                     // If this expression couldn't yield any literal that
                     // could be extended, then we need to quit. Since we're
                     // short-circuiting, we also need to freeze every member.
@@ -250,6 +250,20 @@ fn alternate_literals<F: FnMut(&Hir, &mut Literals)>(
     }
 }
 
+fn is_simple(expr: &Hir) -> bool {
+    match *expr.kind() {
+        HirKind::Empty
+        | HirKind::Literal(_)
+        | HirKind::Class(_)
+        | HirKind::Repetition(_)
+        | HirKind::Concat(_)
+        | HirKind::Alternation(_) => true,
+        HirKind::Anchor(_)
+        | HirKind::WordBoundary(_)
+        | HirKind::Group(_) => false,
+    }
+}
+
 /// Return the number of characters in the given class.
 fn count_unicode_class(cls: &hir::ClassUnicode) -> u32 {
     cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
@@ -300,5 +314,13 @@ mod tests {
         // without these.
         // assert_eq!(one_regex(r"\w(foo|bar|baz)"), pat("foo|bar|baz"));
         // assert_eq!(one_regex(r"\w(foo|bar|baz)\w"), pat("foo|bar|baz"));
+    }
+
+    #[test]
+    fn regression_1064() {
+        // Regression from:
+        // https://github.com/BurntSushi/ripgrep/issues/1064
+        // assert_eq!(one_regex(r"a.*c"), pat("a"));
+        assert_eq!(one_regex(r"a(.*c)"), pat("a"));
     }
 }

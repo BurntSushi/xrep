@@ -562,3 +562,9 @@ rgtest!(r900, |dir: Dir, mut cmd: TestCommand| {
 
     cmd.arg("-fpat").arg("sherlock").assert_err();
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1064
+rgtest!(r1064, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("input", "abc");
+    eqnice!("input:abc\n", cmd.arg("a(.*c)").stdout());
+});
