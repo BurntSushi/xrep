@@ -121,7 +121,7 @@ dependencies = [
 
 [[package]]
 name = "encoding_rs_io"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding_rs 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -242,7 +242,7 @@ version = "0.1.1"
 dependencies = [
  "bytecount 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding_rs_io 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_rs_io 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "grep-matcher 0.1.1",
  "grep-regex 0.1.1",
  "log 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -717,7 +717,7 @@ dependencies = [
 "checksum crossbeam-epoch 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "30fecfcac6abfef8771151f8be4abc9e4edc112c2bcb233314cafde2680536e9"
 "checksum crossbeam-utils 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "677d453a17e8bd2b913fa38e8b9cf04bcdbb5be790aa294f2389661d72036015"
 "checksum encoding_rs 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2a91912d6f37c6a8fef8a2316a862542d036f13c923ad518b5aca7bcaac7544c"
-"checksum encoding_rs_io 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f222ff554d6e172f3569a2d7d0fd8061d54215984ef67b24ce031c1fcbf2c9b3"
+"checksum encoding_rs_io 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "098f6a0ab73a9ba256b71344dc82c6d7e252736ad9db7f4e35345f3a1f8713f5"
 "checksum fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
 "checksum fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e9763c69ebaae630ba35f74888db465e49e259ba1bc0eda7d06f4a067615d82"
 "checksum fuchsia-zircon-sys 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
