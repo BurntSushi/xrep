@@ -615,7 +615,10 @@ impl ArgMatches {
         if let Some(limit) = self.dfa_size_limit()? {
             builder.dfa_size_limit(limit);
         }
-        Ok(builder.build(&patterns.join("|"))?)
+        match builder.build(&patterns.join("|")) {
+            Ok(m) => Ok(m),
+            Err(err) => Err(From::from(suggest_multiline(err.to_string()))),
+        }
     }
 
     /// Build a matcher using PCRE2.
@@ -1543,6 +1546,17 @@ fn suggest_pcre2(msg: String) -> String {
 
 Consider enabling PCRE2 with the --pcre2 flag, which can handle backreferences
 and look-around.", msg)
+    }
+}
+
+fn suggest_multiline(msg: String) -> String {
+    if msg.contains("the literal") && msg.contains("not allowed") {
+        format!("{}
+
+Consider enabling multiline mode with the --multiline flag (or -U for short).
+When multiline mode is enabled, new line characters can be matched.", msg)
+    } else {
+        msg
     }
 }
 
