@@ -10,6 +10,7 @@ extern crate num_cpus;
 extern crate regex;
 #[macro_use]
 extern crate serde_json;
+extern crate tar;
 extern crate termcolor;
 
 use std::io::{self, Write};

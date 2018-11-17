@@ -128,6 +128,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "filetime"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cfg-if 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_syscall 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -490,6 +500,7 @@ dependencies = [
  "serde 1.0.77 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.77 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tar 0.4.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "termcolor 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -572,6 +583,17 @@ dependencies = [
  "proc-macro2 0.4.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tar"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "filetime 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_syscall 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xattr 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -701,6 +723,14 @@ dependencies = [
  "winapi-util 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
+[[package]]
+name = "xattr"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
 [metadata]
 "checksum aho-corasick 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)" = "68f56c7353e5a9547cbd76ed90f7bb5ffc3ba09d4ea9bd1d8c06c8b1142eeb5a"
 "checksum arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a1e964f9e24d588183fcb43503abda40d288c8657dfc27311516ce2f05675aef"
@@ -718,6 +748,7 @@ dependencies = [
 "checksum crossbeam-utils 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "677d453a17e8bd2b913fa38e8b9cf04bcdbb5be790aa294f2389661d72036015"
 "checksum encoding_rs 0.8.10 (registry+https://github.com/rust-lang/crates.io-index)" = "065f4d0c826fdaef059ac45487169d918558e3cf86c9d89f6e81cf52369126e5"
 "checksum encoding_rs_io 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "098f6a0ab73a9ba256b71344dc82c6d7e252736ad9db7f4e35345f3a1f8713f5"
+"checksum filetime 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b3ea0c97183a611b1673e5e28b160d7e1035106cad053c988aae3bbd996fdcce"
 "checksum fnv 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
 "checksum fuchsia-zircon 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2e9763c69ebaae630ba35f74888db465e49e259ba1bc0eda7d06f4a067615d82"
 "checksum fuchsia-zircon-sys 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
@@ -760,6 +791,7 @@ dependencies = [
 "checksum stable_deref_trait 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "dba1a27d3efae4351c8051072d619e3ade2820635c3958d826bfea39d59b54c8"
 "checksum strsim 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb4f380125926a99e52bc279241539c018323fab05ad6368b56f93d9369ff550"
 "checksum syn 0.15.1 (registry+https://github.com/rust-lang/crates.io-index)" = "85fb2f7f9b7a4c8df2c913a852de570efdb40f0d2edd39c8245ad573f5c7fbcc"
+"checksum tar 0.4.20 (registry+https://github.com/rust-lang/crates.io-index)" = "a303ba60a099fcd2aaa646b14d2724591a96a75283e4b7ed3d1a1658909d9ae2"
 "checksum tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
 "checksum termcolor 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ff3bac0e465b59f194e7037ed404b0326e56ff234d767edc4c5cc9cd49e7a2c7"
 "checksum termion 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "689a3bdfaab439fd92bc87df5c4c78417d3cbe537487274e9b0b2dce76e92096"
@@ -778,3 +810,4 @@ dependencies = [
 "checksum winapi-util 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "afc5508759c5bf4285e61feb862b6083c8480aec864fa17a81fdec6f69b461ab"
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 "checksum wincolor 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "561ed901ae465d6185fa7864d63fbd5720d0ef718366c9a4dc83cf6170d7e9ba"
+"checksum xattr 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "244c3741f4240ef46274860397c7c74e50eb23624996930e484c16679633a54c"

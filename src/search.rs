@@ -1,5 +1,8 @@
 use std::fs::File;
 use std::io;
+use std::iter::Sum;
+use std::mem;
+use std::ops::{Add, AddAssign};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -13,6 +16,7 @@ use grep::regex::{RegexMatcher as RustRegexMatcher};
 use grep::searcher::Searcher;
 use ignore::overrides::Override;
 use serde_json as json;
+use tar;
 use termcolor::WriteColor;
 
 use subject::Subject;
@@ -26,6 +30,7 @@ struct Config {
     preprocessor: Option<PathBuf>,
     preprocessor_globs: Override,
     search_zip: bool,
+    search_tar: bool,
 }
 
 impl Default for Config {
@@ -35,6 +40,7 @@ impl Default for Config {
             preprocessor: None,
             preprocessor_globs: Override::empty(),
             search_zip: false,
+            search_tar: false,
         }
     }
 }
@@ -133,6 +139,12 @@ impl SearchWorkerBuilder {
         self.config.search_zip = yes;
         self
     }
+
+    /// Enable searching of files in tarball.
+    pub fn search_tar(&mut self, yes: bool) -> &mut SearchWorkerBuilder {
+        self.config.search_tar = yes;
+        self
+    }
 }
 
 /// The result of executing a search.
@@ -159,6 +171,40 @@ impl SearchResult {
     /// if explicitly enabled in the printer provided by the caller.
     pub fn stats(&self) -> Option<&Stats> {
         self.stats.as_ref()
+    }
+}
+
+impl Add for SearchResult {
+    type Output = SearchResult;
+
+    fn add(mut self, rhs: SearchResult) -> SearchResult {
+        self += rhs;
+        self
+    }
+}
+
+impl AddAssign for SearchResult {
+    fn add_assign(&mut self, rhs: SearchResult) {
+        self.has_match = self.has_match || rhs.has_match;
+        let stats = mem::replace(&mut self.stats, None);
+        self.stats = match (stats, rhs.stats) {
+            (None, r) => r,
+            (l, None) => l,
+            (Some(l), Some(r)) => Some(l + r),
+        };
+    }
+}
+
+impl Sum for SearchResult {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        let mut result = Default::default();
+        for item in iter {
+            result += item;
+        }
+        result
     }
 }
 
@@ -316,6 +362,8 @@ impl<W: WriteColor> SearchWorker<W> {
             self.search_preprocessor(path)
         } else if self.should_decompress(path) {
             self.search_decompress(path)
+        } else if self.should_untar_uncompressed(path) {
+            self.search_tarball(path)
         } else {
             self.search_path(path)
         }
@@ -328,6 +376,26 @@ impl<W: WriteColor> SearchWorker<W> {
             return false;
         }
         self.decomp_builder.get_matcher().has_command(path)
+    }
+
+    /// Returns true if and only if the given file path is a tar file
+    /// after being decompressed, and files inside should be searched.
+    fn should_untar_after_decompress(&self, path: &Path) -> bool {
+        if !self.config.search_tar {
+            return false;
+        }
+        path.file_stem()
+            .and_then(|s| Path::new(s).extension())
+            .map_or(false, |e| e == "tar")
+    }
+
+    /// Returns true if and only if the given file path is an
+    /// uncompressed tar file, and files inside should be searched.
+    fn should_untar_uncompressed(&self, path: &Path) -> bool {
+        if !self.config.search_tar {
+            return false;
+        }
+        path.extension().map_or(false, |e| e == "tar")
     }
 
     /// Returns true if and only if the given file path should be run through
@@ -369,7 +437,34 @@ impl<W: WriteColor> SearchWorker<W> {
         path: &Path,
     ) -> io::Result<SearchResult> {
         let rdr = self.decomp_builder.build(path)?;
-        self.search_reader(path, rdr)
+        if self.should_untar_after_decompress(path) {
+            self.search_tarball_reader(path, rdr)
+        } else {
+            self.search_reader(path, rdr)
+        }
+    }
+
+    /// Search files inside the given tarball file.
+    fn search_tarball(&mut self, path: &Path) -> io::Result<SearchResult> {
+        let file = File::open(path)?;
+        self.search_tarball_reader(path, file)
+    }
+
+    /// Use the given reader as tarball data stream, and execute a search
+    /// on each file from that tarball.
+    fn search_tarball_reader<R: io::Read>(
+        &mut self,
+        path: &Path,
+        rdr: R,
+    ) -> io::Result<SearchResult> {
+        tar::Archive::new(rdr)
+            .entries()?
+            .map(|entry| {
+                let entry = entry?;
+                let combined_path = path.join(entry.path()?);
+                self.search_reader(&combined_path, entry)
+            })
+            .sum()
     }
 
     /// Search the contents of the given file path.

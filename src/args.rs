@@ -286,7 +286,8 @@ impl Args {
             .json_stats(self.matches().is_present("json"))
             .preprocessor(self.matches().preprocessor())
             .preprocessor_globs(self.matches().preprocessor_globs()?)
-            .search_zip(self.matches().is_present("search-zip"));
+            .search_zip(self.matches().is_present("search-zip"))
+            .search_tar(self.matches().is_present("search-tar"));
         Ok(builder.build(matcher, searcher, printer))
     }
 

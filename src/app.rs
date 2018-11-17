@@ -605,6 +605,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_regexp(&mut args);
     flag_replace(&mut args);
     flag_search_zip(&mut args);
+    flag_search_tar(&mut args);
     flag_smart_case(&mut args);
     flag_sort_files(&mut args);
     flag_sort(&mut args);
@@ -2013,6 +2014,24 @@ This flag can be disabled with --no-search-zip.
     let arg = RGArg::switch("no-search-zip")
         .hidden()
         .overrides("search-zip");
+    args.push(arg);
+}
+
+fn flag_search_tar(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Search in tarball files.";
+    const LONG: &str = long!("\
+Search in tarball files, and list matches files in them as individual files.
+
+This flag can be disabled with --no-search-tar.
+");
+    let arg = RGArg::switch("search-tar")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-search-tar");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-search-tar")
+        .hidden()
+        .overrides("search-tar");
     args.push(arg);
 }
 
