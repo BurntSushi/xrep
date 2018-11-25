@@ -346,6 +346,16 @@ impl<'a> Glob<'a> {
     fn unmatched() -> Glob<'a> {
         Glob(GlobInner::UnmatchedIgnore)
     }
+
+    /// Return the file type defintion that matched, if any
+    pub fn file_type_def(&self) -> Option<&FileTypeDef> {
+        match self {
+            Glob(GlobInner::UnmatchedIgnore) => None,
+            Glob(GlobInner::Matched { def, .. }) => {
+                Some(def)
+            },
+        }
+    }
 }
 
 /// A single file type definition.
