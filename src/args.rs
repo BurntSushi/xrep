@@ -782,7 +782,7 @@ impl ArgMatches {
             .max_filesize(self.max_file_size()?)
             .threads(self.threads()?)
             .same_file_system(self.is_present("one-file-system"))
-            .skip_stdout(true)
+            .skip_stdout(!self.is_present("files"))
             .overrides(self.overrides()?)
             .types(self.types()?)
             .hidden(!self.hidden())
