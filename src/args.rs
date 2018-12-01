@@ -1448,6 +1448,8 @@ impl ArgMatches {
         } else {
             self.is_present("with-filename")
             || self.is_present("vimgrep")
+            || self.is_present("files-with-matches")
+            || self.is_present("files-without-match")
             || paths.len() > 1
             || paths.get(0).map_or(false, |p| p.is_dir())
         }
