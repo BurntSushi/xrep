@@ -18,7 +18,7 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam-channel = "0.2.4"
+crossbeam-channel = "0.3.2"
 globset = { version = "0.4.2", path = "../globset" }
 lazy_static = "1.1.0"
 log = "0.4.5"

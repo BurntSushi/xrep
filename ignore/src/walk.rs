@@ -1446,12 +1446,12 @@ impl Worker {
                 return None;
             }
             match self.rx.try_recv() {
-                Some(Message::Work(work)) => {
+                Ok(Message::Work(work)) => {
                     self.waiting(false);
                     self.quitting(false);
                     return Some(work);
                 }
-                Some(Message::Quit) => {
+                Ok(Message::Quit) => {
                     // We can't just quit because a Message::Quit could be
                     // spurious. For example, it's possible to observe that
                     // all workers are waiting even if there's more work to
@@ -1482,7 +1482,7 @@ impl Worker {
                         // Otherwise, spin.
                     }
                 }
-                None => {
+                Err(_) => {
                     self.waiting(true);
                     self.quitting(false);
                     if self.num_waiting() == self.threads {
