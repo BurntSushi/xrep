@@ -423,7 +423,7 @@ impl GitignoreBuilder {
             return Ok(self);
         }
         if !line.ends_with("\\ ") {
-            line = line.trim_right();
+            line = line.trim_end();
         }
         if line.is_empty() {
             return Ok(self);
