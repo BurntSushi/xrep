@@ -7,6 +7,14 @@ set -ex
 . "$(dirname $0)/utils.sh"
 
 main() {
+    if [ -n "$CROSS" ]; then
+        cargo install cross --force
+        cross test --target "$TARGET" --verbose
+        cross test --target "$TARGET" --verbose --manifest-path grep-searcher/Cargo.toml
+        cross test --target "$TARGET" --verbose --manifest-path grep-matcher/Cargo.toml
+        exit
+    fi
+
     # Test a normal debug build.
     if is_arm; then
         cargo build --target "$TARGET" --verbose
