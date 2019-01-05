@@ -1016,7 +1016,7 @@ fn flag_files(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Print each file that would be searched.";
     const LONG: &str = long!("\
 Print each file that would be searched without actually performing the search.
-This is useful to determine whether a particular file is being search or not.
+This is useful to determine whether a particular file is being searched or not.
 ");
     let arg = RGArg::switch("files")
         .help(SHORT).long_help(LONG)
