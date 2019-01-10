@@ -27,6 +27,7 @@ Please see the [CHANGELOG](CHANGELOG.md) for a release history.
 * [Configuration files](GUIDE.md#configuration-file)
 * [Shell completions](FAQ.md#complete)
 * [Building](#building)
+* [Contribute](#contribute)
 
 
 ### Screenshot of search results
@@ -432,3 +433,14 @@ $ cargo test --all
 ```
 
 from the repository root.
+
+### Contribute
+
+Use a browser based dev environment
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/BurntSushi/ripgrep)
+
+Or clone locally and run
+```
+cargo test --all
+```
