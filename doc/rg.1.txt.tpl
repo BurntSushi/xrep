@@ -68,7 +68,7 @@ _PATTERN_::
 
 _PATH_::
   A file or directory to search. Directories are searched recursively. Paths
-  specified expicitly on the command line override glob and ignore rules.
+  specified explicitly on the command line override glob and ignore rules.
 
 
 OPTIONS
