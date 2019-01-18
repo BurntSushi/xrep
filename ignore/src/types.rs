@@ -233,6 +233,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("purs", &["*.purs"]),
     ("py", &["*.py"]),
     ("qmake", &["*.pro", "*.pri", "*.prf"]),
+    ("qml", &["*.qml"]),
     ("readme", &["README*", "*README"]),
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
     ("rdoc", &["*.rdoc"]),
