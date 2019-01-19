@@ -22,8 +22,8 @@ bench = false
 aho-corasick = "0.6.8"
 fnv = "1.0.6"
 log = "0.4.5"
-memchr = "2.0.2"
-regex = "1.0.5"
+memchr = "2.1.0"
+regex = "1.1.0"
 
 [dev-dependencies]
 glob = "0.2.11"

@@ -18,15 +18,15 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam-channel = "0.3.3"
+crossbeam-channel = "0.3.6"
 globset = { version = "0.4.2", path = "../globset" }
-lazy_static = "1.1.0"
+lazy_static = "1.1"
 log = "0.4.5"
-memchr = "2.0.2"
-regex = "1.0.5"
-same-file = "1.0.3"
+memchr = "2.1"
+regex = "1.1"
+same-file = "1.0.4"
 thread_local = "0.3.6"
-walkdir = "2.2.5"
+walkdir = "2.2.7"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.1"

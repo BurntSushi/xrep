@@ -14,10 +14,10 @@ license = "Unlicense/MIT"
 autotests = false
 
 [dependencies]
-memchr = "2.0.2"
+memchr = "2.1"
 
 [dev-dependencies]
-regex = "1.0.5"
+regex = "1.1"
 
 [[test]]
 name = "integration"

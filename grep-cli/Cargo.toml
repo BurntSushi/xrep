@@ -17,9 +17,9 @@ atty = "0.2.11"
 globset = { version = "0.4.2", path = "../globset" }
 lazy_static = "1.1.0"
 log = "0.4.5"
-regex = "1.0.5"
-same-file = "1.0.3"
-termcolor = "1.0.3"
+regex = "1.1"
+same-file = "1.0.4"
+termcolor = "1.0.4"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.1"

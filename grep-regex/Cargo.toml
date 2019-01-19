@@ -15,7 +15,7 @@ license = "Unlicense/MIT"
 [dependencies]
 log = "0.4.5"
 grep-matcher = { version = "0.1.1", path = "../grep-matcher" }
-regex = "1.0.5"
-regex-syntax = "0.6.2"
+regex = "1.1"
+regex-syntax = "0.6.4"
 thread_local = "0.3.6"
 utf8-ranges = "1.0.1"

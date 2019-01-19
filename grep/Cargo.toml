@@ -22,9 +22,9 @@ grep-searcher = { version = "0.1.1", path = "../grep-searcher" }
 
 [dev-dependencies]
 atty = "0.2.11"
-regex = "1"
-termcolor = "1"
-walkdir = "2.2.2"
+regex = "1.1"
+termcolor = "1.0.4"
+walkdir = "2.2.7"
 
 [dev-dependencies.clap]
 version = "2.32.0"
