@@ -72,7 +72,6 @@ serde = "1.0.77"
 serde_derive = "1.0.77"
 
 [features]
-avx-accel = ["grep/avx-accel"]
 simd-accel = ["grep/simd-accel"]
 pcre2 = ["grep/pcre2"]
 

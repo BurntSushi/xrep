@@ -36,11 +36,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bytecount"
-version = "0.3.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "simd 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "byteorder"
@@ -225,7 +222,7 @@ dependencies = [
 name = "grep-searcher"
 version = "0.1.1"
 dependencies = [
- "bytecount 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytecount 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs 0.8.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding_rs_io 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "grep-matcher 0.1.1",
@@ -754,7 +751,7 @@ dependencies = [
 "checksum autocfg 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a6d640bee2da49f60a4068a7fae53acde8982514ab7bae8b8cea9e88cbcfd799"
 "checksum base64 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "621fc7ecb8008f86d7fb9b95356cd692ce9514b80a86d85b397f32a22da7b9e2"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
-"checksum bytecount 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f861d9ce359f56dbcb6e0c2a1cb84e52ad732cadb57b806adeb3c7668caccbd8"
+"checksum bytecount 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c219c0335c21a8bd79587ce5aee9f64aff1d0bd7a2cca7a58a815f9780cd3b0d"
 "checksum byteorder 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "60f0b0d4c0a382d2734228fd12b5a6b5dac185c60e938026fd31b265b94f9bd2"
 "checksum cc 1.0.28 (registry+https://github.com/rust-lang/crates.io-index)" = "bb4a8b715cb4597106ea87c7c84b2f1d452c7492033765df7f32651e66fcf749"
 "checksum cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "082bb9b28e00d3c9d39cc03e64ce4cea0f1bb9b3fde493f0cbc008472d22bdf4"

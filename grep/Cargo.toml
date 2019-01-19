@@ -32,6 +32,8 @@ default-features = false
 features = ["suggestions"]
 
 [features]
-avx-accel = ["grep-searcher/avx-accel"]
 simd-accel = ["grep-searcher/simd-accel"]
 pcre2 = ["grep-pcre2"]
+
+# This feature is DEPRECATED. Runtime dispatch is used for SIMD now.
+avx-accel = []
