@@ -9,7 +9,8 @@
 // is where we read clap's configuration from the end user's arguments and turn
 // it into a ripgrep-specific configuration type that is not coupled with clap.
 
-use clap::{self, App, AppSettings};
+use clap::{self, App, AppSettings, crate_authors, crate_version};
+use lazy_static::lazy_static;
 
 const ABOUT: &str = "
 ripgrep (rg) recursively searches your current directory for a regex pattern.

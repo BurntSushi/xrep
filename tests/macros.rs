@@ -3,11 +3,11 @@ macro_rules! rgtest {
     ($name:ident, $fun:expr) => {
         #[test]
         fn $name() {
-            let (dir, cmd) = ::util::setup(stringify!($name));
+            let (dir, cmd) = crate::util::setup(stringify!($name));
             $fun(dir, cmd);
 
             if cfg!(feature = "pcre2") {
-                let (dir, cmd) = ::util::setup_pcre2(stringify!($name));
+                let (dir, cmd) = crate::util::setup_pcre2(stringify!($name));
                 $fun(dir, cmd);
             }
         }

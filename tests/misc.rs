@@ -1,5 +1,5 @@
-use hay::SHERLOCK;
-use util::{Dir, TestCommand, cmd_exists, sort_lines};
+use crate::hay::SHERLOCK;
+use crate::util::{Dir, TestCommand, cmd_exists, sort_lines};
 
 // This file contains "miscellaneous" tests that were either written before
 // features were tracked more explicitly, or were simply written without

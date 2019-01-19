@@ -9,7 +9,9 @@ use std::io::{self, BufRead};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use Result;
+use log;
+
+use crate::Result;
 
 /// Return a sequence of arguments derived from ripgrep rc configuration files.
 pub fn args() -> Vec<OsString> {
@@ -34,7 +36,7 @@ pub fn args() -> Vec<OsString> {
             message!("{}:{}", config_path.display(), err);
         }
     }
-    debug!(
+    log::debug!(
         "{}: arguments loaded from config file: {:?}",
         config_path.display(),
         args

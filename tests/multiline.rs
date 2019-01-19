@@ -1,5 +1,5 @@
-use hay::SHERLOCK;
-use util::{Dir, TestCommand};
+use crate::hay::SHERLOCK;
+use crate::util::{Dir, TestCommand};
 
 // This tests that multiline matches that span multiple lines, but where
 // multiple matches may begin and end on the same line work correctly.

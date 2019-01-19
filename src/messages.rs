@@ -6,7 +6,7 @@ static IGNORE_MESSAGES: AtomicBool = ATOMIC_BOOL_INIT;
 #[macro_export]
 macro_rules! message {
     ($($tt:tt)*) => {
-        if ::messages::messages() {
+        if crate::messages::messages() {
             eprintln!($($tt)*);
         }
     }
@@ -15,7 +15,7 @@ macro_rules! message {
 #[macro_export]
 macro_rules! ignore_message {
     ($($tt:tt)*) => {
-        if ::messages::messages() && ::messages::ignore_messages() {
+        if crate::messages::messages() && crate::messages::ignore_messages() {
             eprintln!($($tt)*);
         }
     }

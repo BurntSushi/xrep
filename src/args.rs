@@ -34,20 +34,22 @@ use ignore::types::{FileTypeDef, Types, TypesBuilder};
 use ignore::{Walk, WalkBuilder, WalkParallel};
 use log;
 use num_cpus;
-use path_printer::{PathPrinter, PathPrinterBuilder};
 use regex;
 use termcolor::{
     WriteColor,
     BufferWriter, ColorChoice,
 };
 
-use app;
-use config;
-use logger::Logger;
-use messages::{set_messages, set_ignore_messages};
-use search::{PatternMatcher, Printer, SearchWorker, SearchWorkerBuilder};
-use subject::SubjectBuilder;
-use Result;
+use crate::app;
+use crate::config;
+use crate::logger::Logger;
+use crate::messages::{set_messages, set_ignore_messages};
+use crate::path_printer::{PathPrinter, PathPrinterBuilder};
+use crate::search::{
+    PatternMatcher, Printer, SearchWorker, SearchWorkerBuilder,
+};
+use crate::subject::SubjectBuilder;
+use crate::Result;
 
 /// The command that ripgrep should execute based on the command line
 /// configuration.
@@ -491,7 +493,9 @@ impl ArgMatches {
     fn reconfigure(self) -> ArgMatches {
         // If the end user says no config, then respect it.
         if self.is_present("no-config") {
-            debug!("not reading config files because --no-config is present");
+            log::debug!(
+                "not reading config files because --no-config is present"
+            );
             return self;
         }
         // If the user wants ripgrep to use a config file, then parse args
@@ -505,7 +509,7 @@ impl ArgMatches {
             args.insert(0, bin);
         }
         args.extend(cliargs);
-        debug!("final argv: {:?}", args);
+        log::debug!("final argv: {:?}", args);
         ArgMatches::new(app::app().get_matches_from(args))
     }
 

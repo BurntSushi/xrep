@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use ignore::{self, DirEntry};
+use log;
 
 /// A configuration for describing how subjects should be built.
 #[derive(Clone, Debug)]
@@ -79,7 +80,7 @@ impl SubjectBuilder {
         // directory. Otherwise, emitting messages for directories is just
         // noisy.
         if !subj.is_dir() {
-            debug!(
+            log::debug!(
                 "ignoring {}: failed to pass subject filter: \
                  file type: {:?}, metadata: {:?}",
                  subj.dent.path().display(),

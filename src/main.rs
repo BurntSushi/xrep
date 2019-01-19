@@ -1,17 +1,3 @@
-#[macro_use]
-extern crate clap;
-extern crate grep;
-extern crate ignore;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-extern crate num_cpus;
-extern crate regex;
-#[macro_use]
-extern crate serde_json;
-extern crate termcolor;
-
 use std::io::{self, Write};
 use std::process;
 use std::sync::{Arc, Mutex};

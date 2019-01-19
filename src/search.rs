@@ -13,9 +13,10 @@ use grep::regex::{RegexMatcher as RustRegexMatcher};
 use grep::searcher::Searcher;
 use ignore::overrides::Override;
 use serde_json as json;
+use serde_json::json;
 use termcolor::WriteColor;
 
-use subject::Subject;
+use crate::subject::Subject;
 
 /// The configuration for the search worker. Among a few other things, the
 /// configuration primarily controls the way we show search results to users
