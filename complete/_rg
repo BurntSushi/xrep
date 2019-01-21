@@ -99,6 +99,10 @@ _rg() {
     {-L,--follow}'[follow symlinks]'
     $no"--no-follow[don't follow symlinks]"
 
+    + '(git-ignore-case)' # Ignore-file case sensitivity options
+    '--git-ignore-case-insensitive[process ignore files case insensitively]'
+    '--git-ignore-case-sensitive[process ignore files case sensitively]'
+
     + glob # File-glob options
     '*'{-g+,--glob=}'[include/exclude files matching specified glob]:glob'
     '*--iglob=[include/exclude files matching specified case-insensitive glob]:glob'
