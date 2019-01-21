@@ -797,7 +797,8 @@ impl ArgMatches {
                 && !self.no_ignore_vcs()
                 && !self.no_ignore_global())
             .git_ignore(!self.no_ignore() && !self.no_ignore_vcs())
-            .git_exclude(!self.no_ignore() && !self.no_ignore_vcs());
+            .git_exclude(!self.no_ignore() && !self.no_ignore_vcs())
+            .git_ignore_case_insensitive(self.git_ignore_case_insensitive());
         if !self.no_ignore() {
             builder.add_custom_ignore_filename(".rgignore");
         }
@@ -1112,6 +1113,13 @@ impl ArgMatches {
         self.is_present("no-ignore-vcs") || self.no_ignore()
     }
 
+    /// Returns true if ignore files should be processed case insensitively.
+    /// If --git-ignore-case-sensitive is present, then case is never ignored, even if
+    /// --git-ignore-case-insensitive is present.
+    fn git_ignore_case_insensitive(&self) -> bool {
+        self.is_present("git-ignore-case-insensitive") && !self.is_present("git-ignore-case-sensitive")
+    }
+
     /// Determine the type of output we should produce.
     fn output_kind(&self) -> OutputKind {
         if self.is_present("quiet") {
@@ -1143,7 +1151,7 @@ impl ArgMatches {
             builder.add(&glob)?;
         }
         // This only enables case insensitivity for subsequent globs.
-        builder.case_insensitive(true)?;
+        builder.case_insensitive(true);
         for glob in self.values_of_lossy_vec("iglob") {
             builder.add(&glob)?;
         }

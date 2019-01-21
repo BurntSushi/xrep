@@ -568,3 +568,12 @@ rgtest!(r1064, |dir: Dir, mut cmd: TestCommand| {
     dir.create("input", "abc");
     eqnice!("input:abc\n", cmd.arg("a(.*c)").stdout());
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1164
+rgtest!(r1164, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir(".git");
+    dir.create(".gitignore", "myfile");
+    dir.create("MYFILE", "test");
+
+    cmd.arg("--git-ignore-case-insensitive").arg("test").assert_err();
+});

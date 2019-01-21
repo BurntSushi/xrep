@@ -143,11 +143,9 @@ impl OverrideBuilder {
     /// When this option is changed, only globs added after the change will be affected.
     ///
     /// This is disabled by default.
-    pub fn case_insensitive(
-        &mut self, yes: bool
-    ) -> Result<&mut OverrideBuilder, Error> {
-        self.builder.case_insensitive(yes)?;
-        Ok(self)
+    pub fn case_insensitive(&mut self, yes: bool) -> &mut OverrideBuilder {
+        self.builder.case_insensitive(yes);
+        self
     }
 }
 
@@ -237,7 +235,7 @@ mod tests {
     #[test]
     fn case_insensitive() {
         let ov = OverrideBuilder::new(ROOT)
-            .case_insensitive(true).unwrap()
+            .case_insensitive(true)
             .add("*.html").unwrap()
             .build().unwrap();
         assert!(ov.matched("foo.html", false).is_whitelist());

@@ -565,6 +565,8 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_files_without_match(&mut args);
     flag_fixed_strings(&mut args);
     flag_follow(&mut args);
+    flag_git_ignore_case_insensitive(&mut args);
+    flag_git_ignore_case_sensitive(&mut args);
     flag_glob(&mut args);
     flag_heading(&mut args);
     flag_hidden(&mut args);
@@ -1091,6 +1093,34 @@ This flag can be disabled with --no-follow.
     let arg = RGArg::switch("no-follow")
         .hidden()
         .overrides("follow");
+    args.push(arg);
+}
+
+fn flag_git_ignore_case_insensitive(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Process ignore files (.gitignore, .ignore, etc.) case insensitively.";
+    const LONG: &str = long!("\
+Process ignore files (.gitignore, .ignore, etc.) case insensitively. Note that
+this comes with a performance penalty and is most useful on case insensitive
+file systems.
+
+This overrides the --git-ignore-case-sensitive flag.
+");
+    let arg = RGArg::switch("git-ignore-case-insensitive")
+        .help(SHORT).long_help(LONG)
+        .overrides("git-ignore-case-sensitive");
+    args.push(arg);
+}
+
+fn flag_git_ignore_case_sensitive(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Process ignore files (.gitignore, .ignore, etc.) case sensitively (default).";
+    const LONG: &str = long!("\
+Process ignore files (.gitignore, .ignore, etc.) case sensitively.
+
+This overrides the --git-ignore-case-insensitive flag.
+");
+    let arg = RGArg::switch("git-ignore-case-sensitive")
+        .help(SHORT).long_help(LONG)
+        .overrides("git-ignore-case-insensitive");
     args.push(arg);
 }
 

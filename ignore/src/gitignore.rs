@@ -101,10 +101,12 @@ impl Gitignore {
     /// errors, use `GitignoreBuilder`.
     pub fn new<P: AsRef<Path>>(
         gitignore_path: P,
+        case_insensitive: bool,
     ) -> (Gitignore, Option<Error>) {
         let path = gitignore_path.as_ref();
         let parent = path.parent().unwrap_or(Path::new("/"));
         let mut builder = GitignoreBuilder::new(parent);
+        builder.case_insensitive(case_insensitive);
         let mut errs = PartialErrorBuilder::default();
         errs.maybe_push_ignore_io(builder.add(path));
         match builder.build() {
@@ -126,14 +128,14 @@ impl Gitignore {
     /// does not exist or does not specify `core.excludesFile`, then
     /// `$XDG_CONFIG_HOME/git/ignore` is read. If `$XDG_CONFIG_HOME` is not
     /// set or is empty, then `$HOME/.config/git/ignore` is used instead.
-    pub fn global() -> (Gitignore, Option<Error>) {
+    pub fn global(case_insensitive: bool) -> (Gitignore, Option<Error>) {
         match gitconfig_excludes_path() {
             None => (Gitignore::empty(), None),
             Some(path) => {
                 if !path.is_file() {
                     (Gitignore::empty(), None)
                 } else {
-                    Gitignore::new(path)
+                    Gitignore::new(path, case_insensitive)
                 }
             }
         }
@@ -508,11 +510,9 @@ impl GitignoreBuilder {
     /// When this option is changed, only globs added after the change will be affected.
     ///
     /// This is disabled by default.
-    pub fn case_insensitive(
-        &mut self, yes: bool
-    ) -> Result<&mut GitignoreBuilder, Error> {
+    pub fn case_insensitive(&mut self, yes: bool) -> &mut GitignoreBuilder {
         self.case_insensitive = yes;
-        Ok(self)
+        self
     }
 }
 
@@ -750,7 +750,7 @@ mod tests {
     #[test]
     fn case_insensitive() {
         let gi = GitignoreBuilder::new(ROOT)
-            .case_insensitive(true).unwrap()
+            .case_insensitive(true)
             .add_str(None, "*.html").unwrap()
             .build().unwrap();
         assert!(gi.matched("foo.html", false).is_ignore());

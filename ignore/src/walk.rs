@@ -764,6 +764,14 @@ impl WalkBuilder {
         self
     }
 
+    /// Process ignore files case insensitively
+    ///
+    /// This is disabled by default.
+    pub fn git_ignore_case_insensitive(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.ig_builder.git_ignore_case_insensitive(yes);
+        self
+    }
+
     /// Set a function for sorting directory entries by their path.
     ///
     /// If a compare function is set, the resulting iterator will return all
