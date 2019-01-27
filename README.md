@@ -248,18 +248,10 @@ If you're a **Gentoo** user, you can install ripgrep from the
 $ emerge sys-apps/ripgrep
 ```
 
-If you're a **Fedora 27+** user, you can install ripgrep from official
+If you're a **Fedora** user, you can install ripgrep from official
 repositories.
 
 ```
-$ sudo dnf install ripgrep
-```
-
-If you're a **Fedora 24+** user, you can install ripgrep from
-[copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
-
-```
-$ sudo dnf copr enable carlwgeorge/ripgrep
 $ sudo dnf install ripgrep
 ```
 
