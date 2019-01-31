@@ -283,7 +283,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ]),
     ("taskpaper", &["*.taskpaper"]),
     ("tcl", &["*.tcl"]),
-    ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib"]),
+    ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib", "*.dtx", "*.ins"]),
     ("textile", &["*.textile"]),
     ("thrift", &["*.thrift"]),
     ("tf", &["*.tf"]),
