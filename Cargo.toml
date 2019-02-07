@@ -78,6 +78,8 @@ pcre2 = ["grep/pcre2"]
 
 [profile.release]
 debug = 1
+lto = true
+incremental = false
 
 [package.metadata.deb]
 features = ["pcre2"]
