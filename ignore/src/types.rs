@@ -303,6 +303,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("xz", &["*.xz", "*.txz"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
+    ("zig", &["*.zig"]),
     ("zsh", &[
         ".zshenv", "zshenv",
         ".zlogin", "zlogin",
