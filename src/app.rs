@@ -1471,10 +1471,10 @@ Enable matching across multiple lines.
 
 When multiline mode is enabled, ripgrep will lift the restriction that a match
 cannot include a line terminator. For example, when multiline mode is not
-enabled (the default), then the regex '\\p{any}' will match any Unicode
+enabled (the default), then the regex '\\p\\{any}' will match any Unicode
 codepoint other than '\\n'. Similarly, the regex '\\n' is explicitly forbidden,
 and if you try to use it, ripgrep will return an error. However, when multiline
-mode is enabled, '\\p{any}' will match any Unicode codepoint, including '\\n',
+mode is enabled, '\\p\\{any}' will match any Unicode codepoint, including '\\n',
 and regexes like '\\n' are permitted.
 
 An important caveat is that multiline mode does not change the match semantics
