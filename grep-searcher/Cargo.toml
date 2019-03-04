@@ -15,7 +15,7 @@ license = "Unlicense/MIT"
 [dependencies]
 bytecount = "0.5"
 encoding_rs = "0.8.14"
-encoding_rs_io = "0.1.4"
+encoding_rs_io = "0.1.5"
 grep-matcher = { version = "0.1.1", path = "../grep-matcher" }
 log = "0.4.5"
 memchr = "2.1"

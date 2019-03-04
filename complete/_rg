@@ -378,7 +378,7 @@ _rg_encodings() {
     shift{-,_}jis csshiftjis {,x-}sjis ms_kanji ms932
     utf{,-}8 utf-16{,be,le} unicode-1-1-utf-8
     windows-{31j,874,949,125{0..8}} dos-874 tis-620 ansi_x3.4-1968
-    x-user-defined auto
+    x-user-defined auto none
   )
 
   _wanted encodings expl encoding compadd -a "$@" - _encodings

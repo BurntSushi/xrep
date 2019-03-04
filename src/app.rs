@@ -984,7 +984,8 @@ Specify the text encoding that ripgrep will use on all files searched. The
 default value is 'auto', which will cause ripgrep to do a best effort automatic
 detection of encoding on a per-file basis. Automatic detection in this case
 only applies to files that begin with a UTF-8 or UTF-16 byte-order mark (BOM).
-No other automatic detection is performend.
+No other automatic detection is performed. One can also specify 'none' which
+will then completely disable BOM sniffing and enforce raw bytes search.
 
 Other supported values can be found in the list of labels here:
 https://encoding.spec.whatwg.org/#concept-encoding-get

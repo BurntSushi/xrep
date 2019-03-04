@@ -645,3 +645,27 @@ rgtest!(f1138_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("bar\nquux\n", cmd.arg("--no-ignore-dot").stdout());
     eqnice!("bar\n", cmd.arg("--ignore-file").arg(".fzf-ignore").stdout());
 });
+
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1207
+// Tests if without encoding 'none' flag null bytes are consumed by automatic
+// encoding detection.
+rgtest!(f1207_auto_encoding, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_bytes(
+        "foo",
+        b"\xFF\xFE\x00\x62"
+    );
+    cmd.arg("-a").arg("\\x00").arg("foo");
+    cmd.assert_exit_code(1);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1207
+// Tests if encoding 'none' flag does treat file as raw bytes
+rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_bytes(
+        "foo",
+        b"\xFF\xFE\x00\x62"
+    );
+    cmd.arg("--encoding").arg("none").arg("-a").arg("\\x00").arg("foo");
+    eqnice!("\x00b\n", cmd.stdout());
+});

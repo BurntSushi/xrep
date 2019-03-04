@@ -112,7 +112,7 @@ extern crate regex;
 
 pub use lines::{LineIter, LineStep};
 pub use searcher::{
-    BinaryDetection, ConfigError, Encoding, MmapChoice,
+    BinaryDetection, ConfigError, EncodingMode, Encoding, MmapChoice,
     Searcher, SearcherBuilder,
 };
 pub use sink::{

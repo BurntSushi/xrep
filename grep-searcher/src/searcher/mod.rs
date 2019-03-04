@@ -96,6 +96,30 @@ impl BinaryDetection {
     }
 }
 
+/// Encoding mode the searcher will use.
+#[derive(Clone, Debug)]
+pub enum EncodingMode {
+    /// Use an explicit encoding forcefully, but let BOM sniffing override it.
+    Some(Encoding),
+    /// Use only BOM sniffing to auto-detect an encoding.
+    Auto,
+    /// Use no explicit encoding and disable all BOM sniffing. This will
+    /// always result in searching the raw bytes, regardless of their
+    /// true encoding.
+    Disabled,
+}
+
+impl EncodingMode {
+    /// Checks if an explicit encoding has been set.
+    /// Returns false for automatic BOM sniffing and no sniffing.
+    pub fn has_explicit_encoding(&self) -> bool {
+        match self {
+            EncodingMode::Some(_) => true,
+            _ => false
+        }
+    }
+}
+
 /// An encoding to use when searching.
 ///
 /// An encoding can be used to configure a
@@ -154,7 +178,7 @@ pub struct Config {
     multi_line: bool,
     /// An encoding that, when present, causes the searcher to transcode all
     /// input from the encoding to UTF-8.
-    encoding: Option<Encoding>,
+    encoding: EncodingMode,
 }
 
 impl Default for Config {
@@ -170,7 +194,7 @@ impl Default for Config {
             mmap: MmapChoice::default(),
             binary: BinaryDetection::default(),
             multi_line: false,
-            encoding: None,
+            encoding: EncodingMode::Auto,
         }
     }
 }
@@ -303,12 +327,21 @@ impl SearcherBuilder {
             config.before_context = 0;
             config.after_context = 0;
         }
-        let mut decode_builder = DecodeReaderBytesBuilder::new();
+        let mut decode_builder =
+            DecodeReaderBytesBuilder::new();
+
         decode_builder
-            .encoding(self.config.encoding.as_ref().map(|e| e.0))
             .utf8_passthru(true)
             .strip_bom(true)
             .bom_override(true);
+
+        match self.config.encoding {
+            EncodingMode::Some(ref encoding) => decode_builder
+                .encoding(Some(encoding.0)),
+            EncodingMode::Auto => decode_builder.bom_sniffing(true),
+            EncodingMode::Disabled => decode_builder.bom_sniffing(false)
+        };
+
         Searcher {
             config: config,
             decode_builder: decode_builder,
@@ -506,15 +539,18 @@ impl SearcherBuilder {
     /// transcoding process encounters an error, then bytes are replaced with
     /// the Unicode replacement codepoint.
     ///
-    /// When no encoding is specified (the default), then BOM sniffing is used
-    /// to determine whether the source data is UTF-8 or UTF-16, and
+    /// When encoding is disabled, no transcoding will occur as the source data
+    /// will be treated as raw bytes, unchanged and possibly including BOM.
+    ///
+    /// When encoding is set to automatic (the default), then BOM sniffing is
+    /// used to determine whether the source data is UTF-8 or UTF-16, and
     /// transcoding will be performed automatically. If no BOM could be found,
     /// then the source data is searched _as if_ it were UTF-8. However, so
     /// long as the source data is at least ASCII compatible, then it is
     /// possible for a search to produce useful results.
     pub fn encoding(
         &mut self,
-        encoding: Option<Encoding>,
+        encoding: EncodingMode,
     ) -> &mut SearcherBuilder {
         self.config.encoding = encoding;
         self
@@ -738,7 +774,7 @@ impl Searcher {
 
     /// Returns true if and only if the given slice needs to be transcoded.
     fn slice_needs_transcoding(&self, slice: &[u8]) -> bool {
-        self.config.encoding.is_some() || slice_has_utf16_bom(slice)
+        self.config.encoding.has_explicit_encoding() || slice_has_utf16_bom(slice)
     }
 }
 

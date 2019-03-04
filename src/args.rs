@@ -28,7 +28,8 @@ use grep::regex::{
     RegexMatcherBuilder as RustRegexMatcherBuilder,
 };
 use grep::searcher::{
-    BinaryDetection, Encoding, MmapChoice, Searcher, SearcherBuilder,
+    BinaryDetection, EncodingMode, Encoding, MmapChoice, Searcher,
+    SearcherBuilder,
 };
 use ignore::overrides::{Override, OverrideBuilder};
 use ignore::types::{FileTypeDef, Types, TypesBuilder};
@@ -650,7 +651,7 @@ impl ArgMatches {
         }
         if self.pcre2_unicode() {
             builder.utf(true).ucp(true);
-            if self.encoding()?.is_some() {
+            if self.encoding()?.has_explicit_encoding() {
                 // SAFETY: If an encoding was specified, then we're guaranteed
                 // to get valid UTF-8, so we can disable PCRE2's UTF checking.
                 // (Feeding invalid UTF-8 to PCRE2 is undefined behavior.)
@@ -952,24 +953,30 @@ impl ArgMatches {
         u64_to_usize("dfa-size-limit", r)
     }
 
-    /// Returns the type of encoding to use.
+    /// Returns the encoding mode to use.
     ///
-    /// This only returns an encoding if one is explicitly specified. When no
-    /// encoding is present, the Searcher will still do BOM sniffing for UTF-16
-    /// and transcode seamlessly.
-    fn encoding(&self) -> Result<Option<Encoding>> {
+    /// This only returns an encoding if one is explicitly specified. Otherwise
+    /// if set to automatic, the Searcher will do BOM sniffing for UTF-16
+    /// and transcode seamlessly. If disabled, no BOM sniffing nor transcoding
+    /// will occur.
+    fn encoding(&self) -> Result<EncodingMode> {
         if self.is_present("no-encoding") {
-            return Ok(None);
+            return Ok(EncodingMode::Auto);
         }
+
         let label = match self.value_of_lossy("encoding") {
             None if self.pcre2_unicode() => "utf-8".to_string(),
-            None => return Ok(None),
+            None => return Ok(EncodingMode::Auto),
             Some(label) => label,
         };
+
         if label == "auto" {
-            return Ok(None);
+            return Ok(EncodingMode::Auto);
+        } else if label == "none" {
+            return Ok(EncodingMode::Disabled);
         }
-        Ok(Some(Encoding::new(&label)?))
+
+        Ok(EncodingMode::Some(Encoding::new(&label)?))
     }
 
     /// Return the file separator to use based on the CLI configuration.
