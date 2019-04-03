@@ -1,4 +1,5 @@
 language: rust
+dist: xenial
 env:
   global:
     - PROJECT_NAME: ripgrep
