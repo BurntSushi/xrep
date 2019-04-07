@@ -211,6 +211,7 @@ dependencies = [
 name = "grep-regex"
 version = "0.1.2"
 dependencies = [
+ "aho-corasick 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "grep-matcher 0.1.1",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.1.5 (registry+https://github.com/rust-lang/crates.io-index)",

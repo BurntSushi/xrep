@@ -13,8 +13,9 @@ keywords = ["regex", "grep", "search", "pattern", "line"]
 license = "Unlicense/MIT"
 
 [dependencies]
-log = "0.4.5"
+aho-corasick = "0.7.3"
 grep-matcher = { version = "0.1.1", path = "../grep-matcher" }
+log = "0.4.5"
 regex = "1.1"
 regex-syntax = "0.6.5"
 thread_local = "0.3.6"

@@ -656,7 +656,13 @@ impl ArgMatches {
         if let Some(limit) = self.dfa_size_limit()? {
             builder.dfa_size_limit(limit);
         }
-        match builder.build(&patterns.join("|")) {
+        let res =
+            if self.is_present("fixed-strings") {
+                builder.build_literals(patterns)
+            } else {
+                builder.build(&patterns.join("|"))
+            };
+        match res {
             Ok(m) => Ok(m),
             Err(err) => Err(From::from(suggest_multiline(err.to_string()))),
         }

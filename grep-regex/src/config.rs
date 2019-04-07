@@ -1,12 +1,13 @@
 use grep_matcher::{ByteSet, LineTerminator};
 use regex::bytes::{Regex, RegexBuilder};
 use regex_syntax::ast::{self, Ast};
-use regex_syntax::hir::Hir;
+use regex_syntax::hir::{self, Hir};
 
 use ast::AstAnalysis;
 use crlf::crlfify;
 use error::Error;
 use literal::LiteralSets;
+use multi::alternation_literals;
 use non_matching::non_matching_bytes;
 use strip::strip_from_match;
 
@@ -67,19 +68,17 @@ impl Config {
     /// If there was a problem parsing the given expression then an error
     /// is returned.
     pub fn hir(&self, pattern: &str) -> Result<ConfiguredHIR, Error> {
-        let analysis = self.analysis(pattern)?;
-        let expr = ::regex_syntax::ParserBuilder::new()
-            .nest_limit(self.nest_limit)
-            .octal(self.octal)
+        let ast = self.ast(pattern)?;
+        let analysis = self.analysis(&ast)?;
+        let expr = hir::translate::TranslatorBuilder::new()
             .allow_invalid_utf8(true)
-            .ignore_whitespace(self.ignore_whitespace)
-            .case_insensitive(self.is_case_insensitive(&analysis)?)
+            .case_insensitive(self.is_case_insensitive(&analysis))
             .multi_line(self.multi_line)
             .dot_matches_new_line(self.dot_matches_new_line)
             .swap_greed(self.swap_greed)
             .unicode(self.unicode)
             .build()
-            .parse(pattern)
+            .translate(pattern, &ast)
             .map_err(Error::regex)?;
         let expr = match self.line_terminator {
             None => expr,
@@ -99,21 +98,34 @@ impl Config {
     fn is_case_insensitive(
         &self,
         analysis: &AstAnalysis,
-    ) -> Result<bool, Error> {
+    ) -> bool {
         if self.case_insensitive {
-            return Ok(true);
+            return true;
         }
         if !self.case_smart {
-            return Ok(false);
+            return false;
         }
-        Ok(analysis.any_literal() && !analysis.any_uppercase())
+        analysis.any_literal() && !analysis.any_uppercase()
+    }
+
+    /// Returns true if and only if this config is simple enough such that
+    /// if the pattern is a simple alternation of literals, then it can be
+    /// constructed via a plain Aho-Corasick automaton.
+    ///
+    /// Note that it is OK to return true even when settings like `multi_line`
+    /// are enabled, since if multi-line can impact the match semantics of a
+    /// regex, then it is by definition not a simple alternation of literals.
+    pub fn can_plain_aho_corasick(&self) -> bool {
+        !self.word
+        && !self.case_insensitive
+        && !self.case_smart
     }
 
     /// Perform analysis on the AST of this pattern.
     ///
     /// This returns an error if the given pattern failed to parse.
-    fn analysis(&self, pattern: &str) -> Result<AstAnalysis, Error> {
-        Ok(AstAnalysis::from_ast(&self.ast(pattern)?))
+    fn analysis(&self, ast: &Ast) -> Result<AstAnalysis, Error> {
+        Ok(AstAnalysis::from_ast(ast))
     }
 
     /// Parse the given pattern into its abstract syntax.
@@ -171,6 +183,15 @@ impl ConfiguredHIR {
     /// Builds a regular expression from this HIR expression.
     pub fn regex(&self) -> Result<Regex, Error> {
         self.pattern_to_regex(&self.expr.to_string())
+    }
+
+    /// If this HIR corresponds to an alternation of literals with no
+    /// capturing groups, then this returns those literals.
+    pub fn alternation_literals(&self) -> Option<Vec<Vec<u8>>> {
+        if !self.config.can_plain_aho_corasick() {
+            return None;
+        }
+        alternation_literals(&self.expr)
     }
 
     /// Applies the given function to the concrete syntax of this HIR and then

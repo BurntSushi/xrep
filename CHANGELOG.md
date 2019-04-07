@@ -17,6 +17,12 @@ TODO.
   available, however, it does increase compilation times substantially at the
   moment.
 
+Performance improvements:
+
+* [PERF #497](https://github.com/BurntSushi/ripgrep/issues/497),
+  [PERF #838](https://github.com/BurntSushi/ripgrep/issues/838):
+  Make `rg -F -f dictionary-of-literals` much faster.
+
 Feature enhancements:
 
 * [FEATURE #1099](https://github.com/BurntSushi/ripgrep/pull/1099):

@@ -8,6 +8,7 @@ use regex::bytes::{CaptureLocations, Regex};
 use config::{Config, ConfiguredHIR};
 use crlf::CRLFMatcher;
 use error::Error;
+use multi::MultiLiteralMatcher;
 use word::WordMatcher;
 
 /// A builder for constructing a `Matcher` using regular expressions.
@@ -52,12 +53,35 @@ impl RegexMatcherBuilder {
         }
 
         let matcher = RegexMatcherImpl::new(&chir)?;
-        trace!("final regex: {:?}", matcher.regex().to_string());
+        trace!("final regex: {:?}", matcher.regex());
         Ok(RegexMatcher {
             config: self.config.clone(),
             matcher: matcher,
             fast_line_regex: fast_line_regex,
             non_matching_bytes: non_matching_bytes,
+        })
+    }
+
+    /// Build a new matcher from a plain alternation of literals.
+    ///
+    /// Depending on the configuration set by the builder, this may be able to
+    /// build a matcher substantially faster than by joining the patterns with
+    /// a `|` and calling `build`.
+    pub fn build_literals<B: AsRef<str>>(
+        &self,
+        literals: &[B],
+    ) -> Result<RegexMatcher, Error> {
+        let slices: Vec<_> = literals.iter().map(|s| s.as_ref()).collect();
+        if !self.config.can_plain_aho_corasick() || literals.len() < 40 {
+            return self.build(&slices.join("|"));
+        }
+        let matcher = MultiLiteralMatcher::new(&slices)?;
+        let imp = RegexMatcherImpl::MultiLiteral(matcher);
+        Ok(RegexMatcher {
+            config: self.config.clone(),
+            matcher: imp,
+            fast_line_regex: None,
+            non_matching_bytes: ByteSet::empty(),
         })
     }
 
@@ -348,6 +372,8 @@ impl RegexMatcher {
 enum RegexMatcherImpl {
     /// The standard matcher used for all regular expressions.
     Standard(StandardMatcher),
+    /// A matcher for an alternation of plain literals.
+    MultiLiteral(MultiLiteralMatcher),
     /// A matcher that strips `\r` from the end of matches.
     ///
     /// This is only used when the CRLF hack is enabled and the regex is line
@@ -370,16 +396,23 @@ impl RegexMatcherImpl {
         } else if expr.needs_crlf_stripped() {
             Ok(RegexMatcherImpl::CRLF(CRLFMatcher::new(expr)?))
         } else {
+            if let Some(lits) = expr.alternation_literals() {
+                if lits.len() >= 40 {
+                    let matcher = MultiLiteralMatcher::new(&lits)?;
+                    return Ok(RegexMatcherImpl::MultiLiteral(matcher));
+                }
+            }
             Ok(RegexMatcherImpl::Standard(StandardMatcher::new(expr)?))
         }
     }
 
     /// Return the underlying regex object used.
-    fn regex(&self) -> &Regex {
+    fn regex(&self) -> String {
         match *self {
-            RegexMatcherImpl::Word(ref x) => x.regex(),
-            RegexMatcherImpl::CRLF(ref x) => x.regex(),
-            RegexMatcherImpl::Standard(ref x) => &x.regex,
+            RegexMatcherImpl::Word(ref x) => x.regex().to_string(),
+            RegexMatcherImpl::CRLF(ref x) => x.regex().to_string(),
+            RegexMatcherImpl::MultiLiteral(_) => "<N/A>".to_string(),
+            RegexMatcherImpl::Standard(ref x) => x.regex.to_string(),
         }
     }
 }
@@ -399,6 +432,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.find_at(haystack, at),
+            MultiLiteral(ref m) => m.find_at(haystack, at),
             CRLF(ref m) => m.find_at(haystack, at),
             Word(ref m) => m.find_at(haystack, at),
         }
@@ -408,6 +442,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.new_captures(),
+            MultiLiteral(ref m) => m.new_captures(),
             CRLF(ref m) => m.new_captures(),
             Word(ref m) => m.new_captures(),
         }
@@ -417,6 +452,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.capture_count(),
+            MultiLiteral(ref m) => m.capture_count(),
             CRLF(ref m) => m.capture_count(),
             Word(ref m) => m.capture_count(),
         }
@@ -426,6 +462,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.capture_index(name),
+            MultiLiteral(ref m) => m.capture_index(name),
             CRLF(ref m) => m.capture_index(name),
             Word(ref m) => m.capture_index(name),
         }
@@ -435,6 +472,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.find(haystack),
+            MultiLiteral(ref m) => m.find(haystack),
             CRLF(ref m) => m.find(haystack),
             Word(ref m) => m.find(haystack),
         }
@@ -450,6 +488,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.find_iter(haystack, matched),
+            MultiLiteral(ref m) => m.find_iter(haystack, matched),
             CRLF(ref m) => m.find_iter(haystack, matched),
             Word(ref m) => m.find_iter(haystack, matched),
         }
@@ -465,6 +504,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.try_find_iter(haystack, matched),
+            MultiLiteral(ref m) => m.try_find_iter(haystack, matched),
             CRLF(ref m) => m.try_find_iter(haystack, matched),
             Word(ref m) => m.try_find_iter(haystack, matched),
         }
@@ -478,6 +518,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.captures(haystack, caps),
+            MultiLiteral(ref m) => m.captures(haystack, caps),
             CRLF(ref m) => m.captures(haystack, caps),
             Word(ref m) => m.captures(haystack, caps),
         }
@@ -494,6 +535,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.captures_iter(haystack, caps, matched),
+            MultiLiteral(ref m) => m.captures_iter(haystack, caps, matched),
             CRLF(ref m) => m.captures_iter(haystack, caps, matched),
             Word(ref m) => m.captures_iter(haystack, caps, matched),
         }
@@ -510,6 +552,9 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.try_captures_iter(haystack, caps, matched),
+            MultiLiteral(ref m) => {
+                m.try_captures_iter(haystack, caps, matched)
+            }
             CRLF(ref m) => m.try_captures_iter(haystack, caps, matched),
             Word(ref m) => m.try_captures_iter(haystack, caps, matched),
         }
@@ -524,6 +569,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.captures_at(haystack, at, caps),
+            MultiLiteral(ref m) => m.captures_at(haystack, at, caps),
             CRLF(ref m) => m.captures_at(haystack, at, caps),
             Word(ref m) => m.captures_at(haystack, at, caps),
         }
@@ -540,6 +586,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.replace(haystack, dst, append),
+            MultiLiteral(ref m) => m.replace(haystack, dst, append),
             CRLF(ref m) => m.replace(haystack, dst, append),
             Word(ref m) => m.replace(haystack, dst, append),
         }
@@ -559,6 +606,9 @@ impl Matcher for RegexMatcher {
             Standard(ref m) => {
                 m.replace_with_captures(haystack, caps, dst, append)
             }
+            MultiLiteral(ref m) => {
+                m.replace_with_captures(haystack, caps, dst, append)
+            }
             CRLF(ref m) => {
                 m.replace_with_captures(haystack, caps, dst, append)
             }
@@ -572,6 +622,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.is_match(haystack),
+            MultiLiteral(ref m) => m.is_match(haystack),
             CRLF(ref m) => m.is_match(haystack),
             Word(ref m) => m.is_match(haystack),
         }
@@ -585,6 +636,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.is_match_at(haystack, at),
+            MultiLiteral(ref m) => m.is_match_at(haystack, at),
             CRLF(ref m) => m.is_match_at(haystack, at),
             Word(ref m) => m.is_match_at(haystack, at),
         }
@@ -597,6 +649,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.shortest_match(haystack),
+            MultiLiteral(ref m) => m.shortest_match(haystack),
             CRLF(ref m) => m.shortest_match(haystack),
             Word(ref m) => m.shortest_match(haystack),
         }
@@ -610,6 +663,7 @@ impl Matcher for RegexMatcher {
         use self::RegexMatcherImpl::*;
         match self.matcher {
             Standard(ref m) => m.shortest_match_at(haystack, at),
+            MultiLiteral(ref m) => m.shortest_match_at(haystack, at),
             CRLF(ref m) => m.shortest_match_at(haystack, at),
             Word(ref m) => m.shortest_match_at(haystack, at),
         }
@@ -710,7 +764,9 @@ impl Matcher for StandardMatcher {
         at: usize,
         caps: &mut RegexCaptures,
     ) -> Result<bool, NoError> {
-        Ok(self.regex.captures_read_at(&mut caps.locs, haystack, at).is_some())
+        Ok(self.regex.captures_read_at(
+                &mut caps.locations_mut(), haystack, at,
+        ).is_some())
     }
 
     fn shortest_match_at(
@@ -737,54 +793,84 @@ impl Matcher for StandardMatcher {
 /// index of the group using the corresponding matcher's `capture_index`
 /// method, and then use that index with `RegexCaptures::get`.
 #[derive(Clone, Debug)]
-pub struct RegexCaptures {
-    /// Where the locations are stored.
-    locs: CaptureLocations,
-    /// These captures behave as if the capturing groups begin at the given
-    /// offset. When set to `0`, this has no affect and capture groups are
-    /// indexed like normal.
-    ///
-    /// This is useful when building matchers that wrap arbitrary regular
-    /// expressions. For example, `WordMatcher` takes an existing regex `re`
-    /// and creates `(?:^|\W)(re)(?:$|\W)`, but hides the fact that the regex
-    /// has been wrapped from the caller. In order to do this, the matcher
-    /// and the capturing groups must behave as if `(re)` is the `0`th capture
-    /// group.
-    offset: usize,
-    /// When enable, the end of a match has `\r` stripped from it, if one
-    /// exists.
-    strip_crlf: bool,
+pub struct RegexCaptures(RegexCapturesImp);
+
+#[derive(Clone, Debug)]
+enum RegexCapturesImp {
+    AhoCorasick {
+        /// The start and end of the match, corresponding to capture group 0.
+        mat: Option<Match>,
+    },
+    Regex {
+        /// Where the locations are stored.
+        locs: CaptureLocations,
+        /// These captures behave as if the capturing groups begin at the given
+        /// offset. When set to `0`, this has no affect and capture groups are
+        /// indexed like normal.
+        ///
+        /// This is useful when building matchers that wrap arbitrary regular
+        /// expressions. For example, `WordMatcher` takes an existing regex
+        /// `re` and creates `(?:^|\W)(re)(?:$|\W)`, but hides the fact that
+        /// the regex has been wrapped from the caller. In order to do this,
+        /// the matcher and the capturing groups must behave as if `(re)` is
+        /// the `0`th capture group.
+        offset: usize,
+        /// When enable, the end of a match has `\r` stripped from it, if one
+        /// exists.
+        strip_crlf: bool,
+    },
 }
 
 impl Captures for RegexCaptures {
     fn len(&self) -> usize {
-        self.locs.len().checked_sub(self.offset).unwrap()
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { .. } => 1,
+            RegexCapturesImp::Regex { ref locs, offset, .. } => {
+                locs.len().checked_sub(offset).unwrap()
+            }
+        }
     }
 
     fn get(&self, i: usize) -> Option<Match> {
-        if !self.strip_crlf {
-            let actual = i.checked_add(self.offset).unwrap();
-            return self.locs.pos(actual).map(|(s, e)| Match::new(s, e));
-        }
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { mat, .. } => {
+                if i == 0 {
+                    mat
+                } else {
+                    None
+                }
+            }
+            RegexCapturesImp::Regex { ref locs, offset, strip_crlf } => {
+                if !strip_crlf {
+                    let actual = i.checked_add(offset).unwrap();
+                    return locs.pos(actual).map(|(s, e)| Match::new(s, e));
+                }
 
-        // currently don't support capture offsetting with CRLF stripping
-        assert_eq!(self.offset, 0);
-        let m = match self.locs.pos(i).map(|(s, e)| Match::new(s, e)) {
-            None => return None,
-            Some(m) => m,
-        };
-        // If the end position of this match corresponds to the end position
-        // of the overall match, then we apply our CRLF stripping. Otherwise,
-        // we cannot assume stripping is correct.
-        if i == 0 || m.end() == self.locs.pos(0).unwrap().1 {
-            Some(m.with_end(m.end() - 1))
-        } else {
-            Some(m)
+                // currently don't support capture offsetting with CRLF
+                // stripping
+                assert_eq!(offset, 0);
+                let m = match locs.pos(i).map(|(s, e)| Match::new(s, e)) {
+                    None => return None,
+                    Some(m) => m,
+                };
+                // If the end position of this match corresponds to the end
+                // position of the overall match, then we apply our CRLF
+                // stripping. Otherwise, we cannot assume stripping is correct.
+                if i == 0 || m.end() == locs.pos(0).unwrap().1 {
+                    Some(m.with_end(m.end() - 1))
+                } else {
+                    Some(m)
+                }
+            }
         }
     }
 }
 
 impl RegexCaptures {
+    pub(crate) fn simple() -> RegexCaptures {
+        RegexCaptures(RegexCapturesImp::AhoCorasick { mat: None })
+    }
+
     pub(crate) fn new(locs: CaptureLocations) -> RegexCaptures {
         RegexCaptures::with_offset(locs, 0)
     }
@@ -793,15 +879,53 @@ impl RegexCaptures {
         locs: CaptureLocations,
         offset: usize,
     ) -> RegexCaptures {
-        RegexCaptures { locs, offset, strip_crlf: false }
+        RegexCaptures(RegexCapturesImp::Regex {
+            locs, offset, strip_crlf: false,
+        })
     }
 
-    pub(crate) fn locations(&mut self) -> &mut CaptureLocations {
-        &mut self.locs
+    pub(crate) fn locations(&self) -> &CaptureLocations {
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { .. } => {
+                panic!("getting locations for simple captures is invalid")
+            }
+            RegexCapturesImp::Regex { ref locs, .. } => {
+                locs
+            }
+        }
+    }
+
+    pub(crate) fn locations_mut(&mut self) -> &mut CaptureLocations {
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { .. } => {
+                panic!("getting locations for simple captures is invalid")
+            }
+            RegexCapturesImp::Regex { ref mut locs, .. } => {
+                locs
+            }
+        }
     }
 
     pub(crate) fn strip_crlf(&mut self, yes: bool) {
-        self.strip_crlf = yes;
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { .. } => {
+                panic!("setting strip_crlf for simple captures is invalid")
+            }
+            RegexCapturesImp::Regex { ref mut strip_crlf, .. } => {
+                *strip_crlf = yes;
+            }
+        }
+    }
+
+    pub(crate) fn set_simple(&mut self, one: Option<Match>) {
+        match self.0 {
+            RegexCapturesImp::AhoCorasick { ref mut mat } => {
+                *mat = one;
+            }
+            RegexCapturesImp::Regex { .. } => {
+                panic!("setting simple captures for regex is invalid")
+            }
+        }
     }
 }
 
