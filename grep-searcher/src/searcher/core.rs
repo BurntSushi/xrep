@@ -90,6 +90,13 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         self.sink_matched(buf, range)
     }
 
+    pub fn binary_data(
+        &mut self,
+        binary_byte_offset: u64,
+    ) -> Result<bool, S::Error> {
+        self.sink.binary_data(&self.searcher, binary_byte_offset)
+    }
+
     pub fn begin(&mut self) -> Result<bool, S::Error> {
         self.sink.begin(&self.searcher)
     }
@@ -141,19 +148,28 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         consumed
     }
 
-    pub fn detect_binary(&mut self, buf: &[u8], range: &Range) -> bool {
+    pub fn detect_binary(
+        &mut self,
+        buf: &[u8],
+        range: &Range,
+    ) -> Result<bool, S::Error> {
         if self.binary_byte_offset.is_some() {
-            return true;
+            return Ok(self.config.binary.quit_byte().is_some());
         }
         let binary_byte = match self.config.binary.0 {
             BinaryDetection::Quit(b) => b,
-            _ => return false,
+            BinaryDetection::Convert(b) => b,
+            _ => return Ok(false),
         };
         if let Some(i) = B(&buf[*range]).find_byte(binary_byte) {
-            self.binary_byte_offset = Some(range.start() + i);
-            true
+            let offset = range.start() + i;
+            self.binary_byte_offset = Some(offset);
+            if !self.binary_data(offset as u64)? {
+                return Ok(true);
+            }
+            Ok(self.config.binary.quit_byte().is_some())
         } else {
-            false
+            Ok(false)
         }
     }
 
@@ -416,7 +432,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         buf: &[u8],
         range: &Range,
     ) -> Result<bool, S::Error> {
-        if self.binary && self.detect_binary(buf, range) {
+        if self.binary && self.detect_binary(buf, range)? {
             return Ok(false);
         }
         if !self.sink_break_context(range.start())? {
@@ -448,7 +464,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         buf: &[u8],
         range: &Range,
     ) -> Result<bool, S::Error> {
-        if self.binary && self.detect_binary(buf, range) {
+        if self.binary && self.detect_binary(buf, range)? {
             return Ok(false);
         }
         self.count_lines(buf, range.start());
@@ -478,7 +494,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
     ) -> Result<bool, S::Error> {
         assert!(self.after_context_left >= 1);
 
-        if self.binary && self.detect_binary(buf, range) {
+        if self.binary && self.detect_binary(buf, range)? {
             return Ok(false);
         }
         self.count_lines(buf, range.start());
@@ -507,7 +523,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         buf: &[u8],
         range: &Range,
     ) -> Result<bool, S::Error> {
-        if self.binary && self.detect_binary(buf, range) {
+        if self.binary && self.detect_binary(buf, range)? {
             return Ok(false);
         }
         self.count_lines(buf, range.start());

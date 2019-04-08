@@ -317,6 +317,14 @@ pub struct LineBuffer {
 }
 
 impl LineBuffer {
+    /// Set the binary detection method used on this line buffer.
+    ///
+    /// This permits dynamically changing the binary detection strategy on
+    /// an existing line buffer without needing to create a new one.
+    pub fn set_binary_detection(&mut self, binary: BinaryDetection) {
+        self.config.binary = binary;
+    }
+
     /// Reset this buffer, such that it can be used with a new reader.
     fn clear(&mut self) {
         self.pos = 0;

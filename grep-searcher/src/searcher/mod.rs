@@ -75,24 +75,40 @@ impl BinaryDetection {
         BinaryDetection(line_buffer::BinaryDetection::Quit(binary_byte))
     }
 
-    // TODO(burntsushi): Figure out how to make binary conversion work. This
-    // permits implementing GNU grep's default behavior, which is to zap NUL
-    // bytes but still execute a search (if a match is detected, then GNU grep
-    // stops and reports that a match was found but doesn't print the matching
-    // line itself).
-    //
-    // This behavior is pretty simple to implement using the line buffer (and
-    // in fact, it is already implemented and tested), since there's a fixed
-    // size buffer that we can easily write to. The issue arises when searching
-    // a `&[u8]` (whether on the heap or via a memory map), since this isn't
-    // something we can easily write to.
-
-    /// The given byte is searched in all contents read by the line buffer. If
-    /// it occurs, then it is replaced by the line terminator. The line buffer
-    /// guarantees that this byte will never be observable by callers.
-    #[allow(dead_code)]
-    fn convert(binary_byte: u8) -> BinaryDetection {
+    /// Binary detection is performed by looking for the given byte, and
+    /// replacing it with the line terminator configured on the searcher.
+    /// (If the searcher is configured to use `CRLF` as the line terminator,
+    /// then this byte is replaced by just `LF`.)
+    ///
+    /// When searching is performed using a fixed size buffer, then the
+    /// contents of that buffer are always searched for the presence of this
+    /// byte and replaced with the line terminator. In effect, the caller is
+    /// guaranteed to never observe this byte while searching.
+    ///
+    /// When searching is performed with the entire contents mapped into
+    /// memory, then this setting has no effect and is ignored.
+    pub fn convert(binary_byte: u8) -> BinaryDetection {
         BinaryDetection(line_buffer::BinaryDetection::Convert(binary_byte))
+    }
+
+    /// If this binary detection uses the "quit" strategy, then this returns
+    /// the byte that will cause a search to quit. In any other case, this
+    /// returns `None`.
+    pub fn quit_byte(&self) -> Option<u8> {
+        match self.0 {
+            line_buffer::BinaryDetection::Quit(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    /// If this binary detection uses the "convert" strategy, then this returns
+    /// the byte that will be replaced by the line terminator. In any other
+    /// case, this returns `None`.
+    pub fn convert_byte(&self) -> Option<u8> {
+        match self.0 {
+            line_buffer::BinaryDetection::Convert(b) => Some(b),
+            _ => None,
+        }
     }
 }
 
@@ -739,6 +755,12 @@ impl Searcher {
         }
     }
 
+    /// Set the binary detection method used on this searcher.
+    pub fn set_binary_detection(&mut self, detection: BinaryDetection) {
+        self.config.binary = detection.clone();
+        self.line_buffer.borrow_mut().set_binary_detection(detection.0);
+    }
+
     /// Check that the searcher's configuration and the matcher are consistent
     /// with each other.
     fn check_config<M: Matcher>(&self, matcher: M) -> Result<(), ConfigError> {
@@ -776,6 +798,12 @@ impl Searcher {
     #[inline]
     pub fn line_terminator(&self) -> LineTerminator {
         self.config.line_term
+    }
+
+    /// Returns the type of binary detection configured on this searcher.
+    #[inline]
+    pub fn binary_detection(&self) -> &BinaryDetection {
+        &self.config.binary
     }
 
     /// Returns true if and only if this searcher is configured to invert its

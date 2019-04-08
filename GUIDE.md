@@ -18,6 +18,7 @@ translatable to any command line shell environment.
 * [Replacements](#replacements)
 * [Configuration file](#configuration-file)
 * [File encoding](#file-encoding)
+* [Binary data](#binary-data)
 * [Common options](#common-options)
 
 
@@ -678,6 +679,76 @@ another Unicode word character:
 ```
 $ rg '\w(?-u:\w)\w'
 ```
+
+
+### Binary data
+
+In addition to skipping hidden files and files in your `.gitignore` by default,
+ripgrep also attempts to skip binary files. ripgrep does this by default
+because binary files (like PDFs or images) are typically not things you want to
+search when searching for regex matches. Moreover, if content in a binary file
+did match, then it's possible for undesirable binary data to be printed to your
+terminal and wreak havoc.
+
+Unfortunately, unlike skipping hidden files and respecting your `.gitignore`
+rules, a file cannot as easily be classified as binary. In order to figure out
+whether a file is binary, the most effective heuristic that balances
+correctness with performance is to simply look for `NUL` bytes. At that point,
+the determination is simple: a file is considered "binary" if and only if it
+contains a `NUL` byte somewhere in its contents.
+
+The issue is that while most binary files will have a `NUL` byte toward the
+beginning of its contents, this is not necessarily true. The `NUL` byte might
+be the very last byte in a large file, but that file is still considered
+binary. While this leads to a fair amount of complexity inside ripgrep's
+implementation, it also results in some unintuitive user experiences.
+
+At a high level, ripgrep operates in three different modes with respect to
+binary files:
+
+1. The default mode is to attempt to remove binary files from a search
+   completely. This is meant to mirror how ripgrep removes hidden files and
+   files in your `.gitignore` automatically. That is, as soon as a file is
+   detected as binary, searching stops. If a match was already printed (because
+   it was detected long before a `NUL` byte), then ripgrep will print a warning
+   message indicating that the search stopped prematurely. This default mode
+   **only applies to files searched by ripgrep as a result of recursive
+   directory traversal**, which is consistent with ripgrep's other automatic
+   filtering. For example, `rg foo .file` will search `.file` even though it
+   is hidden. Similarly, `rg foo binary-file` search `binary-file` in "binary"
+   mode automatically.
+2. Binary mode is similar to the default mode, except it will not always
+   stop searching after it sees a `NUL` byte. Namely, in this mode, ripgrep
+   will continue searching a file that is known to be binary until the first
+   of two conditions is met: 1) the end of the file has been reached or 2) a
+   match is or has been seen. This means that in binary mode, if ripgrep
+   reports no matches, then there are no matches in the file. When a match does
+   occur, ripgrep prints a message similar to one it prints when in its default
+   mode indicating that the search has stopped prematurely. This mode can be
+   forcefully enabled for all files with the `--binary` flag. The purpose of
+   binary mode is to provide a way to discover matches in all files, but to
+   avoid having binary data dumped into your terminal.
+3. Text mode completely disables all binary detection and searches all files
+   as if they were text. This is useful when searching a file that is
+   predominantly text but contains a `NUL` byte, or if you are specifically
+   trying to search binary data. This mode can be enabled with the `-a/--text`
+   flag. Note that when using this mode on very large binary files, it is
+   possible for ripgrep to use a lot of memory.
+
+Unfortunately, there is one additional complexity in ripgrep that can make it
+difficult to reason about binary files. That is, the way binary detection works
+depends on the way that ripgrep searches your files. Specifically:
+
+* When ripgrep uses memory maps, then binary detection is only performed on the
+  first few kilobytes of the file in addition to every matching line.
+* When ripgrep doesn't use memory maps, then binary detection is performed on
+  all bytes searched.
+
+This means that whether a file is detected as binary or not can change based
+on the internal search strategy used by ripgrep. If you prefer to keep
+ripgrep's binary file detection consistent, then you can disable memory maps
+via the `--no-mmap` flag. (The cost will be a small performance regression when
+searching very large files on some platforms.)
 
 
 ### Common options

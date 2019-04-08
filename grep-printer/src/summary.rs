@@ -636,6 +636,34 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
             stats.add_bytes_searched(finish.byte_count());
             stats.add_bytes_printed(self.summary.wtr.borrow().count());
         }
+        // If our binary detection method says to quit after seeing binary
+        // data, then we shouldn't print any results at all, even if we've
+        // found a match before detecting binary data. The intent here is to
+        // keep BinaryDetection::quit as a form of filter. Otherwise, we can
+        // present a matching file with a smaller number of matches than
+        // there might be, which can be quite misleading.
+        //
+        // If our binary detection method is to convert binary data, then we
+        // don't quit and therefore search the entire contents of the file.
+        //
+        // There is an unfortunate inconsistency here. Namely, when using
+        // Quiet or PathWithMatch, then the printer can quit after the first
+        // match seen, which could be long before seeing binary data. This
+        // means that using PathWithMatch can print a path where as using
+        // Count might not print it at all because of binary data.
+        //
+        // It's not possible to fix this without also potentially significantly
+        // impacting the performance of Quiet or PathWithMatch, so we accept
+        // the bug.
+        if self.binary_byte_offset.is_some()
+            && searcher.binary_detection().quit_byte().is_some()
+        {
+            // Squash the match count. The statistics reported will still
+            // contain the match count, but the "official" match count should
+            // be zero.
+            self.match_count = 0;
+            return Ok(());
+        }
 
         let show_count =
             !self.summary.config.exclude_zero

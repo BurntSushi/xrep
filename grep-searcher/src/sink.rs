@@ -167,6 +167,28 @@ pub trait Sink {
         Ok(true)
     }
 
+    /// This method is called whenever binary detection is enabled and binary
+    /// data is found. If binary data is found, then this is called at least
+    /// once for the first occurrence with the absolute byte offset at which
+    /// the binary data begins.
+    ///
+    /// If this returns `true`, then searching continues. If this returns
+    /// `false`, then searching is stopped immediately and `finish` is called.
+    ///
+    /// If this returns an error, then searching is stopped immediately,
+    /// `finish` is not called and the error is bubbled back up to the caller
+    /// of the searcher.
+    ///
+    /// By default, it does nothing and returns `true`.
+    #[inline]
+    fn binary_data(
+        &mut self,
+        _searcher: &Searcher,
+        _binary_byte_offset: u64,
+    ) -> Result<bool, Self::Error> {
+        Ok(true)
+    }
+
     /// This method is called when a search has begun, before any search is
     /// executed. By default, this does nothing.
     ///
@@ -229,6 +251,15 @@ impl<'a, S: Sink> Sink for &'a mut S {
     }
 
     #[inline]
+    fn binary_data(
+        &mut self,
+        searcher: &Searcher,
+        binary_byte_offset: u64,
+    ) -> Result<bool, S::Error> {
+        (**self).binary_data(searcher, binary_byte_offset)
+    }
+
+    #[inline]
     fn begin(
         &mut self,
         searcher: &Searcher,
@@ -273,6 +304,15 @@ impl<S: Sink + ?Sized> Sink for Box<S> {
         searcher: &Searcher,
     ) -> Result<bool, S::Error> {
         (**self).context_break(searcher)
+    }
+
+    #[inline]
+    fn binary_data(
+        &mut self,
+        searcher: &Searcher,
+        binary_byte_offset: u64,
+    ) -> Result<bool, S::Error> {
+        (**self).binary_data(searcher, binary_byte_offset)
     }
 
     #[inline]

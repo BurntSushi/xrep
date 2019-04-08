@@ -72,7 +72,7 @@ rgtest!(f7_stdin, |dir: Dir, mut cmd: TestCommand| {
 sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
 sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
 ";
-    eqnice!(expected, cmd.arg("-f-").pipe("Sherlock"));
+    eqnice!(expected, cmd.arg("-f-").pipe(b"Sherlock"));
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/20

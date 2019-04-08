@@ -227,6 +227,8 @@ _rg() {
 
     + '(text)' # Binary-search options
     {-a,--text}'[search binary files as if they were text]'
+    "--binary[search binary files, don't print binary data]"
+    $no"--no-binary[don't search binary files]"
     $no"(--null-data)--no-text[don't search binary files as if they were text]"
 
     + '(threads)' # Thread-count options

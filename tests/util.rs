@@ -297,7 +297,7 @@ impl TestCommand {
     }
 
     /// Pipe `input` to a command, and collect the output.
-    pub fn pipe(&mut self, input: &str) -> String {
+    pub fn pipe(&mut self, input: &[u8]) -> String {
         self.cmd.stdin(process::Stdio::piped());
         self.cmd.stdout(process::Stdio::piped());
         self.cmd.stderr(process::Stdio::piped());
@@ -309,7 +309,7 @@ impl TestCommand {
         let mut stdin = child.stdin.take().expect("expected standard input");
         let input = input.to_owned();
         let worker = thread::spawn(move || {
-            write!(stdin, "{}", input)
+            stdin.write_all(&input)
         });
 
         let output = self.expect_success(child.wait_with_output().unwrap());

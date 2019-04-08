@@ -11,6 +11,11 @@ TODO.
   error (e.g., regex syntax error). One exception to this is if ripgrep is run
   with `-q/--quiet`. In that case, if an error occurs and a match is found,
   then ripgrep will exit with a `0` exit status code.
+* Supplying the `-u/--unrestricted` flag three times is now equivalent to
+  supplying `--no-ignore --hidden --binary`. Previously, `-uuu` was equivalent
+  to `--no-ignore --hidden --text`. The difference is that `--binary` disables
+  binary file filtering without potentially dumping binary data into your
+  terminal. That is, `rg -uuu foo` should now be equivalent to `grep -r foo`.
 * The `avx-accel` feature of ripgrep has been removed since it is no longer
   necessary. All uses of AVX in ripgrep are now enabled automatically via
   runtime CPU feature detection. The `simd-accel` feature does remain
@@ -25,6 +30,8 @@ Performance improvements:
 
 Feature enhancements:
 
+* [FEATURE #855](https://github.com/BurntSushi/ripgrep/issues/855):
+  Add `--binary` flag for disabling binary file filtering.
 * [FEATURE #1099](https://github.com/BurntSushi/ripgrep/pull/1099):
   Add support for Brotli and Zstd to the `-z/--search-zip` flag.
 * [FEATURE #1138](https://github.com/BurntSushi/ripgrep/pull/1138):
@@ -36,6 +43,9 @@ Feature enhancements:
 
 Bug fixes:
 
+* [BUG #306](https://github.com/BurntSushi/ripgrep/issues/306),
+  [BUG #855](https://github.com/BurntSushi/ripgrep/issues/855):
+  Improve the user experience for ripgrep's binary file filtering.
 * [BUG #373](https://github.com/BurntSushi/ripgrep/issues/373),
   [BUG #1098](https://github.com/BurntSushi/ripgrep/issues/1098):
   `**` is now accepted as valid syntax anywhere in a glob.

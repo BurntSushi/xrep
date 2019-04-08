@@ -286,15 +286,18 @@ impl Args {
         &self,
         wtr: W,
     ) -> Result<SearchWorker<W>> {
+        let matches = self.matches();
         let matcher = self.matcher().clone();
         let printer = self.printer(wtr)?;
-        let searcher = self.matches().searcher(self.paths())?;
+        let searcher = matches.searcher(self.paths())?;
         let mut builder = SearchWorkerBuilder::new();
         builder
-            .json_stats(self.matches().is_present("json"))
-            .preprocessor(self.matches().preprocessor())
-            .preprocessor_globs(self.matches().preprocessor_globs()?)
-            .search_zip(self.matches().is_present("search-zip"));
+            .json_stats(matches.is_present("json"))
+            .preprocessor(matches.preprocessor())
+            .preprocessor_globs(matches.preprocessor_globs()?)
+            .search_zip(matches.is_present("search-zip"))
+            .binary_detection_implicit(matches.binary_detection_implicit())
+            .binary_detection_explicit(matches.binary_detection_explicit());
         Ok(builder.build(matcher, searcher, printer))
     }
 
@@ -802,8 +805,7 @@ impl ArgMatches {
             .before_context(ctx_before)
             .after_context(ctx_after)
             .passthru(self.is_present("passthru"))
-            .memory_map(self.mmap_choice(paths))
-            .binary_detection(self.binary_detection());
+            .memory_map(self.mmap_choice(paths));
         match self.encoding()? {
             EncodingMode::Some(enc) => {
                 builder.encoding(Some(enc));
@@ -862,16 +864,39 @@ impl ArgMatches {
 ///
 /// Methods are sorted alphabetically.
 impl ArgMatches {
-    /// Returns the form of binary detection to perform.
-    fn binary_detection(&self) -> BinaryDetection {
+    /// Returns the form of binary detection to perform on files that are
+    /// implicitly searched via recursive directory traversal.
+    fn binary_detection_implicit(&self) -> BinaryDetection {
         let none =
             self.is_present("text")
-            || self.unrestricted_count() >= 3
+            || self.is_present("null-data");
+        let convert =
+            self.is_present("binary")
+            || self.unrestricted_count() >= 3;
+        if none {
+            BinaryDetection::none()
+        } else if convert {
+            BinaryDetection::convert(b'\x00')
+        } else {
+            BinaryDetection::quit(b'\x00')
+        }
+    }
+
+    /// Returns the form of binary detection to perform on files that are
+    /// explicitly searched via the user invoking ripgrep on a particular
+    /// file or files or stdin.
+    ///
+    /// In general, this should never be BinaryDetection::quit, since that acts
+    /// as a filter (but quitting immediately once a NUL byte is seen), and we
+    /// should never filter out files that the user wants to explicitly search.
+    fn binary_detection_explicit(&self) -> BinaryDetection {
+        let none =
+            self.is_present("text")
             || self.is_present("null-data");
         if none {
             BinaryDetection::none()
         } else {
-            BinaryDetection::quit(b'\x00')
+            BinaryDetection::convert(b'\x00')
         }
     }
 

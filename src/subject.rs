@@ -59,17 +59,12 @@ impl SubjectBuilder {
         if let Some(ignore_err) = subj.dent.error() {
             ignore_message!("{}", ignore_err);
         }
-        // If this entry represents stdin, then we always search it.
-        if subj.dent.is_stdin() {
+        // If this entry was explicitly provided by an end user, then we always
+        // want to search it.
+        if subj.is_explicit() {
             return Some(subj);
         }
-        // If this subject has a depth of 0, then it was provided explicitly
-        // by an end user (or via a shell glob). In this case, we always want
-        // to search it if it even smells like a file (e.g., a symlink).
-        if subj.dent.depth() == 0 && !subj.is_dir() {
-            return Some(subj);
-        }
-        // At this point, we only want to search something it's explicitly a
+        // At this point, we only want to search something if it's explicitly a
         // file. This omits symlinks. (If ripgrep was configured to follow
         // symlinks, then they have already been followed by the directory
         // traversal.)
@@ -125,6 +120,26 @@ impl Subject {
     /// Returns true if and only if this entry corresponds to stdin.
     pub fn is_stdin(&self) -> bool {
         self.dent.is_stdin()
+    }
+
+    /// Returns true if and only if this entry corresponds to a subject to
+    /// search that was explicitly supplied by an end user.
+    ///
+    /// Generally, this corresponds to either stdin or an explicit file path
+    /// argument. e.g., in `rg foo some-file ./some-dir/`, `some-file` is
+    /// an explicit subject, but, e.g., `./some-dir/some-other-file` is not.
+    ///
+    /// However, note that ripgrep does not see through shell globbing. e.g.,
+    /// in `rg foo ./some-dir/*`, `./some-dir/some-other-file` will be treated
+    /// as an explicit subject.
+    pub fn is_explicit(&self) -> bool {
+        // stdin is obvious. When an entry has a depth of 0, that means it
+        // was explicitly provided to our directory iterator, which means it
+        // was in turn explicitly provided by the end user. The !is_dir check
+        // means that we want to search files even if their symlinks, again,
+        // because they were explicitly provided. (And we never want to try
+        // to search a directory.)
+        self.is_stdin() || (self.dent.depth() == 0 && !self.is_dir())
     }
 
     /// Returns true if and only if this subject points to a directory after

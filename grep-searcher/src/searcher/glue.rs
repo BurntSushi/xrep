@@ -51,6 +51,7 @@ where M: Matcher,
     fn fill(&mut self) -> Result<bool, S::Error> {
         assert!(self.rdr.buffer()[self.core.pos()..].is_empty());
 
+        let already_binary = self.rdr.binary_byte_offset().is_some();
         let old_buf_len = self.rdr.buffer().len();
         let consumed = self.core.roll(self.rdr.buffer());
         self.rdr.consume(consumed);
@@ -58,7 +59,14 @@ where M: Matcher,
             Err(err) => return Err(S::Error::error_io(err)),
             Ok(didread) => didread,
         };
-        if !didread || self.rdr.binary_byte_offset().is_some() {
+        if !already_binary {
+            if let Some(offset) = self.rdr.binary_byte_offset() {
+                if !self.core.binary_data(offset)? {
+                    return Ok(false);
+                }
+            }
+        }
+        if !didread || self.should_binary_quit() {
             return Ok(false);
         }
         // If rolling the buffer didn't result in consuming anything and if
@@ -70,6 +78,11 @@ where M: Matcher,
             return Ok(false);
         }
         Ok(true)
+    }
+
+    fn should_binary_quit(&self) -> bool {
+        self.rdr.binary_byte_offset().is_some()
+        && self.config.binary.quit_byte().is_some()
     }
 }
 
@@ -103,7 +116,7 @@ impl<'s, M: Matcher, S: Sink> SliceByLine<'s, M, S> {
                 DEFAULT_BUFFER_CAPACITY,
             );
             let binary_range = Range::new(0, binary_upto);
-            if !self.core.detect_binary(self.slice, &binary_range) {
+            if !self.core.detect_binary(self.slice, &binary_range)? {
                 while
                     !self.slice[self.core.pos()..].is_empty()
                     && self.core.match_by_line(self.slice)?
@@ -155,7 +168,7 @@ impl<'s, M: Matcher, S: Sink> MultiLine<'s, M, S> {
                 DEFAULT_BUFFER_CAPACITY,
             );
             let binary_range = Range::new(0, binary_upto);
-            if !self.core.detect_binary(self.slice, &binary_range) {
+            if !self.core.detect_binary(self.slice, &binary_range)? {
                 let mut keepgoing = true;
                 while !self.slice[self.core.pos()..].is_empty() && keepgoing {
                     keepgoing = self.sink()?;

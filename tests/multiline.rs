@@ -88,7 +88,7 @@ rgtest!(stdin, |_: Dir, mut cmd: TestCommand| {
 1:For the Doctor Watsons of this world, as opposed to the Sherlock
 2:Holmeses, success in the province of detective work must always
 ";
-    eqnice!(expected, cmd.pipe(SHERLOCK));
+    eqnice!(expected, cmd.pipe(SHERLOCK.as_bytes()));
 });
 
 // Test that multiline search and contextual matches work.

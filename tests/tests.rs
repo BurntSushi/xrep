@@ -7,6 +7,8 @@ mod hay;
 // Utilities for making tests nicer to read and easier to write.
 mod util;
 
+// Tests for ripgrep's handling of binary files.
+mod binary;
 // Tests related to most features in ripgrep. If you're adding something new
 // to ripgrep, tests should probably go in here.
 mod feature;

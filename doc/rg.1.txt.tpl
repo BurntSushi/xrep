@@ -41,6 +41,9 @@ configuration file. The file can specify one shell argument per line. Lines
 starting with *#* are ignored. For more details, see the man page or the
 *README*.
 
+Tip: to disable all smart filtering and make ripgrep behave a bit more like
+classical grep, use *rg -uuu*.
+
 
 REGEX SYNTAX
 ------------

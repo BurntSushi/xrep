@@ -752,12 +752,11 @@ rgtest!(unrestricted2, |dir: Dir, mut cmd: TestCommand| {
 
 rgtest!(unrestricted3, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
-    dir.create("file", "foo\x00bar\nfoo\x00baz\n");
+    dir.create("hay", "foo\x00bar\nfoo\x00baz\n");
     cmd.arg("-uuu").arg("foo");
 
     let expected = "\
-file:foo\x00bar
-file:foo\x00baz
+Binary file hay matches (found \"\\u{0}\" byte around offset 3)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -950,10 +949,35 @@ rgtest!(compressed_failing_gzip, |dir: Dir, mut cmd: TestCommand| {
     cmd.assert_non_empty_stderr();
 });
 
-rgtest!(binary_nosearch, |dir: Dir, mut cmd: TestCommand| {
+rgtest!(binary_convert, |dir: Dir, mut cmd: TestCommand| {
     dir.create("file", "foo\x00bar\nfoo\x00baz\n");
-    cmd.arg("foo").arg("file");
+    cmd.arg("--no-mmap").arg("foo").arg("file");
 
+    let expected = "\
+Binary file matches (found \"\\u{0}\" byte around offset 3)
+";
+    eqnice!(expected, cmd.stdout());
+});
+
+rgtest!(binary_convert_mmap, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("file", "foo\x00bar\nfoo\x00baz\n");
+    cmd.arg("--mmap").arg("foo").arg("file");
+
+    let expected = "\
+Binary file matches (found \"\\u{0}\" byte around offset 3)
+";
+    eqnice!(expected, cmd.stdout());
+});
+
+rgtest!(binary_quit, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("file", "foo\x00bar\nfoo\x00baz\n");
+    cmd.arg("--no-mmap").arg("foo").arg("-gfile");
+    cmd.assert_err();
+});
+
+rgtest!(binary_quit_mmap, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("file", "foo\x00bar\nfoo\x00baz\n");
+    cmd.arg("--mmap").arg("foo").arg("-gfile");
     cmd.assert_err();
 });
 

@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
 
+use bstr::BStr;
 use grep_matcher::{Match, Matcher};
 use grep_searcher::{
     LineStep, Searcher,
@@ -743,6 +744,11 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
             stats.add_matches(self.standard.matches.len() as u64);
             stats.add_matched_lines(mat.lines().count() as u64);
         }
+        if searcher.binary_detection().convert_byte().is_some() {
+            if self.binary_byte_offset.is_some() {
+                return Ok(false);
+            }
+        }
 
         StandardImpl::from_match(searcher, self, mat).sink()?;
         Ok(!self.should_quit())
@@ -764,6 +770,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
             self.record_matches(ctx.bytes())?;
             self.replace(ctx.bytes())?;
         }
+        if searcher.binary_detection().convert_byte().is_some() {
+            if self.binary_byte_offset.is_some() {
+                return Ok(false);
+            }
+        }
+
         StandardImpl::from_context(searcher, self, ctx).sink()?;
         Ok(!self.should_quit())
     }
@@ -773,6 +785,15 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
         searcher: &Searcher,
     ) -> Result<bool, io::Error> {
         StandardImpl::new(searcher, self).write_context_separator()?;
+        Ok(true)
+    }
+
+    fn binary_data(
+        &mut self,
+        _searcher: &Searcher,
+        binary_byte_offset: u64,
+    ) -> Result<bool, io::Error> {
+        self.binary_byte_offset = Some(binary_byte_offset);
         Ok(true)
     }
 
@@ -793,10 +814,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
 
     fn finish(
         &mut self,
-        _searcher: &Searcher,
+        searcher: &Searcher,
         finish: &SinkFinish,
     ) -> Result<(), io::Error> {
-        self.binary_byte_offset = finish.binary_byte_offset();
+        if let Some(offset) = self.binary_byte_offset {
+            StandardImpl::new(searcher, self).write_binary_message(offset)?;
+        }
         if let Some(stats) = self.stats.as_mut() {
             stats.add_elapsed(self.start_time.elapsed());
             stats.add_searches(1);
@@ -1310,6 +1333,38 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         }
         if self.config().heading {
             self.write_path_line()?;
+        }
+        Ok(())
+    }
+
+    fn write_binary_message(&self, offset: u64) -> io::Result<()> {
+        if self.sink.match_count == 0 {
+            return Ok(());
+        }
+
+        let bin = self.searcher.binary_detection();
+        if let Some(byte) = bin.quit_byte() {
+            self.write(b"WARNING: stopped searching binary file ")?;
+            if let Some(path) = self.path() {
+                self.write_spec(self.config().colors.path(), path.as_bytes())?;
+                self.write(b" ")?;
+            }
+            let remainder = format!(
+                "after match (found {:?} byte around offset {})\n",
+                BStr::new(&[byte]), offset,
+            );
+            self.write(remainder.as_bytes())?;
+        } else if let Some(byte) = bin.convert_byte() {
+            self.write(b"Binary file ")?;
+            if let Some(path) = self.path() {
+                self.write_spec(self.config().colors.path(), path.as_bytes())?;
+                self.write(b" ")?;
+            }
+            let remainder = format!(
+                "matches (found {:?} byte around offset {})\n",
+                BStr::new(&[byte]), offset,
+            );
+            self.write(remainder.as_bytes())?;
         }
         Ok(())
     }

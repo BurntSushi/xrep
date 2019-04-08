@@ -10,7 +10,7 @@ use grep::matcher::Matcher;
 use grep::pcre2::{RegexMatcher as PCRE2RegexMatcher};
 use grep::printer::{JSON, Standard, Summary, Stats};
 use grep::regex::{RegexMatcher as RustRegexMatcher};
-use grep::searcher::Searcher;
+use grep::searcher::{BinaryDetection, Searcher};
 use ignore::overrides::Override;
 use serde_json as json;
 use serde_json::json;
@@ -27,6 +27,8 @@ struct Config {
     preprocessor: Option<PathBuf>,
     preprocessor_globs: Override,
     search_zip: bool,
+    binary_implicit: BinaryDetection,
+    binary_explicit: BinaryDetection,
 }
 
 impl Default for Config {
@@ -36,6 +38,8 @@ impl Default for Config {
             preprocessor: None,
             preprocessor_globs: Override::empty(),
             search_zip: false,
+            binary_implicit: BinaryDetection::none(),
+            binary_explicit: BinaryDetection::none(),
         }
     }
 }
@@ -132,6 +136,37 @@ impl SearchWorkerBuilder {
     /// setting.
     pub fn search_zip(&mut self, yes: bool) -> &mut SearchWorkerBuilder {
         self.config.search_zip = yes;
+        self
+    }
+
+    /// Set the binary detection that should be used when searching files
+    /// found via a recursive directory search.
+    ///
+    /// Generally, this binary detection may be `BinaryDetection::quit` if
+    /// we want to skip binary files completely.
+    ///
+    /// By default, no binary detection is performed.
+    pub fn binary_detection_implicit(
+        &mut self,
+        detection: BinaryDetection,
+    ) -> &mut SearchWorkerBuilder {
+        self.config.binary_implicit = detection;
+        self
+    }
+
+    /// Set the binary detection that should be used when searching files
+    /// explicitly supplied by an end user.
+    ///
+    /// Generally, this binary detection should NOT be `BinaryDetection::quit`,
+    /// since we never want to automatically filter files supplied by the end
+    /// user.
+    ///
+    /// By default, no binary detection is performed.
+    pub fn binary_detection_explicit(
+        &mut self,
+        detection: BinaryDetection,
+    ) -> &mut SearchWorkerBuilder {
+        self.config.binary_explicit = detection;
         self
     }
 }
@@ -308,6 +343,14 @@ impl<W: WriteColor> SearchWorker<W> {
 
     /// Search the given subject using the appropriate strategy.
     fn search_impl(&mut self, subject: &Subject) -> io::Result<SearchResult> {
+        let bin =
+            if subject.is_explicit() {
+                self.config.binary_explicit.clone()
+            } else {
+                self.config.binary_implicit.clone()
+            };
+        self.searcher.set_binary_detection(bin);
+
         let path = subject.path();
         if subject.is_stdin() {
             let stdin = io::stdin();

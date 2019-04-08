@@ -27,6 +27,9 @@ configuration file. The file can specify one shell argument per line. Lines
 starting with '#' are ignored. For more details, see the man page or the
 README.
 
+Tip: to disable all smart filtering and make ripgrep behave a bit more like
+classical grep, use 'rg -uuu'.
+
 Project home page: https://github.com/BurntSushi/ripgrep
 
 Use -h for short descriptions and --help for more details.";
@@ -545,6 +548,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     // "positive" flag.
     flag_after_context(&mut args);
     flag_before_context(&mut args);
+    flag_binary(&mut args);
     flag_block_buffered(&mut args);
     flag_byte_offset(&mut args);
     flag_case_sensitive(&mut args);
@@ -688,6 +692,55 @@ This overrides the --context flag.
         .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
+    args.push(arg);
+}
+
+fn flag_binary(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Search binary files.";
+    const LONG: &str = long!("\
+Enabling this flag will cause ripgrep to search binary files. By default,
+ripgrep attempts to automatically skip binary files in order to improve the
+relevance of results and make the search faster.
+
+Binary files are heuristically detected based on whether they contain a NUL
+byte or not. By default (without this flag set), once a NUL byte is seen,
+ripgrep will stop searching the file. Usually, NUL bytes occur in the beginning
+of most binary files. If a NUL byte occurs after a match, then ripgrep will
+still stop searching the rest of the file, but a warning will be printed.
+
+In contrast, when this flag is provided, ripgrep will continue searching a file
+even if a NUL byte is found. In particular, if a NUL byte is found then ripgrep
+will continue searching until either a match is found or the end of the file is
+reached, whichever comes sooner. If a match is found, then ripgrep will stop
+and print a warning saying that the search stopped prematurely.
+
+If you want ripgrep to search a file without any special NUL byte handling at
+all (and potentially print binary data to stdout), then you should use the
+'-a/--text' flag.
+
+The '--binary' flag is a flag for controlling ripgrep's automatic filtering
+mechanism. As such, it does not need to be used when searching a file
+explicitly or when searching stdin. That is, it is only applicable when
+recursively searching a directory.
+
+Note that when the '-u/--unrestricted' flag is provided for a third time, then
+this flag is automatically enabled.
+
+This flag can be disabled with '--no-binary'. It overrides the '-a/--text'
+flag.
+");
+    let arg = RGArg::switch("binary")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-binary")
+        .overrides("text")
+        .overrides("no-text");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-binary")
+        .hidden()
+        .overrides("binary")
+        .overrides("text")
+        .overrides("no-text");
     args.push(arg);
 }
 
@@ -1874,7 +1927,7 @@ fn flag_pre(args: &mut Vec<RGArg>) {
 For each input FILE, search the standard output of COMMAND FILE rather than the
 contents of FILE. This option expects the COMMAND program to either be an
 absolute path or to be available in your PATH. Either an empty string COMMAND
-or the `--no-pre` flag will disable this behavior.
+or the '--no-pre' flag will disable this behavior.
 
     WARNING: When this flag is set, ripgrep will unconditionally spawn a
     process for every file that is searched. Therefore, this can incur an
@@ -2208,20 +2261,23 @@ escape codes to be printed that alter the behavior of your terminal.
 When binary file detection is enabled it is imperfect. In general, it uses
 a simple heuristic. If a NUL byte is seen during search, then the file is
 considered binary and search stops (unless this flag is present).
+Alternatively, if the '--binary' flag is used, then ripgrep will only quit
+when it sees a NUL byte after it sees a match (or searches the entire file).
 
-Note that when the `-u/--unrestricted` flag is provided for a third time, then
-this flag is automatically enabled.
-
-This flag can be disabled with --no-text.
+This flag can be disabled with '--no-text'. It overrides the '--binary' flag.
 ");
     let arg = RGArg::switch("text").short("a")
         .help(SHORT).long_help(LONG)
-        .overrides("no-text");
+        .overrides("no-text")
+        .overrides("binary")
+        .overrides("no-binary");
     args.push(arg);
 
     let arg = RGArg::switch("no-text")
         .hidden()
-        .overrides("text");
+        .overrides("text")
+        .overrides("binary")
+        .overrides("no-binary");
     args.push(arg);
 }
 
@@ -2350,8 +2406,7 @@ Reduce the level of \"smart\" searching. A single -u won't respect .gitignore
 (etc.) files. Two -u flags will additionally search hidden files and
 directories. Three -u flags will additionally search binary files.
 
--uu is roughly equivalent to grep -r and -uuu is roughly equivalent to grep -a
--r.
+'rg -uuu' is roughly equivalent to 'grep -r'.
 ");
     let arg = RGArg::switch("unrestricted").short("u")
         .help(SHORT).long_help(LONG)
