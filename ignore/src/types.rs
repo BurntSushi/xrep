@@ -161,7 +161,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("js", &[
         "*.js", "*.jsx", "*.vue",
     ]),
-    ("json", &["*.json", "composer.lock"]),
+    ("json", &["*.json"]),
     ("jsonl", &["*.jsonl"]),
     ("julia", &["*.jl"]),
     ("jupyter", &["*.ipynb", "*.jpynb"]),
@@ -196,6 +196,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "OFL-*[0-9]*",
     ]),
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
+    ("lockfiles", &["composer.lock", "package-lock.json", "yarn.lock", "Gemfile.lock"]),
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
     ("lzma", &["*.lzma"]),
