@@ -196,7 +196,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         "OFL-*[0-9]*",
     ]),
     ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
-    ("lockfiles", &["composer.lock", "package-lock.json", "yarn.lock", "Gemfile.lock"]),
+    ("lock", &["*.lock", "package-lock.json"]),
     ("log", &["*.log"]),
     ("lua", &["*.lua"]),
     ("lzma", &["*.lzma"]),
