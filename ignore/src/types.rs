@@ -161,7 +161,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("js", &[
         "*.js", "*.jsx", "*.vue",
     ]),
-    ("json", &["*.json"]),
+    ("json", &["*.json", "composer.lock"]),
     ("jsonl", &["*.jsonl"]),
     ("julia", &["*.jl"]),
     ("jupyter", &["*.ipynb", "*.jpynb"]),
