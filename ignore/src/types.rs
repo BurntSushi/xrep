@@ -156,7 +156,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("hs", &["*.hs", "*.lhs"]),
     ("html", &["*.htm", "*.html", "*.ejs"]),
     ("idris", &["*.idr", "*.lidr"]),
-    ("java", &["*.java", "*.jsp"]),
+    ("java", &["*.java", "*.jsp", "*.jspx", "*.properties", "pom.xml"]),
     ("jinja", &["*.j2", "*.jinja", "*.jinja2"]),
     ("js", &[
         "*.js", "*.jsx", "*.vue",
