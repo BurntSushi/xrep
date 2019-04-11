@@ -109,6 +109,7 @@ pub fn alternation_literals(expr: &Hir) -> Option<Vec<Vec<u8>>> {
     for alt in alts {
         let mut lit = vec![];
         match *alt.kind() {
+            HirKind::Empty => {}
             HirKind::Literal(ref x) => extendlit(x, &mut lit),
             HirKind::Concat(ref exprs) => {
                 for e in exprs {
