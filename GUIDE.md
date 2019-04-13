@@ -538,8 +538,9 @@ formatting peculiarities:
 
 ```
 $ cat $HOME/.ripgreprc
-# Don't let ripgrep vomit really long lines to my terminal.
+# Don't let ripgrep vomit really long lines to my terminal, and show a preview.
 --max-columns=150
+--max-column-preview
 
 # Add my 'web' type.
 --type-add

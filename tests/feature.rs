@@ -630,6 +630,41 @@ rgtest!(f993_null_data, |dir: Dir, mut cmd: TestCommand| {
     eqnice!(expected, cmd.stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1078
+//
+// N.B. There are many more tests in the grep-printer crate.
+rgtest!(f1078_max_column_preview1, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("sherlock", SHERLOCK);
+    cmd.args(&[
+        "-M46", "--max-column-preview",
+        "exhibited|dusted|has to have it",
+    ]);
+
+    let expected = "\
+sherlock:but Doctor Watson has to have it taken out for [... omitted end of long line]
+sherlock:and exhibited clearly, with a label attached.
+";
+    eqnice!(expected, cmd.stdout());
+});
+
+rgtest!(f1078_max_column_preview2, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("sherlock", SHERLOCK);
+    cmd.args(&[
+        "-M43", "--max-column-preview",
+        // Doing a replacement forces ripgrep to show the number of remaining
+        // matches. Normally, this happens by default when printing a tty with
+        // colors.
+        "-rxxx",
+        "exhibited|dusted|has to have it",
+    ]);
+
+    let expected = "\
+sherlock:but Doctor Watson xxx taken out for him and [... 1 more match]
+sherlock:and xxx clearly, with a label attached.
+";
+    eqnice!(expected, cmd.stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1138
 rgtest!(f1138_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
     dir.create_dir(".git");

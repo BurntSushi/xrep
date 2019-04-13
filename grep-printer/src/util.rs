@@ -346,7 +346,7 @@ impl Serialize for NiceDuration {
 ///
 /// This stops trimming a prefix as soon as it sees non-whitespace or a line
 /// terminator.
-pub fn trim_ascii_prefix_range(
+pub fn trim_ascii_prefix(
     line_term: LineTerminator,
     slice: &[u8],
     range: Match,
@@ -365,15 +365,4 @@ pub fn trim_ascii_prefix_range(
         })
         .count();
     range.with_start(range.start() + count)
-}
-
-/// Trim prefix ASCII spaces from the given slice and return the corresponding
-/// sub-slice.
-pub fn trim_ascii_prefix(line_term: LineTerminator, slice: &[u8]) -> &[u8] {
-    let range = trim_ascii_prefix_range(
-        line_term,
-        slice,
-        Match::new(0, slice.len()),
-    );
-    &slice[range]
 }

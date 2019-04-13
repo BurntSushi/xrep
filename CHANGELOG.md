@@ -32,6 +32,8 @@ Feature enhancements:
 
 * [FEATURE #855](https://github.com/BurntSushi/ripgrep/issues/855):
   Add `--binary` flag for disabling binary file filtering.
+* [FEATURE #1078](https://github.com/BurntSushi/ripgrep/pull/1078):
+  Add `--max-column-preview` flag for showing a preview of long lines.
 * [FEATURE #1099](https://github.com/BurntSushi/ripgrep/pull/1099):
   Add support for Brotli and Zstd to the `-z/--search-zip` flag.
 * [FEATURE #1138](https://github.com/BurntSushi/ripgrep/pull/1138):

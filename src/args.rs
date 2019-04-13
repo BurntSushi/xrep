@@ -746,6 +746,7 @@ impl ArgMatches {
             .per_match(self.is_present("vimgrep"))
             .replacement(self.replacement())
             .max_columns(self.max_columns()?)
+            .max_column_preview(self.max_column_preview())
             .max_matches(self.max_count()?)
             .column(self.column())
             .byte_offset(self.is_present("byte-offset"))
@@ -1140,6 +1141,12 @@ impl ArgMatches {
     /// If `0` is provided, then this returns `None`.
     fn max_columns(&self) -> Result<Option<u64>> {
         Ok(self.usize_of_nonzero("max-columns")?.map(|n| n as u64))
+    }
+
+    /// Returns true if and only if a preview should be shown for lines that
+    /// exceed the maximum column limit.
+    fn max_column_preview(&self) -> bool {
+        self.is_present("max-column-preview")
     }
 
     /// The maximum number of matches permitted.

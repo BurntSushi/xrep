@@ -148,6 +148,10 @@ _rg() {
     $no"--no-crlf[don't use CRLF as line terminator]"
     '(text)--null-data[use NUL as line terminator]'
 
+    + '(max-column-preview)' # max column preview options
+    '--max-column-preview[show preview for long lines (with -M)]'
+    $no"--no-max-column-preview[don't show preview for long lines (with -M)]"
+
     + '(max-depth)' # Directory-depth options
     '--max-depth=[specify max number of directories to descend]:number of directories'
     '!--maxdepth=:number of directories'
