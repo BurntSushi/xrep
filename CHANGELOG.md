@@ -1,6 +1,17 @@
-0.11.0 (TBD)
+11.0.0 (TBD)
 ============
-TODO.
+ripgrep 11 is a new major version release of ripgrep that contains many bug
+fixes, some performance improvements and a few feature enhancements. Notably,
+ripgrep's user experience for binary file filtering has been improved. See the
+[guide's new section on binary data](GUIDE.md#binary-data) for more details.
+
+This release also marks a change in ripgrep's versioning. Where as the previous
+version was `0.10.0`, this version is `11.0.0`. Moving forward, ripgrep's
+major version will be increased a few times per year. ripgrep will continue to
+be conservative with respect to backwards compatibility, but may occasionally
+introduce breaking changes, which will always be documented in this CHANGELOG.
+See [issue 1172](https://github.com/BurntSushi/ripgrep/issues/1172) for a bit
+more detail on why this versioning change was made.
 
 **BREAKING CHANGES**:
 
