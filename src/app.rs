@@ -547,6 +547,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     // flags are hidden and merely mentioned in the docs of the corresponding
     // "positive" flag.
     flag_after_context(&mut args);
+    flag_auto_hybrid_regex(&mut args);
     flag_before_context(&mut args);
     flag_binary(&mut args);
     flag_block_buffered(&mut args);
@@ -680,6 +681,50 @@ This overrides the --context flag.
         .help(SHORT).long_help(LONG)
         .number()
         .overrides("context");
+    args.push(arg);
+}
+
+fn flag_auto_hybrid_regex(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Dynamically use PCRE2 if necessary.";
+    const LONG: &str = long!("\
+When this flag is used, ripgrep will dynamically choose between supported regex
+engines depending on the features used in a pattern. When ripgrep chooses a
+regex engine, it applies that choice for every regex provided to ripgrep (e.g.,
+via multiple -e/--regexp or -f/--file flags).
+
+As an example of how this flag might behave, ripgrep will attempt to use
+its default finite automata based regex engine whenever the pattern can be
+successfully compiled with that regex engine. If PCRE2 is enabled and if the
+pattern given could not be compiled with the default regex engine, then PCRE2
+will be automatically used for searching. If PCRE2 isn't available, then this
+flag has no effect because there is only one regex engine to choose from.
+
+In the future, ripgrep may adjust its heuristics for how it decides which
+regex engine to use. In general, the heuristics will be limited to a static
+analysis of the patterns, and not to any specific runtime behavior observed
+while searching files.
+
+The primary downside of using this flag is that it may not always be obvious
+which regex engine ripgrep uses, and thus, the match semantics or performance
+profile of ripgrep may subtly and unexpectedly change. However, in many cases,
+all regex engines will agree on what constitutes a match and it can be nice
+to transparently support more advanced regex features like look-around and
+backreferences without explicitly needing to enable them.
+
+This flag can be disabled with --no-auto-hybrid-regex.
+");
+    let arg = RGArg::switch("auto-hybrid-regex")
+        .help(SHORT).long_help(LONG)
+        .overrides("no-auto-hybrid-regex")
+        .overrides("pcre2")
+        .overrides("no-pcre2");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-auto-hybrid-regex")
+        .hidden()
+        .overrides("auto-hybrid-regex")
+        .overrides("pcre2")
+        .overrides("no-pcre2");
     args.push(arg);
 }
 
@@ -1938,12 +1983,16 @@ This flag can be disabled with --no-pcre2.
 ");
     let arg = RGArg::switch("pcre2").short("P")
         .help(SHORT).long_help(LONG)
-        .overrides("no-pcre2");
+        .overrides("no-pcre2")
+        .overrides("auto-hybrid-regex")
+        .overrides("no-auto-hybrid-regex");
     args.push(arg);
 
     let arg = RGArg::switch("no-pcre2")
         .hidden()
-        .overrides("pcre2");
+        .overrides("pcre2")
+        .overrides("auto-hybrid-regex")
+        .overrides("no-auto-hybrid-regex");
     args.push(arg);
 }
 

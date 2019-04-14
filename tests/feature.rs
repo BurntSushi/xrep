@@ -681,6 +681,21 @@ rgtest!(f1138_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("bar\n", cmd.arg("--ignore-file").arg(".fzf-ignore").stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1155
+rgtest!(f1155_auto_hybrid_regex, |dir: Dir, mut cmd: TestCommand| {
+    // No sense in testing a hybrid regex engine with only one engine!
+    if !dir.is_pcre2() {
+        return;
+    }
+
+    dir.create("sherlock", SHERLOCK);
+    cmd.arg("--no-pcre2").arg("--auto-hybrid-regex").arg(r"(?<=the )Sherlock");
+
+    let expected = "\
+sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, cmd.stdout());
+});
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1207
 //

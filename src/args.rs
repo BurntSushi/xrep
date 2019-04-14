@@ -599,6 +599,25 @@ impl ArgMatches {
         if self.is_present("pcre2") {
             let matcher = self.matcher_pcre2(patterns)?;
             Ok(PatternMatcher::PCRE2(matcher))
+        } else if self.is_present("auto-hybrid-regex") {
+            let rust_err = match self.matcher_rust(patterns) {
+                Ok(matcher) => return Ok(PatternMatcher::RustRegex(matcher)),
+                Err(err) => err,
+            };
+            log::debug!(
+                "error building Rust regex in hybrid mode:\n{}", rust_err,
+            );
+            let pcre_err = match self.matcher_pcre2(patterns) {
+                Ok(matcher) => return Ok(PatternMatcher::PCRE2(matcher)),
+                Err(err) => err,
+            };
+            Err(From::from(format!(
+                "regex could not be compiled with either the default regex \
+                 engine or with PCRE2.\n\n\
+                 default regex engine error:\n{}\n{}\n{}\n\n\
+                 PCRE2 regex engine error:\n{}",
+                 "~".repeat(79), rust_err, "~".repeat(79), pcre_err,
+            )))
         } else {
             let matcher = match self.matcher_rust(patterns) {
                 Ok(matcher) => matcher,

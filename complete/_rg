@@ -112,6 +112,10 @@ _rg() {
     '--hidden[search hidden files and directories]'
     $no"--no-hidden[don't search hidden files and directories]"
 
+    + '(hybrid)' # hybrid regex options
+    '--auto-hybrid-regex[dynamically use PCRE2 if necessary]'
+    $no"--no-auto-hybrid-regex[don't dynamically use PCRE2 if necessary]"
+
     + '(ignore)' # Ignore-file options
     "(--no-ignore-global --no-ignore-parent --no-ignore-vcs --no-ignore-dot)--no-ignore[don't respect ignore files]"
     $no'(--ignore-global --ignore-parent --ignore-vcs --ignore-dot)--ignore[respect ignore files]'

@@ -49,6 +49,8 @@ Feature enhancements:
   Add support for Brotli and Zstd to the `-z/--search-zip` flag.
 * [FEATURE #1138](https://github.com/BurntSushi/ripgrep/pull/1138):
   Add `--no-ignore-dot` flag for ignoring `.ignore` files.
+* [FEATURE #1155](https://github.com/BurntSushi/ripgrep/pull/1155):
+  Add `--auto-hybrid-regex` flag for automatically falling back to PCRE2.
 * [FEATURE #1159](https://github.com/BurntSushi/ripgrep/pull/1159):
   ripgrep's exit status logic should now match GNU grep. See updated man page.
 * [FEATURE #1170](https://github.com/BurntSushi/ripgrep/pull/1170):
