@@ -189,7 +189,7 @@ name = "grep-pcre2"
 version = "0.1.2"
 dependencies = [
  "grep-matcher 0.1.1",
- "pcre2 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pcre2 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -307,18 +307,18 @@ dependencies = [
 
 [[package]]
 name = "pcre2"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.51 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "pcre2-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pcre2-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thread_local 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "pcre2-sys"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cc 1.0.34 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -717,8 +717,8 @@ dependencies = [
 "checksum memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
 "checksum num_cpus 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1a23f0ed30a54abaa0c7e83b1d2d87ada7c3c23078d1d87815af3e3b6385fbba"
 "checksum packed_simd 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a85ea9fc0d4ac0deb6fe7911d38786b32fc11119afd9e9d38b84ff691ce64220"
-"checksum pcre2 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3ae0a2682105ec5ca0ee5910bbc7e926386d348a05166348f74007942983c319"
-"checksum pcre2-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a9027f9474e4e13d3b965538aafcaebe48c803488ad76b3c97ef061a8324695f"
+"checksum pcre2 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a08c8195dd1d8a2a1b5e2af94bf0c4c3c195c2359930442a016bf123196f7155"
+"checksum pcre2-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1e0092a7eae1c569cf7dbec61eef956516df93eb4afda8f600ccb16980aca849"
 "checksum pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
 "checksum proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)" = "4d317f9caece796be1980837fd5cb3dfec5613ebdb04ad0956deea83ce168915"
 "checksum quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)" = "cdd8e04bd9c52e0342b406469d494fcb033be4bdbe5c606016defbb1681411e1"
