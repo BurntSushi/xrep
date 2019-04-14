@@ -2473,7 +2473,7 @@ ripgrep is explicitly instructed to search one file or stdin.
 
 This flag overrides --with-filename.
 ");
-    let arg = RGArg::switch("no-filename")
+    let arg = RGArg::switch("no-filename").short("I")
         .help(NO_SHORT).long_help(NO_LONG)
         .overrides("with-filename");
     args.push(arg);

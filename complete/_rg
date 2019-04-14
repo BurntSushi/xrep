@@ -85,7 +85,7 @@ _rg() {
 
     + '(file-name)' # File-name options
     {-H,--with-filename}'[show file name for matches]'
-    "--no-filename[don't show file name for matches]"
+    {-I,--no-filename}"[don't show file name for matches]"
 
     + '(file-system)' # File system options
     "--one-file-system[don't descend into directories on other file systems]"
