@@ -53,6 +53,8 @@ Feature enhancements:
   ripgrep's exit status logic should now match GNU grep. See updated man page.
 * [FEATURE #1170](https://github.com/BurntSushi/ripgrep/pull/1170):
   Add `--ignore-file-case-insensitive` for case insensitive .ignore globs.
+* FEATURE:
+  Add `--pcre2-version` for querying showing PCRE2 version information.
 
 Bug fixes:
 

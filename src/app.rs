@@ -605,6 +605,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_path_separator(&mut args);
     flag_passthru(&mut args);
     flag_pcre2(&mut args);
+    flag_pcre2_version(&mut args);
     flag_pre(&mut args);
     flag_pre_glob(&mut args);
     flag_pretty(&mut args);
@@ -651,7 +652,7 @@ will be provided. Namely, the following is equivalent to the above:
     let arg = RGArg::positional("pattern", "PATTERN")
         .help(SHORT).long_help(LONG)
         .required_unless(&[
-            "file", "files", "regexp", "type-list",
+            "file", "files", "regexp", "type-list", "pcre2-version",
         ]);
     args.push(arg);
 }
@@ -1943,6 +1944,18 @@ This flag can be disabled with --no-pcre2.
     let arg = RGArg::switch("no-pcre2")
         .hidden()
         .overrides("pcre2");
+    args.push(arg);
+}
+
+fn flag_pcre2_version(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Print the version of PCRE2 that ripgrep uses.";
+    const LONG: &str = long!("\
+When this flag is present, ripgrep will print the version of PCRE2 in use,
+along with other information, and then exit. If PCRE2 is not available, then
+ripgrep will print an error message and exit with an error code.
+");
+    let arg = RGArg::switch("pcre2-version")
+        .help(SHORT).long_help(LONG);
     args.push(arg);
 }
 

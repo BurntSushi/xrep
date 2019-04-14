@@ -73,6 +73,8 @@ pub enum Command {
     /// List all file type definitions configured, including the default file
     /// types and any additional file types added to the command line.
     Types,
+    /// Print the version of PCRE2 in use.
+    PCRE2Version,
 }
 
 impl Command {
@@ -82,7 +84,11 @@ impl Command {
 
         match *self {
             Search | SearchParallel => true,
-            SearchNever | Files | FilesParallel | Types => false,
+            | SearchNever
+            | Files
+            | FilesParallel
+            | Types
+            | PCRE2Version => false,
         }
     }
 }
@@ -235,7 +241,9 @@ impl Args {
         let threads = self.matches().threads()?;
         let one_thread = is_one_search || threads == 1;
 
-        Ok(if self.matches().is_present("type-list") {
+        Ok(if self.matches().is_present("pcre2-version") {
+            Command::PCRE2Version
+        } else if self.matches().is_present("type-list") {
             Command::Types
         } else if self.matches().is_present("files") {
             if one_thread {
@@ -685,8 +693,8 @@ impl ArgMatches {
             .word(self.is_present("word-regexp"));
         // For whatever reason, the JIT craps out during regex compilation with
         // a "no more memory" error on 32 bit systems. So don't use it there.
-        if !cfg!(target_pointer_width = "32") {
             builder.jit_if_available(true);
+        if cfg!(target_pointer_width = "64") {
         }
         if self.pcre2_unicode() {
             builder.utf(true).ucp(true);
@@ -1278,7 +1286,8 @@ impl ArgMatches {
             !cli::is_readable_stdin()
             || (self.is_present("file") && file_is_stdin)
             || self.is_present("files")
-            || self.is_present("type-list");
+            || self.is_present("type-list")
+            || self.is_present("pcre2-version");
         if search_cwd {
             Path::new("./").to_path_buf()
         } else {

@@ -43,6 +43,7 @@ _rg() {
     + '(exclusive)' # Misc. fully exclusive options
     '(: * -)'{-h,--help}'[display help information]'
     '(: * -)'{-V,--version}'[display version information]'
+    '(: * -)'--pcre2-version'[print the version of PCRE2 used by ripgrep, if available]'
 
     + '(buffered)' # buffering options
     '--line-buffered[force line buffering]'
