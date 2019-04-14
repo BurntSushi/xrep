@@ -693,8 +693,13 @@ impl ArgMatches {
             .word(self.is_present("word-regexp"));
         // For whatever reason, the JIT craps out during regex compilation with
         // a "no more memory" error on 32 bit systems. So don't use it there.
-            builder.jit_if_available(true);
         if cfg!(target_pointer_width = "64") {
+            builder
+                .jit_if_available(true)
+                // The PCRE2 docs say that 32KB is the default, and that 1MB
+                // should be big enough for anything. But let's crank it to
+                // 10MB.
+                .max_jit_stack_size(Some(10 * (1<<20)));
         }
         if self.pcre2_unicode() {
             builder.utf(true).ucp(true);

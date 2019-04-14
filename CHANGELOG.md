@@ -91,6 +91,7 @@ Bug fixes:
   Fix bug where `-F`/`-x` weren't applied to patterns given via `-f`.
 * [BUG #1189](https://github.com/BurntSushi/ripgrep/issues/1189):
   Document cases where ripgrep may use a lot of memory.
+* BUG: Increase the default stack size for PCRE2's JIT.
 
 
 0.10.0 (2018-09-07)
