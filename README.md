@@ -340,7 +340,7 @@ If you're a **NetBSD** user, then you can install ripgrep from
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 
-* Note that the minimum supported version of Rust for ripgrep is **1.32.0**,
+* Note that the minimum supported version of Rust for ripgrep is **1.34.0**,
   although ripgrep may work with older versions.
 * Note that the binary may be bigger than expected because it contains debug
   symbols. This is intentional. To remove debug symbols and therefore reduce
@@ -350,9 +350,6 @@ If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 $ cargo install ripgrep
 ```
 
-When compiling with Rust 1.27 or newer, this will automatically enable SIMD
-optimizations for search.
-
 ripgrep isn't currently in any other package repositories.
 [I'd like to change that](https://github.com/BurntSushi/ripgrep/issues/10).
 
@@ -361,7 +358,7 @@ ripgrep isn't currently in any other package repositories.
 
 ripgrep is written in Rust, so you'll need to grab a
 [Rust installation](https://www.rust-lang.org/) in order to compile it.
-ripgrep compiles with Rust 1.32.0 (stable) or newer. In general, ripgrep tracks
+ripgrep compiles with Rust 1.34.0 (stable) or newer. In general, ripgrep tracks
 the latest stable release of the Rust compiler.
 
 To build ripgrep:
