@@ -227,6 +227,27 @@ impl RegexMatcherBuilder {
         self.builder.jit_if_available(yes);
         self
     }
+
+    /// Set the maximum size of PCRE2's JIT stack, in bytes. If the JIT is
+    /// not enabled, then this has no effect.
+    ///
+    /// When `None` is given, no custom JIT stack will be created, and instead,
+    /// the default JIT stack is used. When the default is used, its maximum
+    /// size is 32 KB.
+    ///
+    /// When this is set, then a new JIT stack will be created with the given
+    /// maximum size as its limit.
+    ///
+    /// Increasing the stack size can be useful for larger regular expressions.
+    ///
+    /// By default, this is set to `None`.
+    pub fn max_jit_stack_size(
+        &mut self,
+        bytes: Option<usize>,
+    ) -> &mut RegexMatcherBuilder {
+        self.builder.max_jit_stack_size(bytes);
+        self
+    }
 }
 
 /// An implementation of the `Matcher` trait using PCRE2.

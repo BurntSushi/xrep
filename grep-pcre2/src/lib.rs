@@ -10,6 +10,7 @@ extern crate pcre2;
 
 pub use error::{Error, ErrorKind};
 pub use matcher::{RegexCaptures, RegexMatcher, RegexMatcherBuilder};
+pub use pcre2::{is_jit_available, version};
 
 mod error;
 mod matcher;
