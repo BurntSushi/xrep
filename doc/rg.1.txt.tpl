@@ -192,6 +192,21 @@ file that is simultaneously truncated. This behavior can be avoided by passing
 the *--no-mmap* flag which will forcefully disable the use of memory maps in
 all cases.
 
+ripgrep may use a large amount of memory depending on a few factors. Firstly,
+if ripgrep uses parallelism for search (the default), then the entire output
+for each individual file is buffered into memory in order to prevent
+interleaving matches in the output. To avoid this, you can disable parallelism
+with the *-j1* flag. Secondly, ripgrep always needs to have at least a single
+line in memory in order to execute a search. A file with a very long line can
+thus cause ripgrep to use a lot of memory. Generally, this only occurs when
+searching binary data with the *-a* flag enabled. (When the *-a* flag isn't
+enabled, ripgrep will replace all NUL bytes with line terminators, which
+typically prevents exorbitant memory usage.) Thirdly, when ripgrep searches
+a large file using a memory map, the process will report its resident memory
+usage as the size of the file. However, this does not mean ripgrep actually
+needed to use that much memory; the operating system will generally handle this
+for you.
+
 
 VERSION
 -------

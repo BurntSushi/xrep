@@ -55,14 +55,14 @@ Bug fixes:
   ripgrep no longer hangs when searching `/proc` with a zombie process present.
 * [BUG #1091](https://github.com/BurntSushi/ripgrep/issues/1091):
   Add note about inverted flags to the man page.
+* [BUG #1093](https://github.com/BurntSushi/ripgrep/pull/1093):
+  Fix handling of literal slashes in gitignore patterns.
 * [BUG #1095](https://github.com/BurntSushi/ripgrep/issues/1095):
   Fix corner cases involving the `--crlf` flag.
 * [BUG #1103](https://github.com/BurntSushi/ripgrep/issues/1103):
   Clarify what `--encoding auto` does.
 * [BUG #1106](https://github.com/BurntSushi/ripgrep/issues/1106):
   `--files-with-matches` and `--files-without-match` work with one file.
-* [BUG #1093](https://github.com/BurntSushi/ripgrep/pull/1093):
-  Fix handling of literal slashes in gitignore patterns.
 * [BUG #1121](https://github.com/BurntSushi/ripgrep/issues/1121):
   Fix bug that was triggering Windows antimalware when using the --files flag.
 * [BUG #1125](https://github.com/BurntSushi/ripgrep/issues/1125),
@@ -76,6 +76,8 @@ Bug fixes:
   Fix handling of repeated `**` patterns in gitignore files.
 * [BUG #1176](https://github.com/BurntSushi/ripgrep/issues/1176):
   Fix bug where `-F`/`-x` weren't applied to patterns given via `-f`.
+* [BUG #1189](https://github.com/BurntSushi/ripgrep/issues/1189):
+  Document cases where ripgrep may use a lot of memory.
 
 
 0.10.0 (2018-09-07)
