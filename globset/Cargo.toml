@@ -26,7 +26,7 @@ log = "0.4.5"
 regex = "1.1.5"
 
 [dev-dependencies]
-glob = "0.2.11"
+glob = "0.3.0"
 
 [features]
 simd-accel = []
