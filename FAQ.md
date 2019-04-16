@@ -935,7 +935,7 @@ for the previous section apply.
 
 * Are you writing portable shell scripts intended to work in a variety of
   environments? Great, probably not a good idea to use ripgrep! ripgrep is has
-  nowhere near the ubquity of grep, so if you do use ripgrep, you might need
+  nowhere near the ubiquity of grep, so if you do use ripgrep, you might need
   to futz with the installation process more than you would with grep.
 * Do you care about POSIX compatibility? If so, then you can't use ripgrep
   because it never was, isn't and never will be POSIX compatible.
