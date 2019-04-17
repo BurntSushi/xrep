@@ -8,6 +8,10 @@ set -ex
 
 # Generate artifacts for release
 mk_artifacts() {
+    if ! grep -q '^codegen-units.*=.*' Cargo.toml 2>/dev/null; then
+       sed  -i '/\[profile.release\]/a codegen-units = 1' Cargo.toml
+    fi
+    
     if is_arm; then
         cargo build --target "$TARGET" --release
     else
