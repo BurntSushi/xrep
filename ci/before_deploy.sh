@@ -8,6 +8,10 @@ set -ex
 
 # Generate artifacts for release
 mk_artifacts() {
+    if ! grep -q '^lto.*=.*true' Cargo.toml 2>/dev/null; then
+       sed  -i '/\[profile.release\]/a lto = true' Cargo.toml
+    fi
+
     if is_arm; then
         cargo build --target "$TARGET" --release
     else
