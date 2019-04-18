@@ -9,7 +9,7 @@ set -ex
 # Generate artifacts for release
 mk_artifacts() {
     if ! grep -q '^lto.*=.*true' Cargo.toml 2>/dev/null; then
-       sed  -i '/\[profile.release\]/a lto = true' Cargo.toml
+       sed -i.bak $'/\\[profile\.release\\]/a\\\nlto = true\n' Cargo.toml
     fi
 
     if is_arm; then
