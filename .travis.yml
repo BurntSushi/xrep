@@ -32,58 +32,58 @@ matrix:
     - os: linux
       rust: nightly
       env: TARGET=x86_64-unknown-linux-musl
-    - os: osx
-      rust: nightly
-      # XML_CATALOG_FILES is apparently necessary for asciidoc on macOS.
-      env: TARGET=x86_64-apple-darwin XML_CATALOG_FILES=/usr/local/etc/xml/catalog
-    - os: linux
-      rust: nightly
-      env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
-      addons:
-        apt:
-          packages:
-          - gcc-4.8-arm-linux-gnueabihf
-          - binutils-arm-linux-gnueabihf
-          - libc6-armhf-cross
-          - libc6-dev-armhf-cross
-          # For generating man page.
-          - libxslt1-dev
-          - asciidoc
-          - docbook-xsl
-          - xsltproc
-          - libxml2-utils
-    # Beta channel. We enable these to make sure there are no regressions in
-    # Rust beta releases.
-    - os: linux
-      rust: beta
-      env: TARGET=x86_64-unknown-linux-musl
-    - os: linux
-      rust: beta
-      env: TARGET=x86_64-unknown-linux-gnu
-    # Minimum Rust supported channel. We enable these to make sure ripgrep
-    # continues to work on the advertised minimum Rust version.
-    - os: linux
-      rust: 1.34.0
-      env: TARGET=x86_64-unknown-linux-gnu
-    - os: linux
-      rust: 1.34.0
-      env: TARGET=x86_64-unknown-linux-musl
-    - os: linux
-      rust: 1.34.0
-      env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
-      addons:
-        apt:
-          packages:
-          - gcc-4.8-arm-linux-gnueabihf
-          - binutils-arm-linux-gnueabihf
-          - libc6-armhf-cross
-          - libc6-dev-armhf-cross
-          # For generating man page.
-          - libxslt1-dev
-          - asciidoc
-          - docbook-xsl
-          - xsltproc
-          - libxml2-utils
+    # - os: osx
+    #   rust: nightly
+    #   # XML_CATALOG_FILES is apparently necessary for asciidoc on macOS.
+    #   env: TARGET=x86_64-apple-darwin XML_CATALOG_FILES=/usr/local/etc/xml/catalog
+    # - os: linux
+    #   rust: nightly
+    #   env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
+    #   addons:
+    #     apt:
+    #       packages:
+    #       - gcc-4.8-arm-linux-gnueabihf
+    #       - binutils-arm-linux-gnueabihf
+    #       - libc6-armhf-cross
+    #       - libc6-dev-armhf-cross
+    #       # For generating man page.
+    #       - libxslt1-dev
+    #       - asciidoc
+    #       - docbook-xsl
+    #       - xsltproc
+    #       - libxml2-utils
+    # # Beta channel. We enable these to make sure there are no regressions in
+    # # Rust beta releases.
+    # - os: linux
+    #   rust: beta
+    #   env: TARGET=x86_64-unknown-linux-musl
+    # - os: linux
+    #   rust: beta
+    #   env: TARGET=x86_64-unknown-linux-gnu
+    # # Minimum Rust supported channel. We enable these to make sure ripgrep
+    # # continues to work on the advertised minimum Rust version.
+    # - os: linux
+    #   rust: 1.34.0
+    #   env: TARGET=x86_64-unknown-linux-gnu
+    # - os: linux
+    #   rust: 1.34.0
+    #   env: TARGET=x86_64-unknown-linux-musl
+    # - os: linux
+    #   rust: 1.34.0
+    #   env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
+    #   addons:
+    #     apt:
+    #       packages:
+    #       - gcc-4.8-arm-linux-gnueabihf
+    #       - binutils-arm-linux-gnueabihf
+    #       - libc6-armhf-cross
+    #       - libc6-dev-armhf-cross
+    #       # For generating man page.
+    #       - libxslt1-dev
+    #       - asciidoc
+    #       - docbook-xsl
+    #       - xsltproc
+    #       - libxml2-utils
 install: ci/install.sh
 script: ci/script.sh
 before_deploy: ci/before_deploy.sh
