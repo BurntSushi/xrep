@@ -55,9 +55,23 @@ gcc_prefix() {
     esac
 }
 
+is_musl() {
+    case "$TARGET" in
+        *-musl) return 0 ;;
+        *)      return 1 ;;
+    esac
+}
+
 is_x86() {
     case "$(architecture)" in
       amd64|i386) return 0 ;;
+      *)          return 1 ;;
+    esac
+}
+
+is_x86_64() {
+    case "$(architecture)" in
+      amd64) return 0 ;;
       *)          return 1 ;;
     esac
 }
@@ -81,4 +95,13 @@ is_osx() {
         osx) return 0 ;;
         *)   return 1 ;;
     esac
+}
+
+builder() {
+    if is_musl && is_x86_64; then
+        cargo install cross
+        echo "cross"
+    else
+        echo "cargo"
+    fi
 }

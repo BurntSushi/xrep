@@ -61,7 +61,7 @@ version = "2.32.0"
 default-features = false
 features = ["suggestions"]
 
-[target.'cfg(target_env = "musl")'.dependencies.jemallocator]
+[target.'cfg(all(target_env = "musl", target_pointer_width = "64"))'.dependencies.jemallocator]
 version = "0.3.0"
 
 [build-dependencies]

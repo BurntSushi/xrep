@@ -7,11 +7,13 @@ set -ex
 . "$(dirname $0)/utils.sh"
 
 main() {
+    CARGO="$(builder)"
+
     # Test a normal debug build.
     if is_arm; then
-        cargo build --target "$TARGET" --verbose
+        "$CARGO" build --target "$TARGET" --verbose
     else
-        cargo build --target "$TARGET" --verbose --all --features 'pcre2'
+        "$CARGO" build --target "$TARGET" --verbose --all --features 'pcre2'
     fi
 
     # Show the output of the most recent build.rs stderr.
@@ -44,7 +46,7 @@ main() {
     "$(dirname "${0}")/test_complete.sh"
 
     # Run tests for ripgrep and all sub-crates.
-    cargo test --target "$TARGET" --verbose --all --features 'pcre2'
+    "$CARGO" test --target "$TARGET" --verbose --all --features 'pcre2'
 }
 
 main
