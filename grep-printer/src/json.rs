@@ -516,8 +516,7 @@ impl<W: io::Write> JSON<W> {
         } else {
             json::to_writer(&mut self.wtr, message)?;
         }
-        self.wtr.write(&[b'\n'])?;
-        Ok(())
+        self.wtr.write_all(&[b'\n'])
     }
 }
 
