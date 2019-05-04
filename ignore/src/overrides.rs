@@ -89,11 +89,11 @@ impl Override {
     /// given) is stripped. If there is no common suffix/prefix overlap, then
     /// `path` is assumed to reside in the same directory as the root path for
     /// this set of overrides.
-    pub fn matched<'a, P: AsRef<Path>>(
-        &'a self,
+    pub fn matched<P: AsRef<Path>>(
+        &self,
         path: P,
         is_dir: bool,
-    ) -> Match<Glob<'a>> {
+    ) -> Match<Glob<'_>> {
         if self.is_empty() {
             return Match::None;
         }

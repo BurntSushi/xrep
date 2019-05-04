@@ -323,11 +323,11 @@ impl Ignore {
     /// ignored or not.
     ///
     /// The match contains information about its origin.
-    fn matched<'a, P: AsRef<Path>>(
-        &'a self,
+    fn matched<P: AsRef<Path>>(
+        &self,
         path: P,
         is_dir: bool,
-    ) -> Match<IgnoreMatch<'a>> {
+    ) -> Match<IgnoreMatch<'_>> {
         // We need to be careful with our path. If it has a leading ./, then
         // strip it because it causes nothing but trouble.
         let mut path = path.as_ref();

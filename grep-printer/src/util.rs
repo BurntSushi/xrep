@@ -91,7 +91,7 @@ impl<M: Matcher> Replacer<M> {
     /// all replacement occurrences within the returned replacement buffer.
     ///
     /// If no replacement has occurred then `None` is returned.
-    pub fn replacement<'a>(&'a self) -> Option<(&'a [u8], &'a [Match])> {
+    pub fn replacement(&self) -> Option<(&[u8], &[Match])> {
         match self.space {
             None => None,
             Some(ref space) => {

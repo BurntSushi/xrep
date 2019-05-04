@@ -492,11 +492,11 @@ impl Types {
     /// The path is considered ignored if it matches a negated file type.
     /// If at least one file type is selected and `path` doesn't match, then
     /// the path is also considered ignored.
-    pub fn matched<'a, P: AsRef<Path>>(
-        &'a self,
+    pub fn matched<P: AsRef<Path>>(
+        &self,
         path: P,
         is_dir: bool,
-    ) -> Match<Glob<'a>> {
+    ) -> Match<Glob<'_>> {
         // File types don't apply to directories, and we can't do anything
         // if our glob set is empty.
         if is_dir || self.set.is_empty() {

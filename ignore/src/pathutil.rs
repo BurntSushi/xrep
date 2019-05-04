@@ -110,9 +110,9 @@ pub fn is_file_name<P: AsRef<Path>>(path: P) -> bool {
 /// If the path terminates in ., .., or consists solely of a root of prefix,
 /// file_name will return None.
 #[cfg(unix)]
-pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
-    path: &'a P,
-) -> Option<&'a OsStr> {
+pub fn file_name<P: AsRef<Path> + ?Sized>(
+    path: &P,
+) -> Option<&OsStr> {
     use std::os::unix::ffi::OsStrExt;
     use memchr::memrchr;
 
