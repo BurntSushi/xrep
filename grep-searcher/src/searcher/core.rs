@@ -137,8 +137,9 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
                     self.config.line_term.as_byte(),
                     self.config.max_context(),
                 );
-                let consumed = cmp::max(context_start, self.last_line_visited);
-                consumed
+
+                //consumed
+                cmp::max(context_start, self.last_line_visited)
             };
         self.count_lines(buf, consumed);
         self.absolute_byte_offset += consumed as u64;
