@@ -778,7 +778,8 @@ impl<'a> Parser<'a> {
         if self.stack.len() > 1 {
             return Err(self.error(ErrorKind::NestedAlternates));
         }
-        Ok(self.stack.push(Tokens::default()))
+        self.stack.push(Tokens::default());
+        Ok(())
     }
 
     fn pop_alternate(&mut self) -> Result<(), Error> {
@@ -791,7 +792,8 @@ impl<'a> Parser<'a> {
 
     fn push_token(&mut self, tok: Token) -> Result<(), Error> {
         if let Some(ref mut pat) = self.stack.last_mut() {
-            return Ok(pat.push(tok));
+            pat.push(tok);
+            return Ok(());
         }
         Err(self.error(ErrorKind::UnopenedAlternates))
     }
@@ -817,7 +819,8 @@ impl<'a> Parser<'a> {
         if self.stack.len() <= 1 {
             self.push_token(Token::Literal(','))
         } else {
-            Ok(self.stack.push(Tokens::default()))
+            self.stack.push(Tokens::default());
+            Ok(())
         }
     }
 
