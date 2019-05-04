@@ -441,7 +441,7 @@ impl GitignoreBuilder {
     ) -> Result<&mut GitignoreBuilder, Error> {
         #![allow(deprecated)]
 
-        if line.starts_with("#") {
+        if line.starts_with('#') {
             return Ok(self);
         }
         if !line.ends_with("\\ ") {
@@ -462,11 +462,11 @@ impl GitignoreBuilder {
             line = &line[1..];
             is_absolute = line.chars().nth(0) == Some('/');
         } else {
-            if line.starts_with("!") {
+            if line.starts_with('!') {
                 glob.is_whitelist = true;
                 line = &line[1..];
             }
-            if line.starts_with("/") {
+            if line.starts_with('/') {
                 // `man gitignore` says that if a glob starts with a slash,
                 // then the glob can only match the beginning of a path
                 // (relative to the location of gitignore). We achieve this by
