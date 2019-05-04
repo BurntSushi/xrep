@@ -288,8 +288,8 @@ impl SpecValue {
     fn merge_into(&self, cspec: &mut ColorSpec) {
         match *self {
             SpecValue::None => cspec.clear(),
-            SpecValue::Fg(ref color) => { cspec.set_fg(Some(color.clone())); }
-            SpecValue::Bg(ref color) => { cspec.set_bg(Some(color.clone())); }
+            SpecValue::Fg(ref color) => { cspec.set_fg(Some(*color)); }
+            SpecValue::Bg(ref color) => { cspec.set_bg(Some(*color)); }
             SpecValue::Style(ref style) => {
                 match *style {
                     Style::Bold => { cspec.set_bold(true); }
