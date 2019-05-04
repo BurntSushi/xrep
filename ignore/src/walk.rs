@@ -306,7 +306,7 @@ impl DirEntryRaw {
             fs::metadata(&self.path)
         } else {
             fs::symlink_metadata(&self.path)
-        }.map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
+        }.map_err(|err| Error::Io(err).with_path(&self.path))
     }
 
     fn file_type(&self) -> FileType {
@@ -331,7 +331,7 @@ impl DirEntryRaw {
         ent: &fs::DirEntry,
     ) -> Result<DirEntryRaw, Error> {
         let ty = ent.file_type().map_err(|err| {
-            let err = Error::Io(io::Error::from(err)).with_path(ent.path());
+            let err = Error::Io(err).with_path(ent.path());
             Error::WithDepth {
                 depth,
                 err: Box::new(err),
