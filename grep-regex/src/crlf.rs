@@ -79,7 +79,7 @@ impl Matcher for CRLFMatcher {
         let r = self.regex.captures_read_at(
             caps.locations_mut(), haystack, at,
         );
-        if !r.is_some() {
+        if r.is_none() {
             return Ok(false);
         }
 

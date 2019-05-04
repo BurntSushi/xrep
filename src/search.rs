@@ -377,7 +377,7 @@ impl<W: WriteColor> SearchWorker<W> {
     /// Returns true if and only if the given file path should be run through
     /// the preprocessor.
     fn should_preprocess(&self, path: &Path) -> bool {
-        if !self.config.preprocessor.is_some() {
+        if self.config.preprocessor.is_none() {
             return false;
         }
         if self.config.preprocessor_globs.is_empty() {
