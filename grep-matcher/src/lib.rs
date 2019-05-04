@@ -338,7 +338,7 @@ impl ByteSet {
 
     /// Add an inclusive range of bytes.
     pub fn add_all(&mut self, start: u8, end: u8) {
-        for b in (start as u64..end as u64 + 1).map(|b| b as u8) {
+        for b in (start as u64..=end as u64).map(|b| b as u8) {
             self.add(b);
         }
     }
@@ -354,7 +354,7 @@ impl ByteSet {
 
     /// Remove an inclusive range of bytes.
     pub fn remove_all(&mut self, start: u8, end: u8) {
-        for b in (start as u64..end as u64 + 1).map(|b| b as u8) {
+        for b in (start as u64..=end as u64).map(|b| b as u8) {
             self.remove(b);
         }
     }
