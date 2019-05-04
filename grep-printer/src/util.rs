@@ -126,7 +126,7 @@ impl<M: Matcher> Replacer<M> {
                 .new_captures()
                 .map_err(io::Error::error_message)?;
             self.space = Some(Space {
-                caps: caps,
+                caps,
                 dst: vec![],
                 matches: vec![],
             });
@@ -180,12 +180,12 @@ impl<'a> Sunk<'a> {
             (sunk.bytes(), original_matches)
         });
         Sunk {
-            bytes: bytes,
+            bytes,
             absolute_byte_offset: sunk.absolute_byte_offset(),
             line_number: sunk.line_number(),
             context_kind: None,
-            matches: matches,
-            original_matches: original_matches,
+            matches,
+            original_matches,
         }
     }
 
@@ -199,12 +199,12 @@ impl<'a> Sunk<'a> {
             (sunk.bytes(), original_matches)
         });
         Sunk {
-            bytes: bytes,
+            bytes,
             absolute_byte_offset: sunk.absolute_byte_offset(),
             line_number: sunk.line_number(),
             context_kind: Some(sunk.kind()),
-            matches: matches,
-            original_matches: original_matches,
+            matches,
+            original_matches,
         }
     }
 

@@ -502,9 +502,9 @@ impl<'a> Candidate<'a> {
         let basename = file_name(&path).unwrap_or(Cow::Borrowed(B("")));
         let ext = file_name_ext(&basename).unwrap_or(Cow::Borrowed(B("")));
         Candidate {
-            path: path,
-            basename: basename,
-            ext: ext,
+            path,
+            basename,
+            ext,
         }
     }
 

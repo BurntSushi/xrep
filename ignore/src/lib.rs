@@ -137,13 +137,13 @@ impl Clone for Error {
         match *self {
             Error::Partial(ref errs) => Error::Partial(errs.clone()),
             Error::WithLineNumber { line, ref err } => {
-                Error::WithLineNumber { line: line, err: err.clone() }
+                Error::WithLineNumber { line, err: err.clone() }
             }
             Error::WithPath { ref path, ref err } => {
                 Error::WithPath { path: path.clone(), err: err.clone() }
             }
             Error::WithDepth { depth, ref err } => {
-                Error::WithDepth { depth: depth, err: err.clone() }
+                Error::WithDepth { depth, err: err.clone() }
             }
             Error::Loop { ref ancestor, ref child } => {
                 Error::Loop {
@@ -222,7 +222,7 @@ impl Error {
     /// Turn an error into a tagged error with the given depth.
     fn with_depth(self, depth: usize) -> Error {
         Error::WithDepth {
-            depth: depth,
+            depth,
             err: Box::new(self),
         }
     }
@@ -245,7 +245,7 @@ impl Error {
         let depth = err.depth();
         if let (Some(anc), Some(child)) = (err.loop_ancestor(), err.path()) {
             return Error::WithDepth {
-                depth: depth,
+                depth,
                 err: Box::new(Error::Loop {
                     ancestor: anc.to_path_buf(),
                     child: child.to_path_buf(),
@@ -256,7 +256,7 @@ impl Error {
         let mut ig_err = Error::Io(io::Error::from(err));
         if let Some(path) = path {
             ig_err = Error::WithPath {
-                path: path,
+                path,
                 err: Box::new(ig_err),
             };
         }

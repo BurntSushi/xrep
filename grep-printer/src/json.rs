@@ -471,7 +471,7 @@ impl<W: io::Write> JSON<W> {
         matcher: M,
     ) -> JSONSink<'static, 's, M, W> {
         JSONSink {
-            matcher: matcher,
+            matcher,
             json: self,
             path: None,
             start_time: Instant::now(),
@@ -496,7 +496,7 @@ impl<W: io::Write> JSON<W> {
           P: ?Sized + AsRef<Path>,
     {
         JSONSink {
-            matcher: matcher,
+            matcher,
             json: self,
             path: Some(path.as_ref()),
             start_time: Instant::now(),

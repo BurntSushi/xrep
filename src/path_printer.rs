@@ -39,7 +39,7 @@ impl PathPrinterBuilder {
     pub fn build<W: WriteColor>(&self, wtr: W) -> PathPrinter<W> {
         PathPrinter {
             config: self.config.clone(),
-            wtr: wtr,
+            wtr,
         }
     }
 

@@ -495,7 +495,7 @@ impl<W: WriteColor> Standard<W> {
             };
         let needs_match_granularity = self.needs_match_granularity();
         StandardSink {
-            matcher: matcher,
+            matcher,
             standard: self,
             replacer: Replacer::new(),
             path: None,
@@ -503,8 +503,8 @@ impl<W: WriteColor> Standard<W> {
             match_count: 0,
             after_context_remaining: 0,
             binary_byte_offset: None,
-            stats: stats,
-            needs_match_granularity: needs_match_granularity,
+            stats,
+            needs_match_granularity,
         }
     }
 
@@ -533,7 +533,7 @@ impl<W: WriteColor> Standard<W> {
             path.as_ref(), self.config.separator_path);
         let needs_match_granularity = self.needs_match_granularity();
         StandardSink {
-            matcher: matcher,
+            matcher,
             standard: self,
             replacer: Replacer::new(),
             path: Some(ppath),
@@ -541,8 +541,8 @@ impl<W: WriteColor> Standard<W> {
             match_count: 0,
             after_context_remaining: 0,
             binary_byte_offset: None,
-            stats: stats,
-            needs_match_granularity: needs_match_granularity,
+            stats,
+            needs_match_granularity,
         }
     }
 
@@ -868,8 +868,8 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         sink: &'a StandardSink<M, W>,
     ) -> StandardImpl<'a, M, W> {
         StandardImpl {
-            searcher: searcher,
-            sink: sink,
+            searcher,
+            sink,
             sunk: Sunk::empty(),
             in_color_match: Cell::new(false),
         }
@@ -888,7 +888,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             sink.replacer.replacement(),
         );
         StandardImpl {
-            sunk: sunk,
+            sunk,
             ..StandardImpl::new(searcher, sink)
         }
     }
@@ -906,7 +906,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             sink.replacer.replacement(),
         );
         StandardImpl {
-            sunk: sunk,
+            sunk,
             ..StandardImpl::new(searcher, sink)
         }
     }

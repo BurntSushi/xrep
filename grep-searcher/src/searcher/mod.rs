@@ -332,8 +332,8 @@ impl SearcherBuilder {
             .bom_sniffing(self.config.bom_sniffing);
 
         Searcher {
-            config: config,
-            decode_builder: decode_builder,
+            config,
+            decode_builder,
             decode_buffer: RefCell::new(vec![0; 8 * (1<<10)]),
             line_buffer: RefCell::new(self.config.line_buffer()),
             multi_line_buffer: RefCell::new(vec![]),

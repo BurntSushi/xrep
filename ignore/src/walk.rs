@@ -113,14 +113,14 @@ impl DirEntry {
     fn new_walkdir(dent: walkdir::DirEntry, err: Option<Error>) -> DirEntry {
         DirEntry {
             dent: DirEntryInner::Walkdir(dent),
-            err: err,
+            err,
         }
     }
 
     fn new_raw(dent: DirEntryRaw, err: Option<Error>) -> DirEntry {
         DirEntry {
             dent: DirEntryInner::Raw(dent),
-            err: err,
+            err,
         }
     }
 }
@@ -333,7 +333,7 @@ impl DirEntryRaw {
         let ty = ent.file_type().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
             Error::WithDepth {
-                depth: depth,
+                depth,
                 err: Box::new(err),
             }
         })?;
@@ -349,15 +349,15 @@ impl DirEntryRaw {
         let md = ent.metadata().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
             Error::WithDepth {
-                depth: depth,
+                depth,
                 err: Box::new(err),
             }
         })?;
         Ok(DirEntryRaw {
             path: ent.path(),
-            ty: ty,
+            ty,
             follow_link: false,
-            depth: depth,
+            depth,
             metadata: md,
         })
     }
@@ -372,9 +372,9 @@ impl DirEntryRaw {
 
         Ok(DirEntryRaw {
             path: ent.path(),
-            ty: ty,
+            ty,
             follow_link: false,
-            depth: depth,
+            depth,
             ino: ent.ino(),
         })
     }
@@ -392,7 +392,7 @@ impl DirEntryRaw {
             path: pb,
             ty: md.file_type(),
             follow_link: link,
-            depth: depth,
+            depth,
             metadata: md,
         })
     }
@@ -412,7 +412,7 @@ impl DirEntryRaw {
             path: pb,
             ty: md.file_type(),
             follow_link: link,
-            depth: depth,
+            depth,
             ino: md.ino(),
         })
     }
@@ -554,7 +554,7 @@ impl WalkBuilder {
         }).collect::<Vec<_>>().into_iter();
         let ig_root = self.ig_builder.build();
         Walk {
-            its: its,
+            its,
             it: None,
             ig_root: ig_root.clone(),
             ig: ig_root.clone(),
@@ -1124,9 +1124,9 @@ impl WalkParallel {
                     }
                 };
             tx.send(Message::Work(Work {
-                dent: dent,
+                dent,
                 ignore: self.ig_root.clone(),
-                root_device: root_device,
+                root_device,
             })).unwrap();
             any_work = true;
         }
@@ -1149,7 +1149,7 @@ impl WalkParallel {
                 is_quitting: false,
                 num_waiting: num_waiting.clone(),
                 num_quitting: num_quitting.clone(),
-                threads: threads,
+                threads,
                 max_depth: self.max_depth,
                 max_filesize: self.max_filesize,
                 follow_links: self.follow_links,
@@ -1435,9 +1435,9 @@ impl Worker {
 
         if !should_skip_path && !should_skip_filesize {
             self.tx.send(Message::Work(Work {
-                dent: dent,
+                dent,
                 ignore: ig.clone(),
-                root_device: root_device,
+                root_device,
             })).unwrap();
         }
         WalkState::Continue

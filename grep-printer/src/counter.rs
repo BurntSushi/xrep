@@ -13,7 +13,7 @@ pub struct CounterWriter<W> {
 
 impl<W: Write> CounterWriter<W> {
     pub fn new(wtr: W) -> CounterWriter<W> {
-        CounterWriter { wtr: wtr, count: 0, total_count: 0 }
+        CounterWriter { wtr, count: 0, total_count: 0 }
     }
 }
 

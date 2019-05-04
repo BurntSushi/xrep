@@ -23,7 +23,7 @@ impl<'b> LineIter<'b> {
     /// are terminated by `line_term`.
     pub fn new(line_term: u8, bytes: &'b [u8]) -> LineIter<'b> {
         LineIter {
-            bytes: bytes,
+            bytes,
             stepper: LineStep::new(line_term, 0, bytes.len()),
         }
     }
@@ -62,7 +62,7 @@ impl LineStep {
     ///
     /// This panics if `start` is not less than or equal to `end`.
     pub fn new(line_term: u8, start: usize, end: usize) -> LineStep {
-        LineStep { line_term, pos: start, end: end }
+        LineStep { line_term, pos: start, end }
     }
 
     /// Return the start and end position of the next line in the given bytes.

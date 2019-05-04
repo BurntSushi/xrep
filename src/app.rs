@@ -297,12 +297,12 @@ impl RGArg {
     fn positional(name: &'static str, value_name: &'static str) -> RGArg {
         RGArg {
             claparg: Arg::with_name(name).value_name(value_name),
-            name: name,
+            name,
             doc_short: "",
             doc_long: "",
             hidden: false,
             kind: RGArgKind::Positional {
-                value_name: value_name,
+                value_name,
                 multiple: false,
             },
         }
@@ -320,7 +320,7 @@ impl RGArg {
         let claparg = Arg::with_name(long_name)
             .long(long_name);
         RGArg {
-            claparg: claparg,
+            claparg,
             name: long_name,
             doc_short: "",
             doc_long: "",
@@ -350,7 +350,7 @@ impl RGArg {
             .takes_value(true)
             .number_of_values(1);
         RGArg {
-            claparg: claparg,
+            claparg,
             name: long_name,
             doc_short: "",
             doc_long: "",
@@ -358,7 +358,7 @@ impl RGArg {
             kind: RGArgKind::Flag {
                 long: long_name,
                 short: None,
-                value_name: value_name,
+                value_name,
                 multiple: false,
                 possible_values: vec![],
             }

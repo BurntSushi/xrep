@@ -53,7 +53,7 @@ impl SubjectBuilder {
     /// then this returns `None` after emitting any relevant log messages.
     pub fn build(&self, dent: DirEntry) -> Option<Subject> {
         let subj = Subject {
-            dent: dent,
+            dent,
             strip_dot_prefix: self.config.strip_dot_prefix,
         };
         if let Some(ignore_err) = subj.dent.error() {

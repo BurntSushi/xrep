@@ -381,13 +381,13 @@ impl<W: WriteColor> Summary<W> {
                 None
             };
         SummarySink {
-            matcher: matcher,
+            matcher,
             summary: self,
             path: None,
             start_time: Instant::now(),
             match_count: 0,
             binary_byte_offset: None,
-            stats: stats,
+            stats,
         }
     }
 
@@ -415,13 +415,13 @@ impl<W: WriteColor> Summary<W> {
         let ppath = PrinterPath::with_separator(
             path.as_ref(), self.config.separator_path);
         SummarySink {
-            matcher: matcher,
+            matcher,
             summary: self,
             path: Some(ppath),
             start_time: Instant::now(),
             match_count: 0,
             binary_byte_offset: None,
-            stats: stats,
+            stats,
         }
     }
 }

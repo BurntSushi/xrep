@@ -594,11 +594,11 @@ impl TypesBuilder {
             Error::Glob { glob: None, err: err.to_string() }
         })?;
         Ok(Types {
-            defs: defs,
-            selections: selections,
-            has_selected: has_selected,
-            glob_to_selection: glob_to_selection,
-            set: set,
+            defs,
+            selections,
+            has_selected,
+            glob_to_selection,
+            set,
             matches: Arc::new(ThreadLocal::default()),
         })
     }

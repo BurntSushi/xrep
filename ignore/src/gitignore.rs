@@ -340,7 +340,7 @@ impl GitignoreBuilder {
                 }
             })?;
         Ok(Gitignore {
-            set: set,
+            set,
             root: self.root.clone(),
             globs: self.globs.clone(),
             num_ignores: nignore as u64,
@@ -451,7 +451,7 @@ impl GitignoreBuilder {
             return Ok(self);
         }
         let mut glob = Glob {
-            from: from,
+            from,
             original: line.to_string(),
             actual: String::new(),
             is_whitelist: false,

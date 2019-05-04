@@ -61,16 +61,16 @@ impl Default for SearchWorkerBuilder {
 impl SearchWorkerBuilder {
     /// Create a new builder for configuring and constructing a search worker.
     pub fn new() -> SearchWorkerBuilder {
-        let mut cmd_builder = cli::CommandReaderBuilder::new();
-        cmd_builder.async_stderr(true);
+        let mut command_builder = cli::CommandReaderBuilder::new();
+        command_builder.async_stderr(true);
 
         let mut decomp_builder = cli::DecompressionReaderBuilder::new();
         decomp_builder.async_stderr(true);
 
         SearchWorkerBuilder {
             config: Config::default(),
-            command_builder: cmd_builder,
-            decomp_builder: decomp_builder,
+            command_builder,
+            decomp_builder,
         }
     }
 

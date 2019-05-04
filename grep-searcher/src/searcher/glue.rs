@@ -105,7 +105,7 @@ impl<'s, M: Matcher, S: Sink> SliceByLine<'s, M, S> {
         SliceByLine {
             config: &searcher.config,
             core: Core::new(searcher, matcher, write_to, true),
-            slice: slice,
+            slice,
         }
     }
 
@@ -156,7 +156,7 @@ impl<'s, M: Matcher, S: Sink> MultiLine<'s, M, S> {
         MultiLine {
             config: &searcher.config,
             core: Core::new(searcher, matcher, write_to, true),
-            slice: slice,
+            slice,
             last_match: None,
         }
     }

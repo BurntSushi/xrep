@@ -65,7 +65,7 @@ pub fn pattern_from_os(pattern: &OsStr) -> Result<&str, InvalidPatternError> {
             .expect("a Unicode replacement codepoint for invalid UTF-8");
         InvalidPatternError {
             original: escape_os(pattern),
-            valid_up_to: valid_up_to,
+            valid_up_to,
         }
     })
 }

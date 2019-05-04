@@ -108,9 +108,9 @@ impl CommandReaderBuilder {
                 StderrReader::sync(child.stderr.take().unwrap())
             };
         Ok(CommandReader {
-            child: child,
-            stdout: stdout,
-            stderr: stderr,
+            child,
+            stdout,
+            stderr,
             done: false,
         })
     }

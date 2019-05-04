@@ -63,7 +63,7 @@ impl MatchStrategy {
         } else if let Some(prefix) = pat.prefix() {
             MatchStrategy::Prefix(prefix)
         } else if let Some((suffix, component)) = pat.suffix() {
-            MatchStrategy::Suffix { suffix: suffix, component: component }
+            MatchStrategy::Suffix { suffix, component }
         } else if let Some(ext) = pat.required_ext() {
             MatchStrategy::RequiredExtension(ext)
         } else {
@@ -248,7 +248,7 @@ impl Glob {
             .expect("regex compilation shouldn't fail");
         GlobMatcher {
             pat: self.clone(),
-            re: re,
+            re,
         }
     }
 
@@ -263,9 +263,9 @@ impl Glob {
         let re = new_regex(&self.re)
             .expect("regex compilation shouldn't fail");
         GlobStrategic {
-            strategy: strategy,
+            strategy,
             pat: self.clone(),
-            re: re,
+            re,
         }
     }
 
@@ -562,7 +562,7 @@ impl<'a> GlobBuilder<'a> {
     /// The pattern is not compiled until `build` is called.
     pub fn new(glob: &'a str) -> GlobBuilder<'a> {
         GlobBuilder {
-            glob: glob,
+            glob,
             opts: GlobOptions::default(),
         }
     }
@@ -594,7 +594,7 @@ impl<'a> GlobBuilder<'a> {
                 glob: self.glob.to_string(),
                 re: tokens.to_regex_with(&self.opts),
                 opts: self.opts,
-                tokens: tokens,
+                tokens,
             })
         }
     }
@@ -755,7 +755,7 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn error(&self, kind: ErrorKind) -> Error {
-        Error { glob: Some(self.glob.to_string()), kind: kind }
+        Error { glob: Some(self.glob.to_string()), kind }
     }
 
     fn parse(&mut self) -> Result<(), Error> {
@@ -975,8 +975,8 @@ impl<'a> Parser<'a> {
             ranges.push(('-', '-'));
         }
         self.push_token(Token::Class {
-            negated: negated,
-            ranges: ranges,
+            negated,
+            ranges,
         })
     }
 
