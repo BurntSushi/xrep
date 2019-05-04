@@ -455,7 +455,7 @@ impl SortBy {
                     sort_by_metadata_time(
                         a, b,
                         self.reverse,
-                        |md| md.modified(),
+                        std::fs::Metadata::modified,
                     )
                 });
             }
@@ -464,7 +464,7 @@ impl SortBy {
                     sort_by_metadata_time(
                         a, b,
                         self.reverse,
-                        |md| md.accessed(),
+                        std::fs::Metadata::accessed,
                     )
                 });
             }
@@ -473,7 +473,7 @@ impl SortBy {
                     sort_by_metadata_time(
                         a, b,
                         self.reverse,
-                        |md| md.created(),
+                        std::fs::Metadata::created,
                     )
                 });
             }
@@ -1490,7 +1490,7 @@ impl ArgMatches {
 
     /// Returns the replacement string as UTF-8 bytes if it exists.
     fn replacement(&self) -> Option<Vec<u8>> {
-        self.value_of_lossy("replace").map(|s| s.into_bytes())
+        self.value_of_lossy("replace").map(std::string::String::into_bytes)
     }
 
     /// Returns the sorting criteria based on command line parameters.
@@ -1662,7 +1662,7 @@ impl ArgMatches {
     }
 
     fn value_of_lossy(&self, name: &str) -> Option<String> {
-        self.0.value_of_lossy(name).map(|s| s.into_owned())
+        self.0.value_of_lossy(name).map(std::borrow::Cow::into_owned)
     }
 
     fn values_of_lossy(&self, name: &str) -> Option<Vec<String>> {

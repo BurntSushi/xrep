@@ -252,7 +252,7 @@ impl Error {
                 }),
             };
         }
-        let path = err.path().map(|p| p.to_path_buf());
+        let path = err.path().map(std::path::Path::to_path_buf);
         let mut ig_err = Error::Io(io::Error::from(err));
         if let Some(path) = path {
             ig_err = Error::WithPath {
@@ -285,7 +285,7 @@ impl fmt::Display for Error {
         match *self {
             Error::Partial(ref errs) => {
                 let msgs: Vec<String> =
-                    errs.iter().map(|err| err.to_string()).collect();
+                    errs.iter().map(std::string::ToString::to_string).collect();
                 write!(f, "{}", msgs.join("\n"))
             }
             Error::WithLineNumber { line, ref err } => {

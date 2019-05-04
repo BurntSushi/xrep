@@ -903,7 +903,7 @@ impl Iterator for Walk {
     #[inline(always)]
     fn next(&mut self) -> Option<Result<DirEntry, Error>> {
         loop {
-            let ev = match self.it.as_mut().and_then(|it| it.next()) {
+            let ev = match self.it.as_mut().and_then(std::iter::Iterator::next) {
                 Some(ev) => ev,
                 None => {
                     match self.its.next() {

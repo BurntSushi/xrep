@@ -467,7 +467,7 @@ fn search_path<M: Matcher, W: WriteColor>(
             searcher.search_path(&matcher, path, &mut sink)?;
             Ok(SearchResult {
                 has_match: sink.has_match(),
-                stats: sink.stats().map(|s| s.clone()),
+                stats: sink.stats().map(std::clone::Clone::clone),
             })
         }
         Printer::Summary(ref mut p) => {
@@ -475,7 +475,7 @@ fn search_path<M: Matcher, W: WriteColor>(
             searcher.search_path(&matcher, path, &mut sink)?;
             Ok(SearchResult {
                 has_match: sink.has_match(),
-                stats: sink.stats().map(|s| s.clone()),
+                stats: sink.stats().map(std::clone::Clone::clone),
             })
         }
         Printer::JSON(ref mut p) => {
@@ -504,7 +504,7 @@ fn search_reader<M: Matcher, R: io::Read, W: WriteColor>(
             searcher.search_reader(&matcher, rdr, &mut sink)?;
             Ok(SearchResult {
                 has_match: sink.has_match(),
-                stats: sink.stats().map(|s| s.clone()),
+                stats: sink.stats().map(std::clone::Clone::clone),
             })
         }
         Printer::Summary(ref mut p) => {
@@ -512,7 +512,7 @@ fn search_reader<M: Matcher, R: io::Read, W: WriteColor>(
             searcher.search_reader(&matcher, rdr, &mut sink)?;
             Ok(SearchResult {
                 has_match: sink.has_match(),
-                stats: sink.stats().map(|s| s.clone()),
+                stats: sink.stats().map(std::clone::Clone::clone),
             })
         }
         Printer::JSON(ref mut p) => {

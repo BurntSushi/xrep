@@ -71,7 +71,7 @@ impl RegexMatcherBuilder {
         &self,
         literals: &[B],
     ) -> Result<RegexMatcher, Error> {
-        let slices: Vec<_> = literals.iter().map(|s| s.as_ref()).collect();
+        let slices: Vec<_> = literals.iter().map(std::convert::AsRef::as_ref).collect();
         if !self.config.can_plain_aho_corasick() || literals.len() < 40 {
             return self.build(&slices.join("|"));
         }
