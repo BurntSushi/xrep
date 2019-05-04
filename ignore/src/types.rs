@@ -703,7 +703,7 @@ impl TypesBuilder {
                     return Err(Error::InvalidDefinition);
                 }
                 for type_name in types {
-                    let globs = self.types.get(type_name).unwrap().globs.clone();
+                    let globs = self.types[type_name].globs.clone();
                     for glob in globs {
                         self.add(name, &glob)?;
                     }
