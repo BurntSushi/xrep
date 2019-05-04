@@ -102,7 +102,7 @@ impl Gitignore {
         gitignore_path: P,
     ) -> (Gitignore, Option<Error>) {
         let path = gitignore_path.as_ref();
-        let parent = path.parent().unwrap_or(Path::new("/"));
+        let parent = path.parent().unwrap_or_else(|| Path::new("/"));
         let mut builder = GitignoreBuilder::new(parent);
         let mut errs = PartialErrorBuilder::default();
         errs.maybe_push_ignore_io(builder.add(path));

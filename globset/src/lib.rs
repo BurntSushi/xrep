@@ -499,8 +499,8 @@ impl<'a> Candidate<'a> {
     /// Create a new candidate for matching from the given path.
     pub fn new<P: AsRef<Path> + ?Sized>(path: &'a P) -> Candidate<'a> {
         let path = normalize_path(BString::from_path_lossy(path.as_ref()));
-        let basename = file_name(&path).unwrap_or(Cow::Borrowed(B("")));
-        let ext = file_name_ext(&basename).unwrap_or(Cow::Borrowed(B("")));
+        let basename = file_name(&path).unwrap_or_else(|| Cow::Borrowed(B("")));
+        let ext = file_name_ext(&basename).unwrap_or_else(|| Cow::Borrowed(B("")));
         Candidate {
             path,
             basename,
@@ -573,7 +573,7 @@ impl LiteralStrategy {
     }
 
     fn add(&mut self, global_index: usize, lit: String) {
-        self.0.entry(lit.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(lit.into_bytes()).or_insert_with(std::vec::Vec::new).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -597,7 +597,7 @@ impl BasenameLiteralStrategy {
     }
 
     fn add(&mut self, global_index: usize, lit: String) {
-        self.0.entry(lit.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(lit.into_bytes()).or_insert_with(std::vec::Vec::new).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -627,7 +627,7 @@ impl ExtensionStrategy {
     }
 
     fn add(&mut self, global_index: usize, ext: String) {
-        self.0.entry(ext.into_bytes()).or_insert(vec![]).push(global_index);
+        self.0.entry(ext.into_bytes()).or_insert_with(std::vec::Vec::new).push(global_index);
     }
 
     fn is_match(&self, candidate: &Candidate) -> bool {
@@ -819,7 +819,7 @@ impl RequiredExtensionStrategyBuilder {
     fn add(&mut self, global_index: usize, ext: String, regex: String) {
         self.0
             .entry(ext.into_bytes())
-            .or_insert(vec![])
+            .or_insert_with(std::vec::Vec::new)
             .push((global_index, regex));
     }
 
