@@ -104,7 +104,7 @@ impl LiteralSets {
         if req.len() > lit.len() && req_lits.len() > 1 && !any_empty {
             debug!("required literals found: {:?}", req_lits);
             let alts: Vec<String> = req_lits
-                .into_iter()
+                .iter()
                 .map(|x| util::bytes_to_regex(x))
                 .collect();
             // We're matching raw bytes, so disable Unicode mode.
