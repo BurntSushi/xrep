@@ -123,7 +123,7 @@ pub fn file_name<P: AsRef<Path> + ?Sized>(
         return None;
     } else if path.last() == Some(&b'.') {
         return None;
-    } else if path.len() >= 2 && &path[path.len() - 2..] == &b".."[..] {
+    } else if path.len() >= 2 && path[path.len() - 2..] == b".."[..] {
         return None;
     }
     let last_slash = memrchr(b'/', path).map(|i| i + 1).unwrap_or(0);
