@@ -79,10 +79,10 @@ pub enum Command {
 
 impl Command {
     /// Returns true if and only if this command requires executing a search.
-    fn is_search(&self) -> bool {
+    fn is_search(self) -> bool {
         use self::Command::*;
 
-        match *self {
+        match self {
             Search | SearchParallel => true,
             | SearchNever
             | Files
@@ -418,7 +418,7 @@ impl SortBy {
 
     /// Try to check that the sorting criteria selected is actually supported.
     /// If it isn't, then an error is returned.
-    fn check(&self) -> Result<()> {
+    fn check(self) -> Result<()> {
         match self.kind {
             SortByKind::None | SortByKind::Path => {}
             SortByKind::LastModified => {

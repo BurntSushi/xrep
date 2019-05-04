@@ -73,8 +73,8 @@ impl Default for BinaryDetection {
 impl BinaryDetection {
     /// Returns true if and only if the detection heuristic demands that
     /// the line buffer stop read data once binary data is observed.
-    fn is_quit(&self) -> bool {
-        match *self {
+    fn is_quit(self) -> bool {
+        match self {
             BinaryDetection::Quit(_) => true,
             _ => false,
         }

@@ -1044,8 +1044,8 @@ pub enum WalkState {
 }
 
 impl WalkState {
-    fn is_quit(&self) -> bool {
-        *self == WalkState::Quit
+    fn is_quit(self) -> bool {
+        self == WalkState::Quit
     }
 }
 

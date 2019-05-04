@@ -592,7 +592,7 @@ impl<'a> GlobBuilder<'a> {
             let tokens = p.stack.pop().unwrap();
             Ok(Glob {
                 glob: self.glob.to_string(),
-                re: tokens.to_regex_with(&self.opts),
+                re: tokens.to_regex_with(self.opts),
                 opts: self.opts,
                 tokens,
             })
@@ -631,7 +631,7 @@ impl Tokens {
     /// Convert this pattern to a string that is guaranteed to be a valid
     /// regular expression and will represent the matching semantics of this
     /// glob pattern and the options given.
-    fn to_regex_with(&self, options: &GlobOptions) -> String {
+    fn to_regex_with(&self, options: GlobOptions) -> String {
         let mut re = String::new();
         re.push_str("(?-u)");
         if options.case_insensitive {
@@ -652,7 +652,7 @@ impl Tokens {
 
     fn tokens_to_regex(
         &self,
-        options: &GlobOptions,
+        options: GlobOptions,
         tokens: &[Token],
         re: &mut String,
     ) {

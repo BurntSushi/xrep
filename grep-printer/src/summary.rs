@@ -87,10 +87,10 @@ impl SummaryKind {
     /// When an output mode requires a file path, then the summary printer
     /// will report an error at the start of every search that lacks a file
     /// path.
-    fn requires_path(&self) -> bool {
+    fn requires_path(self) -> bool {
         use self::SummaryKind::*;
 
-        match *self {
+        match self {
             PathWithMatch | PathWithoutMatch => true,
             Count | CountMatches | Quiet => false,
         }
@@ -98,10 +98,10 @@ impl SummaryKind {
 
     /// Returns true if and only if this output mode requires computing
     /// statistics, regardless of whether they have been enabled or not.
-    fn requires_stats(&self) -> bool {
+    fn requires_stats(self) -> bool {
         use self::SummaryKind::*;
 
-        match *self {
+        match self {
             CountMatches => true,
             Count | PathWithMatch | PathWithoutMatch | Quiet => false,
         }
@@ -109,10 +109,10 @@ impl SummaryKind {
 
     /// Returns true if and only if a printer using this output mode can
     /// quit after seeing the first match.
-    fn quit_early(&self) -> bool {
+    fn quit_early(self) -> bool {
         use self::SummaryKind::*;
 
-        match *self {
+        match self {
             PathWithMatch | Quiet => true,
             Count | CountMatches | PathWithoutMatch => false,
         }

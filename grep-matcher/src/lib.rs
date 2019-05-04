@@ -236,7 +236,7 @@ impl LineTerminator {
 
     /// Returns true if and only if this line terminator is CRLF.
     #[inline]
-    pub fn is_crlf(&self) -> bool {
+    pub fn is_crlf(self) -> bool {
         self.0 == LineTerminatorImp::CRLF
     }
 
@@ -246,7 +246,7 @@ impl LineTerminator {
     /// useful for routines that, for example, find line boundaries by treating
     /// `\n` as a line terminator even when it isn't preceded by `\r`.
     #[inline]
-    pub fn as_byte(&self) -> u8 {
+    pub fn as_byte(self) -> u8 {
         match self.0 {
             LineTerminatorImp::Byte(array) => array[0],
             LineTerminatorImp::CRLF => b'\n',
@@ -273,7 +273,7 @@ impl LineTerminator {
     /// If this line terminator is `CRLF`, then this only checks whether the
     /// last byte is `\n`.
     #[inline]
-    pub fn is_suffix(&self, slice: &[u8]) -> bool {
+    pub fn is_suffix(self, slice: &[u8]) -> bool {
         slice.last().map_or(false, |&b| b == self.as_byte())
     }
 }
