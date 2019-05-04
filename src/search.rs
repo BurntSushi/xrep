@@ -354,8 +354,7 @@ impl<W: WriteColor> SearchWorker<W> {
         let path = subject.path();
         if subject.is_stdin() {
             let stdin = io::stdin();
-            // A `return` here appeases the borrow checker. NLL will fix this.
-            return self.search_reader(path, stdin.lock());
+            self.search_reader(path, stdin.lock())
         } else if self.should_preprocess(path) {
             self.search_preprocessor(path)
         } else if self.should_decompress(path) {
