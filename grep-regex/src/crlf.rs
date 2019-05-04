@@ -66,7 +66,7 @@ impl Matcher for CRLFMatcher {
     }
 
     fn capture_index(&self, name: &str) -> Option<usize> {
-        self.names.get(name).map(|i| *i)
+        self.names.get(name).cloned()
     }
 
     fn captures_at(

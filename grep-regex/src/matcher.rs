@@ -738,7 +738,7 @@ impl Matcher for StandardMatcher {
     }
 
     fn capture_index(&self, name: &str) -> Option<usize> {
-        self.names.get(name).map(|i| *i)
+        self.names.get(name).cloned()
     }
 
     fn try_find_iter<F, E>(
