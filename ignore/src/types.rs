@@ -96,7 +96,7 @@ use thread_local::ThreadLocal;
 use pathutil::file_name;
 use {Error, Match};
 
-const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
+const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("agda", &["*.agda", "*.lagda"]),
     ("ats", &["*.ats", "*.dats", "*.sats", "*.hats"]),
     ("aidl", &["*.aidl"]),
