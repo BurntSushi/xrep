@@ -2,9 +2,11 @@ use std::error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io;
 use std::path::Path;
 use std::str;
+
+use bstr::io::BufReadExt;
 
 use escape::{escape, escape_os};
 
@@ -156,28 +158,22 @@ pub fn patterns_from_stdin() -> io::Result<Vec<String>> {
 /// ```
 pub fn patterns_from_reader<R: io::Read>(rdr: R) -> io::Result<Vec<String>> {
     let mut patterns = vec![];
-    let mut bufrdr = io::BufReader::new(rdr);
-    let mut line = vec![];
     let mut line_number = 0;
-    while {
-        line.clear();
+    io::BufReader::new(rdr).for_byte_line(|line| {
         line_number += 1;
-        bufrdr.read_until(b'\n', &mut line)? > 0
-    } {
-        line.pop().unwrap(); // remove trailing '\n'
-        if line.last() == Some(&b'\r') {
-            line.pop().unwrap();
-        }
-        match pattern_from_bytes(&line) {
-            Ok(pattern) => patterns.push(pattern.to_string()),
+        match pattern_from_bytes(line.as_bytes()) {
+            Ok(pattern) => {
+                patterns.push(pattern.to_string());
+                Ok(true)
+            }
             Err(err) => {
-                return Err(io::Error::new(
+                Err(io::Error::new(
                     io::ErrorKind::Other,
                     format!("{}: {}", line_number, err),
-                ));
+                ))
             }
         }
-    }
+    })?;
     Ok(patterns)
 }
 

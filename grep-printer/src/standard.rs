@@ -1029,7 +1029,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         let mut count = 0;
         let mut stepper = LineStep::new(line_term, 0, bytes.len());
         while let Some((start, end)) = stepper.next(bytes) {
-            let mut line = Match::new(start, end);
+            let line = Match::new(start, end);
             self.write_prelude(
                 self.sunk.absolute_byte_offset() + line.start() as u64,
                 self.sunk.line_number().map(|n| n + count),
@@ -1105,7 +1105,6 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         let spec = self.config().colors.matched();
         let bytes = self.sunk.bytes();
         for &m in self.sunk.matches() {
-            let mut m = m;
             let mut count = 0;
             let mut stepper = LineStep::new(line_term, 0, bytes.len());
             while let Some((start, end)) = stepper.next(bytes) {
