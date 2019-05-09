@@ -705,3 +705,14 @@ rgtest!(r1203_reverse_suffix_literal, |dir: Dir, _: TestCommand| {
     let mut cmd = dir.command();
     eqnice!("153.230000\n", cmd.arg(r"\d\d\d000").arg("test").stdout());
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1259
+rgtest!(r1259_drop_last_byte_nonl, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("patterns-nonl", "[foo]");
+    dir.create("patterns-nl", "[foo]\n");
+    dir.create("test", "fz");
+
+    eqnice!("fz\n", cmd.arg("-f").arg("patterns-nonl").arg("test").stdout());
+    cmd = dir.command();
+    eqnice!("fz\n", cmd.arg("-f").arg("patterns-nl").arg("test").stdout());
+});
