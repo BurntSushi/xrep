@@ -343,9 +343,6 @@ If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 $ cargo install ripgrep
 ```
 
-ripgrep isn't currently in any other package repositories.
-[I'd like to change that](https://github.com/BurntSushi/ripgrep/issues/10).
-
 
 ### Building
 
