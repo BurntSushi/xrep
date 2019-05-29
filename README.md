@@ -114,8 +114,8 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
   automatically detecting UTF-16 is provided. Other text encodings must be
   specifically specified with the `-E/--encoding` flag.)
-* ripgrep supports searching files compressed in a common format (brotli, bzip2,
-  gzip, lz4, lzma, xz, or zstandard) with the `-z/--search-zip` flag.
+* ripgrep supports searching files compressed in a common format (brotli,
+  bzip2, gzip, lz4, lzma, xz, or zstandard) with the `-z/--search-zip` flag.
 * ripgrep supports arbitrary input preprocessing filters which could be PDF
   text extraction, less supported decompression, decrypting, automatic encoding
   detection and so on.
