@@ -110,7 +110,7 @@ colors, you'll notice that `faster` will be highlighted instead of just the
 
 It is beyond the scope of this guide to provide a full tutorial on regular
 expressions, but ripgrep's specific syntax is documented here:
-https://docs.rs/regex/0.2.5/regex/#syntax
+https://docs.rs/regex/*/regex/#syntax
 
 
 ### Recursive search
