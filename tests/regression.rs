@@ -716,3 +716,14 @@ rgtest!(r1259_drop_last_byte_nonl, |dir: Dir, mut cmd: TestCommand| {
     cmd = dir.command();
     eqnice!("fz\n", cmd.arg("-f").arg("patterns-nl").arg("test").stdout());
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1223
+rgtest!(r1223_prevent_dir_check_for_default_path, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir("-");
+    dir.create("a.json", "{}");
+    dir.create("a.txt", "some text");
+
+    let mut cmd = dir.command();
+
+    eqnice!("a.json\na.txt\n", cmd.arg("a").pipe(b"a.json\na.txt"));
+});
