@@ -55,6 +55,21 @@ gcc_prefix() {
     esac
 }
 
+gcc_full_name() {
+    local -r prefix="$(gcc_prefix)"
+    local gcc_name="gcc"
+    if [ -n "${prefix}" ]; then
+        local gcc_suffix=
+        if [ -n "${GCC_VERSION}" ]; then
+            gcc_suffix="-${GCC_VERSION}"
+        fi
+
+        gcc_name="${prefix}gcc${gcc_suffix}"
+    fi
+
+    echo "${gcc_name}"
+}
+
 is_musl() {
     case "$TARGET" in
         *-musl) return 0 ;;

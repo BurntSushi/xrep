@@ -52,6 +52,10 @@ matrix:
           - docbook-xsl
           - xsltproc
           - libxml2-utils
+          - qemu-system-arm
+          - qemu-user
+          - qemu-user-static
+          - binfmt-support
     # Beta channel. We enable these to make sure there are no regressions in
     # Rust beta releases.
     - os: linux
@@ -84,6 +88,10 @@ matrix:
           - docbook-xsl
           - xsltproc
           - libxml2-utils
+          - qemu-system-arm
+          - qemu-user
+          - qemu-user-static
+          - binfmt-support
 install: ci/install.sh
 script: ci/script.sh
 before_deploy: ci/before_deploy.sh

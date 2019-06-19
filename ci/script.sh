@@ -9,12 +9,13 @@ set -ex
 main() {
     CARGO="$(builder)"
 
-    # Test a normal debug build.
     if is_arm; then
-        "$CARGO" build --target "$TARGET" --verbose
-    else
-        "$CARGO" build --target "$TARGET" --verbose --all --features 'pcre2'
+        export CC="$(gcc_full_name)"
+        export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
     fi
+
+    # Test a normal debug build.
+    "$CARGO" build --target "$TARGET" --verbose --all --features 'pcre2'
 
     # Show the output of the most recent build.rs stderr.
     set +x
@@ -36,14 +37,11 @@ main() {
     file "$outdir/_rg.ps1"
     file "$outdir/rg.1"
 
-    # Apparently tests don't work on arm, so just bail now. I guess we provide
-    # ARM releases on a best effort basis?
-    if is_arm; then
-      return 0
+    # Does not find "zsh" in the ARM matrix...
+    if ! is_arm; then
+        # Test that zsh completions are in sync with ripgrep's actual args.
+        "$(dirname "${0}")/test_complete.sh"
     fi
-
-    # Test that zsh completions are in sync with ripgrep's actual args.
-    "$(dirname "${0}")/test_complete.sh"
 
     # Run tests for ripgrep and all sub-crates.
     "$CARGO" test --target "$TARGET" --verbose --all --features 'pcre2'

@@ -10,7 +10,7 @@ set -ex
 mk_artifacts() {
     CARGO="$(builder)"
     if is_arm; then
-        "$CARGO" build --target "$TARGET" --release
+        CC="$(gcc_full_name)" "$CARGO" build --target "$TARGET" --release --features 'pcre2'
     else
         # Technically, MUSL builds will force PCRE2 to get statically compiled,
         # but we also want PCRE2 statically build for macOS binaries.
