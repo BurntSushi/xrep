@@ -2171,7 +2171,10 @@ Replace every match with the text given when printing results. Neither this
 flag nor any other ripgrep flag will modify your files.
 
 Capture group indices (e.g., $5) and names (e.g., $foo) are supported in the
-replacement string.
+replacement string. In shells such as Bash and zsh, you should wrap the
+pattern in single quotes instead of double quotes. Otherwise, capture group
+indices will be replaced by expanded shell variables which will most likely
+be empty.
 
 Note that the replacement by default replaces each match, and NOT the entire
 line. To replace the entire line, you should match the entire line.
