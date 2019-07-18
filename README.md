@@ -224,7 +224,7 @@ $ choco install ripgrep
 ```
 
 If you're a **Windows Scoop** user, then you can install ripgrep from the
-[official bucket](https://github.com/lukesampson/scoop/blob/master/bucket/ripgrep.json):
+[official bucket](https://github.com/ScoopInstaller/Main/blob/master/bucket/ripgrep.json):
 
 ```
 $ scoop install ripgrep
