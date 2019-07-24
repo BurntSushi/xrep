@@ -379,7 +379,18 @@ impl DirEntryRaw {
         })
     }
 
-    #[cfg(not(unix))]
+    // Placeholder implementation to allow compiling on non-standard platforms (e.g. wasm32).
+    #[cfg(not(any(windows, unix)))]
+    fn from_entry_os(
+        depth: usize,
+        ent: &fs::DirEntry,
+        ty: fs::FileType,
+    ) -> Result<DirEntryRaw, Error> {
+        Err(Error::Io(io::Error::new(
+            io::ErrorKind::Other, "unsupported platform")))
+    }
+
+    #[cfg(windows)]
     fn from_path(
         depth: usize,
         pb: PathBuf,
@@ -415,6 +426,17 @@ impl DirEntryRaw {
             depth: depth,
             ino: md.ino(),
         })
+    }
+
+    // Placeholder implementation to allow compiling on non-standard platforms (e.g. wasm32).
+    #[cfg(not(any(windows, unix)))]
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
+        Err(Error::Io(io::Error::new(
+            io::ErrorKind::Other, "unsupported platform")))
     }
 }
 
