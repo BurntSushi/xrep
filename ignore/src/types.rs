@@ -247,7 +247,8 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("ruby", &["Gemfile", "*.gemspec", ".irbrc", "Rakefile", "*.rb"]),
     ("rust", &["*.rs"]),
     ("sass", &["*.sass", "*.scss"]),
-    ("scala", &["*.scala", "*.sbt"]),
+    ("sbt", &["*.sbt"]),
+    ("scala", &["*.scala"]),
     ("sh", &[
         // Portable/misc. init files
         ".login", ".logout", ".profile", "profile",
