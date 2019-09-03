@@ -1409,16 +1409,7 @@ impl<'s> Worker<'s> {
                     return;
                 }
             }
-            let readdir = match work.read_dir() {
-                Ok(readdir) => readdir,
-                Err(err) => {
-                    if self.visitor.visit(Err(err)).is_quit() {
-                        self.quit_now();
-                        return;
-                    }
-                    continue;
-                }
-            };
+
             let descend = if let Some(root_device) = work.root_device {
                 match is_same_file_system(root_device, work.dent.path()) {
                     Ok(true) => true,
@@ -1435,6 +1426,13 @@ impl<'s> Worker<'s> {
                 true
             };
 
+            // Try to read the directory first before we transfer ownership
+            // to the provided closure. Do not unwrap it immediately, though,
+            // as we may receive an `Err` value e.g. in the case when we do not
+            // have sufficient read permissions to list the directory.
+            // In that case we still want to provide the closure with a valid
+            // entry before passing the error value.
+            let readdir = work.read_dir();
             let depth = work.dent.depth();
             match self.visitor.visit(Ok(work.dent)) {
                 WalkState::Continue => {}
@@ -1447,11 +1445,28 @@ impl<'s> Worker<'s> {
             if !descend {
                 continue;
             }
+
+            let readdir = match readdir {
+                Ok(readdir) => readdir,
+                Err(err) => {
+                    if self.visitor.visit(Err(err)).is_quit() {
+                        self.quit_now();
+                        return;
+                    }
+                    continue;
+                }
+            };
+
             if self.max_depth.map_or(false, |max| depth >= max) {
                 continue;
             }
             for result in readdir {
-                let state = self.run_one(&work.ignore, depth + 1, work.root_device, result);
+                let state = self.run_one(
+                    &work.ignore,
+                    depth + 1,
+                    work.root_device,
+                    result,
+                );
                 if state.is_quit() {
                     self.quit_now();
                     return;
@@ -2154,5 +2169,24 @@ mod tests {
         let mut builder = WalkBuilder::new(td.path());
         builder.follow_links(true).same_file_system(true);
         assert_paths(td.path(), &builder, &["same_file", "same_file/alink"]);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn no_read_permissions() {
+        let dir_path = Path::new("/root");
+
+        // There's no /etc/sudoers.d, skip the test.
+        if !dir_path.is_dir() {
+            return;
+        }
+        // We're the root, so the test won't check what we want it to.
+        if fs::read_dir(&dir_path).is_ok() {
+            return;
+        }
+
+        // Check that we can't descend but get an entry for the parent dir.
+        let builder = WalkBuilder::new(&dir_path);
+        assert_paths(dir_path.parent().unwrap(), &builder, &["root"]);
     }
 }
