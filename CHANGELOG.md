@@ -30,6 +30,8 @@ Bug fixes:
 
 * [BUG #1291](https://github.com/BurntSushi/ripgrep/issues/1291):
   ripgrep now works in non-existent directories.
+* [BUG #1319](https://github.com/BurntSushi/ripgrep/issues/1319):
+  Fix match bug due to errant literal detection.
 * [**BUG #1335**](https://github.com/BurntSushi/ripgrep/issues/1335):
   Fixes a performance bug when searching plain text files with very long lines.
   This was a serious performance regression in some cases.

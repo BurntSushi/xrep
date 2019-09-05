@@ -5,8 +5,6 @@ the regex engine doesn't look for inner literals. Since we're doing line based
 searching, we can use them, so we need to do it ourselves.
 */
 
-use std::cmp;
-
 use regex_syntax::hir::{self, Hir, HirKind};
 use regex_syntax::hir::literal::{Literal, Literals};
 
@@ -248,7 +246,7 @@ fn union_required(expr: &Hir, lits: &mut Literals) {
 fn repeat_range_literals<F: FnMut(&Hir, &mut Literals)>(
     e: &Hir,
     min: u32,
-    max: Option<u32>,
+    _max: Option<u32>,
     _greedy: bool,
     lits: &mut Literals,
     mut f: F,
@@ -259,19 +257,13 @@ fn repeat_range_literals<F: FnMut(&Hir, &mut Literals)>(
         // just treat it as `e*`.
         lits.cut();
     } else {
-        let n = cmp::min(lits.limit_size(), min as usize);
         // We only extract literals from a single repetition, even though
         // we could do more. e.g., `a{3}` will have `a` extracted instead of
         // `aaa`. The reason is that inner literal extraction can't be unioned
         // across repetitions. e.g., extracting `foofoofoo` from `(\w+foo){3}`
         // is wrong.
         f(e, lits);
-        if n < min as usize {
-            lits.cut();
-        }
-        if max.map_or(true, |max| min < max) {
-            lits.cut();
-        }
+        lits.cut();
     }
 }
 
@@ -382,5 +374,14 @@ mod tests {
         // https://github.com/BurntSushi/ripgrep/issues/1064
         // assert_eq!(one_regex(r"a.*c"), pat("a"));
         assert_eq!(one_regex(r"a(.*c)"), pat("a"));
+    }
+
+    #[test]
+    fn regression_1319() {
+        // Regression from:
+        // https://github.com/BurntSushi/ripgrep/issues/1319
+        assert_eq!(one_regex(r"TTGAGTCCAGGAG[ATCG]{2}C"),
+            pat("TTGAGTCCAGGAGA|TTGAGTCCAGGAGC|\
+                 TTGAGTCCAGGAGG|TTGAGTCCAGGAGT"));
     }
 }
