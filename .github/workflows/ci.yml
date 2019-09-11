@@ -91,6 +91,9 @@ jobs:
         sudo apt-get install musl-tools
     - name: Build everything
       run: cargo build --verbose --target ${{ matrix.target }} --all --features pcre2
+    - name: Install zsh
+      if: matrix.build == 'stable'
+      run: sudo apt-get install zsh
     - name: Test zsh auto-completions
       if: matrix.build == 'stable'
       run: ./ci/test_complete.sh
