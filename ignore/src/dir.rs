@@ -689,7 +689,9 @@ pub fn create_gitignore<T: AsRef<OsStr>>(
     builder.case_insensitive(case_insensitive).unwrap();
     for name in names {
         let gipath = dir.join(name.as_ref());
-        errs.maybe_push_ignore_io(builder.add(gipath));
+        if gipath.exists() {
+            errs.maybe_push_ignore_io(builder.add(gipath));
+        }
     }
     let gi = match builder.build() {
         Ok(gi) => gi,
