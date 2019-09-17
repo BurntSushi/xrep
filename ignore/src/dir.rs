@@ -689,7 +689,21 @@ pub fn create_gitignore<T: AsRef<OsStr>>(
     builder.case_insensitive(case_insensitive).unwrap();
     for name in names {
         let gipath = dir.join(name.as_ref());
-        errs.maybe_push_ignore_io(builder.add(gipath));
+        // This check is not necessary, but is added for performance. Namely,
+        // a simple stat call checking for existence can often be just a bit
+        // quicker than actually trying to open a file. Since the number of
+        // directories without ignore files likely greatly exceeds the number
+        // with ignore files, this check generally makes sense.
+        //
+        // However, until demonstrated otherwise, we speculatively do not do
+        // this on Windows since Windows is notorious for having slow file
+        // system operations. Namely, it's not clear whether this analysis
+        // makes sense on Windows.
+        //
+        // For more details: https://github.com/BurntSushi/ripgrep/pull/1381
+        if cfg!(windows) || gipath.exists() {
+            errs.maybe_push_ignore_io(builder.add(gipath));
+        }
     }
     let gi = match builder.build() {
         Ok(gi) => gi,

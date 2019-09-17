@@ -2,6 +2,11 @@ TBD
 ===
 TODO
 
+Performance improvements:
+
+* [PERF #1381](https://github.com/BurntSushi/ripgrep/pull/1381):
+  Directory traversal is sped up with speculative ignore-file existence checks.
+
 Bug fixes:
 
 * [BUG #1335](https://github.com/BurntSushi/ripgrep/issues/1335):
