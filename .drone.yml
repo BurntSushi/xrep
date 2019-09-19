@@ -7,3 +7,8 @@ steps:
   commands:
   - cargo build --verbose --all
   - cargo test --verbose --all
+
+trigger:
+  event:
+    include:
+    - pull_request
