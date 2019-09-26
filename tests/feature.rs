@@ -727,3 +727,15 @@ rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("--encoding").arg("none").arg("-a").arg("\\x00").arg("foo");
     eqnice!("\u{FFFD}\u{FFFD}\x00b\n", cmd.stdout());
 });
+
+rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("foo", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.arg("-I").arg("-A1").arg("--no-context-separator").arg("--context-separator").arg("AAA").arg("foo");
+    eqnice!("foo\nctx\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_no_context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("foo", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.arg("-I").arg("-A1").arg("--context-separator").arg("AAA").arg("foo");
+    eqnice!("foo\nctx\nAAA\nfoo\nctx\n", cmd.stdout());
+});

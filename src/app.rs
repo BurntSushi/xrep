@@ -579,6 +579,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_ignore_file(&mut args);
     flag_ignore_file_case_insensitive(&mut args);
     flag_invert_match(&mut args);
+    flag_no_context_separator(&mut args);
     flag_json(&mut args);
     flag_line_buffered(&mut args);
     flag_line_number(&mut args);
@@ -1364,6 +1365,16 @@ fn flag_invert_match(args: &mut Vec<RGArg>) {
 Invert matching. Show lines that do not match the given patterns.
 ");
     let arg = RGArg::switch("invert-match").short("v")
+        .help(SHORT).long_help(LONG);
+    args.push(arg);
+}
+
+fn flag_no_context_separator(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Don't print context separators.";
+    const LONG: &str = long!("\
+Don't print context separators. Print matched lines and requested contexts only.
+");
+    let arg = RGArg::switch("no-context-separator")
         .help(SHORT).long_help(LONG);
     args.push(arg);
 }

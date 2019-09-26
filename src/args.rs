@@ -784,7 +784,7 @@ impl ArgMatches {
             .byte_offset(self.is_present("byte-offset"))
             .trim_ascii(self.is_present("trim"))
             .separator_search(None)
-            .separator_context(Some(self.context_separator()))
+            .separator_context(self.context_separator())
             .separator_field_match(b":".to_vec())
             .separator_field_context(b"-".to_vec())
             .separator_path(self.path_separator()?)
@@ -1020,10 +1020,13 @@ impl ArgMatches {
     /// Returns the unescaped context separator in UTF-8 bytes.
     ///
     /// If one was not provided, the default `--` is returned.
-    fn context_separator(&self) -> Vec<u8> {
-        match self.value_of_os("context-separator") {
-            None => b"--".to_vec(),
-            Some(sep) => cli::unescape_os(&sep),
+    /// If --no-context-separator is passed, None is returned.
+    fn context_separator(&self) -> Option<Vec<u8>> {
+        let sep = !self.is_present("no-context-separator");
+        match (sep, self.value_of_os("context-separator")) {
+            (false, _) => None,
+            (true, None) => Some(b"--".to_vec()),
+            (true, Some(sep)) => Some(cli::unescape_os(&sep)),
         }
     }
 
@@ -1092,7 +1095,7 @@ impl ArgMatches {
         Ok(if self.heading() {
             Some(b"".to_vec())
         } else if ctx_before > 0 || ctx_after > 0 {
-            Some(self.context_separator().clone())
+            self.context_separator()
         } else {
             None
         })
