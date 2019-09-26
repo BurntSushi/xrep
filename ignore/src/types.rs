@@ -271,6 +271,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
         // Extensions
         "*.bash", "*.csh", "*.ksh", "*.sh", "*.tcsh", "*.zsh",
     ]),
+    ("slim", &["*.skim", "*.slim", "*.slime"]),
     ("smarty", &["*.tpl"]),
     ("sml", &["*.sml", "*.sig"]),
     ("soy", &["*.soy"]),
