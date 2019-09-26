@@ -727,3 +727,70 @@ rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("--encoding").arg("none").arg("-a").arg("\\x00").arg("foo");
     eqnice!("\u{FFFD}\u{FFFD}\x00b\n", cmd.stdout());
 });
+
+rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--no-context-separator",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_context_sep_overrides, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--context-separator", "AAA",
+        "--no-context-separator",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_context_sep_overridden, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--no-context-separator",
+        "--context-separator", "AAA",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nAAA\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--context-separator", "AAA",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nAAA\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep_default, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\n--\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep_empty, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--context-separator", "",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\n\nfoo\nctx\n", cmd.stdout());
+});

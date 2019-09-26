@@ -963,12 +963,27 @@ This overrides both the -B/--before-context and -A/--after-context flags.
 
 fn flag_context_separator(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Set the context separator string.";
-    const LONG: &str = long!("\
-The string used to separate non-contiguous context lines in the output. Escape
+    const LONG: &str = long!(
+        "\
+The string used to separate non-contiguous context lines in the output. This
+is only used when one of the context flags is used (-A, -B or -C). Escape
 sequences like \\x7F or \\t may be used. The default value is --.
-");
+
+When the context separator is set to an empty string, then a line break
+is still inserted. To completely disable context separators, use the
+--no-context-separator flag.
+"
+    );
+
     let arg = RGArg::flag("context-separator", "SEPARATOR")
-        .help(SHORT).long_help(LONG);
+        .help(SHORT)
+        .long_help(LONG)
+        .overrides("no-context-separator");
+    args.push(arg);
+
+    let arg = RGArg::switch("no-context-separator")
+        .hidden()
+        .overrides("context-separator");
     args.push(arg);
 }
 
