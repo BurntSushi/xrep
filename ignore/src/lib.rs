@@ -46,6 +46,7 @@ See the documentation for `WalkBuilder` for many other options.
 
 #![deny(missing_docs)]
 
+#[cfg(feature = "parallel")]
 extern crate crossbeam_channel as channel;
 extern crate globset;
 #[macro_use]
@@ -65,7 +66,10 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub use walk::{DirEntry, Walk, WalkBuilder, WalkParallel, WalkState};
+pub use walk::{DirEntry, Walk, WalkBuilder, WalkState};
+
+#[cfg(feature = "parallel")]
+pub use walk::WalkParallel;
 
 mod dir;
 pub mod gitignore;
@@ -218,6 +222,7 @@ impl Error {
     }
 
     /// Turn an error into a tagged error with the given depth.
+    #[cfg(feature = "parallel")]
     fn with_depth(self, depth: usize) -> Error {
         Error::WithDepth {
             depth: depth,

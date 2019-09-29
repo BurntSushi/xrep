@@ -1,15 +1,21 @@
 use std::cmp;
 use std::ffi::OsStr;
 use std::fmt;
-use std::fs::{self, FileType, Metadata};
+#[cfg(feature = "parallel")]
+use std::fs;
+use std::fs::{FileType, Metadata};
 use std::io;
 use std::path::{Path, PathBuf};
+#[cfg(feature = "parallel")]
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+#[cfg(feature = "parallel")]
 use std::thread;
+#[cfg(feature = "parallel")]
 use std::time::Duration;
 use std::vec;
 
+#[cfg(feature = "parallel")]
 use channel;
 use same_file::Handle;
 use walkdir::{self, WalkDir};
@@ -117,6 +123,7 @@ impl DirEntry {
         }
     }
 
+    #[cfg(feature = "parallel")]
     fn new_raw(dent: DirEntryRaw, err: Option<Error>) -> DirEntry {
         DirEntry {
             dent: DirEntryInner::Raw(dent),
@@ -139,6 +146,7 @@ impl DirEntry {
 enum DirEntryInner {
     Stdin,
     Walkdir(walkdir::DirEntry),
+    #[cfg(feature = "parallel")]
     Raw(DirEntryRaw),
 }
 
@@ -148,6 +156,7 @@ impl DirEntryInner {
         match *self {
             Stdin => Path::new("<stdin>"),
             Walkdir(ref x) => x.path(),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => x.path(),
         }
     }
@@ -157,6 +166,7 @@ impl DirEntryInner {
         match self {
             Stdin => PathBuf::from("<stdin>"),
             Walkdir(x) => x.into_path(),
+            #[cfg(feature = "parallel")]
             Raw(x) => x.into_path(),
         }
     }
@@ -166,6 +176,7 @@ impl DirEntryInner {
         match *self {
             Stdin => false,
             Walkdir(ref x) => x.path_is_symlink(),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => x.path_is_symlink(),
         }
     }
@@ -190,6 +201,7 @@ impl DirEntryInner {
             Walkdir(ref x) => x
                 .metadata()
                 .map_err(|err| Error::Io(io::Error::from(err)).with_path(x.path())),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => x.metadata(),
         }
     }
@@ -199,6 +211,7 @@ impl DirEntryInner {
         match *self {
             Stdin => None,
             Walkdir(ref x) => Some(x.file_type()),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => Some(x.file_type()),
         }
     }
@@ -208,6 +221,7 @@ impl DirEntryInner {
         match *self {
             Stdin => OsStr::new("<stdin>"),
             Walkdir(ref x) => x.file_name(),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => x.file_name(),
         }
     }
@@ -217,6 +231,7 @@ impl DirEntryInner {
         match *self {
             Stdin => 0,
             Walkdir(ref x) => x.depth(),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => x.depth(),
         }
     }
@@ -228,6 +243,7 @@ impl DirEntryInner {
         match *self {
             Stdin => None,
             Walkdir(ref x) => Some(x.ino()),
+            #[cfg(feature = "parallel")]
             Raw(ref x) => Some(x.ino()),
         }
     }
@@ -274,6 +290,7 @@ impl fmt::Debug for DirEntryRaw {
     }
 }
 
+#[cfg(feature = "parallel")]
 impl DirEntryRaw {
     fn path(&self) -> &Path {
         &self.path
@@ -580,6 +597,7 @@ impl WalkBuilder {
     /// Note that this *doesn't* return something that implements `Iterator`.
     /// Instead, the returned value must be run with a closure. e.g.,
     /// `builder.build_parallel().run(|| |path| println!("{:?}", path))`.
+    #[cfg(feature = "parallel")]
     pub fn build_parallel(&self) -> WalkParallel {
         WalkParallel {
             paths: self.paths.clone().into_iter(),
@@ -1063,6 +1081,7 @@ pub enum WalkState {
 }
 
 impl WalkState {
+    #[cfg(feature = "parallel")]
     fn is_quit(&self) -> bool {
         *self == WalkState::Quit
     }
@@ -1076,6 +1095,7 @@ impl WalkState {
 /// and precedence is explained in the documentation for `WalkBuilder`.
 ///
 /// Unlike `Walk`, this uses multiple threads for traversing a directory.
+#[cfg(feature = "parallel")]
 pub struct WalkParallel {
     paths: vec::IntoIter<PathBuf>,
     ig_root: Ignore,
@@ -1087,6 +1107,7 @@ pub struct WalkParallel {
     skip: Option<Arc<Handle>>,
 }
 
+#[cfg(feature = "parallel")]
 impl WalkParallel {
     /// Execute the parallel recursive directory iterator. `mkf` is called
     /// for each thread used for iteration. The function produced by `mkf`
@@ -1190,6 +1211,7 @@ impl WalkParallel {
 }
 
 /// Message is the set of instructions that a worker knows how to process.
+#[cfg(feature = "parallel")]
 enum Message {
     /// A work item corresponds to a directory that should be descended into.
     /// Work items for entries that should be skipped or ignored should not
@@ -1203,6 +1225,7 @@ enum Message {
 ///
 /// Each unit of work corresponds to a directory that should be descended
 /// into.
+#[cfg(feature = "parallel")]
 struct Work {
     /// The directory entry.
     dent: DirEntry,
@@ -1213,6 +1236,7 @@ struct Work {
     root_device: Option<u64>,
 }
 
+#[cfg(feature = "parallel")]
 impl Work {
     /// Returns true if and only if this work item is a directory.
     fn is_dir(&self) -> bool {
@@ -1267,6 +1291,7 @@ impl Work {
 /// ignore matchers, producing new work and invoking the caller's callback.
 ///
 /// Note that a worker is *both* a producer and a consumer.
+#[cfg(feature = "parallel")]
 struct Worker {
     /// The caller's callback.
     f: Box<dyn FnMut(Result<DirEntry, Error>) -> WalkState + Send + 'static>,
@@ -1303,6 +1328,7 @@ struct Worker {
     skip: Option<Arc<Handle>>,
 }
 
+#[cfg(feature = "parallel")]
 impl Worker {
     /// Runs this worker until there is no more work left to do.
     ///
@@ -1573,6 +1599,7 @@ impl Worker {
     }
 }
 
+#[cfg(feature = "parallel")]
 fn check_symlink_loop(
     ig_parent: &Ignore,
     child_path: &Path,
@@ -1684,11 +1711,13 @@ fn path_equals(dent: &DirEntry, handle: &Handle) -> Result<bool, Error> {
 
 /// Returns true if and only if the given path is on the same device as the
 /// given root device.
+#[cfg(feature = "parallel")]
 fn is_same_file_system(root_device: u64, path: &Path) -> Result<bool, Error> {
     let dent_device = device_num(path).map_err(|err| Error::Io(err).with_path(path))?;
     Ok(root_device == dent_device)
 }
 
+#[cfg(feature = "parallel")]
 #[cfg(unix)]
 fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     use std::os::unix::fs::MetadataExt;
@@ -1696,6 +1725,7 @@ fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     path.as_ref().metadata().map(|md| md.dev())
 }
 
+#[cfg(feature = "parallel")]
 #[cfg(windows)]
 fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     use winapi_util::{file, Handle};
@@ -1704,6 +1734,7 @@ fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     file::information(h).map(|info| info.volume_serial_number())
 }
 
+#[cfg(feature = "parallel")]
 #[cfg(not(any(unix, windows)))]
 fn device_num<P: AsRef<Path>>(_: P) -> io::Result<u64> {
     Err(io::Error::new(

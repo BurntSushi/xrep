@@ -18,13 +18,13 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam-channel = "0.3.6"
+crossbeam-channel = { version = "0.3.6", optional = true }
 globset = { version = "0.4.3", path = "../globset" }
 lazy_static = "1.1"
 log = "0.4.5"
 memchr = "2.1"
 regex = "1.1"
-same-file = "1.0.4"
+same-file = { version = "1.0.4" }
 thread_local = "0.3.6"
 walkdir = "2.2.7"
 
@@ -32,4 +32,10 @@ walkdir = "2.2.7"
 version = "0.1.2"
 
 [features]
+default = ["parallel"]
+parallel = ["crossbeam-channel"]
 simd-accel = ["globset/simd-accel"]
+
+[[example]]
+name = "walk"
+required-features = ["parallel"]

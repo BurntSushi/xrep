@@ -129,6 +129,7 @@ struct IgnoreInner {
 
 impl Ignore {
     /// Return the directory path of this matcher.
+    #[cfg(feature = "parallel")]
     pub fn path(&self) -> &Path {
         &self.0.dir
     }
@@ -139,6 +140,7 @@ impl Ignore {
     }
 
     /// Returns true if this matcher was added via the `add_parents` method.
+    #[cfg(feature = "parallel")]
     pub fn is_absolute_parent(&self) -> bool {
         self.0.is_absolute_parent
     }
