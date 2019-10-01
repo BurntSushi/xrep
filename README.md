@@ -306,6 +306,12 @@ packaging as Debian:
 $ sudo apt-get install ripgrep
 ```
 
+If you're a **Docker user**, ripgrep is [available](https://github.com/mbologna/docker-ripgrep) as a Docker container:
+
+```
+$ docker run -v `pwd`:/data:ro mbologna/docker-ripgrep rg <OPTIONS> <SEARCH PATTERN>
+```
+
 (N.B. Various snaps for ripgrep on Ubuntu are also available, but none of them
 seem to work right and generate a number of very strange bug reports that I
 don't know how to fix and don't have the time to fix. Therefore, it is no
