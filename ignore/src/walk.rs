@@ -1033,7 +1033,18 @@ impl Iterator for WalkEventIter {
             None => None,
             Some(Err(err)) => Some(Err(err)),
             Some(Ok(dent)) => {
-                if dent.file_type().is_dir() {
+                let is_dir = match (dent.file_type().is_dir(), dent.file_type().is_symlink()) {
+                    (true, _) => true,
+                    (false, true) => {
+                        if let Ok(metadata) = dent.path().metadata() {
+                            metadata.file_type().is_dir()
+                        } else {
+                            false
+                        }
+                    },
+                    _ => false,
+                };
+                if is_dir {
                     self.depth += 1;
                     Some(Ok(WalkEvent::Dir(dent)))
                 } else {
