@@ -480,6 +480,7 @@ impl DirEntryRaw {
 #[derive(Clone)]
 pub struct WalkBuilder {
     paths: Vec<PathBuf>,
+    root: PathBuf,
     ig_builder: IgnoreBuilder,
     max_depth: Option<usize>,
     max_filesize: Option<u64>,
@@ -500,6 +501,7 @@ impl fmt::Debug for WalkBuilder {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("WalkBuilder")
             .field("paths", &self.paths)
+            .field("root", &self.root)
             .field("ig_builder", &self.ig_builder)
             .field("max_depth", &self.max_depth)
             .field("max_filesize", &self.max_filesize)
@@ -518,8 +520,10 @@ impl WalkBuilder {
     /// is better to call `add` on this builder than to create multiple
     /// `Walk` values.
     pub fn new<P: AsRef<Path>>(path: P) -> WalkBuilder {
+        let root = path.as_ref().to_path_buf();
         WalkBuilder {
-            paths: vec![path.as_ref().to_path_buf()],
+            paths: vec![root.clone()],
+            root,
             ig_builder: IgnoreBuilder::new(),
             max_depth: None,
             max_filesize: None,
@@ -643,7 +647,7 @@ impl WalkBuilder {
     /// example, if an ignore file contains an invalid glob, all other globs
     /// are still applied.
     pub fn add_ignore<P: AsRef<Path>>(&mut self, path: P) -> Option<Error> {
-        let mut builder = GitignoreBuilder::new("");
+        let mut builder = GitignoreBuilder::new(&self.root);
         let mut errs = PartialErrorBuilder::default();
         errs.maybe_push(builder.add(path));
         match builder.build() {
