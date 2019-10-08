@@ -1267,6 +1267,13 @@ impl ArgMatches {
 
     /// Builds the set of glob overrides from the command line flags.
     fn overrides(&self) -> Result<Override> {
+        if !(self.is_present("glob-case-insensitive")
+             || self.is_present("glob")
+             || self.is_present("iglob"))
+        {
+            return Ok(Override::empty());
+        }
+
         let mut builder = OverrideBuilder::new(env::current_dir()?);
         // Make all globs case insensitive with --glob-case-insensitive.
         if self.is_present("glob-case-insensitive") {
@@ -1479,6 +1486,10 @@ impl ArgMatches {
     /// flag. If no --pre-globs are available, then this always returns an
     /// empty set of globs.
     fn preprocessor_globs(&self) -> Result<Override> {
+        if !self.is_present("pre-glob") {
+            return Ok(Override::empty());
+        }
+
         let mut builder = OverrideBuilder::new(env::current_dir()?);
         for glob in self.values_of_lossy_vec("pre-glob") {
             builder.add(&glob)?;
