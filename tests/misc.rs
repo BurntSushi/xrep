@@ -392,6 +392,18 @@ rgtest!(count_matches_via_only, |dir: Dir, mut cmd: TestCommand| {
     eqnice!(expected, cmd.stdout());
 });
 
+rgtest!(include_zero, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("sherlock", SHERLOCK);
+    cmd.arg("--count").arg("--include-zero").arg("string_that_doesnt_appear");
+    cmd.assert_err();
+
+    let output = cmd.cmd().output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let expected = "sherlock:0\n";
+
+    eqnice!(expected, stdout);
+});
+
 rgtest!(files_with_matches, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.arg("--files-with-matches").arg("Sherlock");
