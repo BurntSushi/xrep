@@ -812,6 +812,7 @@ impl ArgMatches {
             .stats(self.stats())
             .path(self.with_filename(paths))
             .max_matches(self.max_count()?)
+            .exclude_zero(!self.is_present("include-zero"))
             .separator_field(b":".to_vec())
             .separator_path(self.path_separator()?)
             .path_terminator(self.path_terminator());

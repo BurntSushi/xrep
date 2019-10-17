@@ -11,8 +11,10 @@ Feature enhancements:
 
 * Added or improved file type filtering for erb, diff, Gradle, HAML, Org,
   Postscript, Skim, Slim, Slime, RPM Spec files, Typoscript, xml.
+* [FEATURE #1370](https://github.com/BurntSushi/ripgrep/pull/1370):
+  Add `--include-zero` flag that shows files searched without matches.
 * [FEATURE #1390](https://github.com/BurntSushi/ripgrep/pull/1390):
-  Add new `--no-context-separator` flag that always hides context separators.
+  Add `--no-context-separator` flag that always hides context separators.
 
 Bug fixes:
 

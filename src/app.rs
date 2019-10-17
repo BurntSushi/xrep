@@ -578,6 +578,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_ignore_case(&mut args);
     flag_ignore_file(&mut args);
     flag_ignore_file_case_insensitive(&mut args);
+    flag_include_zero(&mut args);
     flag_invert_match(&mut args);
     flag_json(&mut args);
     flag_line_buffered(&mut args);
@@ -1370,6 +1371,17 @@ This flag can be disabled with the --no-ignore-file-case-insensitive flag.
     let arg = RGArg::switch("no-ignore-file-case-insensitive")
         .hidden()
         .overrides("ignore-file-case-insensitive");
+    args.push(arg);
+}
+
+fn flag_include_zero(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Include files with zero matches in summary";
+    const LONG: &str = long!("\
+When used with --count or --count-matches, print the number of matches for
+each file even if there were zero matches. This is disabled by default but can
+be enabled to make ripgrep behave more like grep.
+");
+    let arg = RGArg::switch("include-zero").help(SHORT).long_help(LONG);
     args.push(arg);
 }
 

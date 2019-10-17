@@ -72,6 +72,7 @@ _rg() {
     + '(count)' # Counting options
     {-c,--count}'[only show count of matching lines for each file]'
     '--count-matches[only show count of individual matches for each file]'
+    '--include-zero[include files with zero matches in summary]'
 
     + '(encoding)' # Encoding options
     {-E+,--encoding=}'[specify text encoding of files to search]: :_rg_encodings'

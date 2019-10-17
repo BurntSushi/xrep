@@ -202,6 +202,8 @@ impl SummaryBuilder {
     /// This completely overrides any previous color specifications. This does
     /// not add to any previously provided color specifications on this
     /// builder.
+    ///
+    /// The default color specifications provide no styling.
     pub fn color_specs(
         &mut self,
         specs: ColorSpecs,
@@ -256,6 +258,8 @@ impl SummaryBuilder {
     /// If multi line search is enabled and a match spans multiple lines, then
     /// that match is counted exactly once for the purposes of enforcing this
     /// limit, regardless of how many lines it spans.
+    ///
+    /// This is disabled by default.
     pub fn max_matches(&mut self, limit: Option<u64>) -> &mut SummaryBuilder {
         self.config.max_matches = limit;
         self
@@ -266,6 +270,8 @@ impl SummaryBuilder {
     /// When enabled and the mode is either `Count` or `CountMatches`, then
     /// results are not printed if no matches were found. Otherwise, every
     /// search prints a result with a possibly `0` number of matches.
+    ///
+    /// This is enabled by default.
     pub fn exclude_zero(&mut self, yes: bool) -> &mut SummaryBuilder {
         self.config.exclude_zero = yes;
         self
@@ -292,6 +298,8 @@ impl SummaryBuilder {
     /// A typical use for this option is to permit cygwin users on Windows to
     /// set the path separator to `/` instead of using the system default of
     /// `\`.
+    ///
+    /// This is disabled by default.
     pub fn separator_path(
         &mut self,
         sep: Option<u8>,
