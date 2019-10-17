@@ -25,7 +25,7 @@ struct Config {
     stats: bool,
     path: bool,
     max_matches: Option<u64>,
-    exclude_zero: bool,
+    include_zero: bool,
     separator_field: Arc<Vec<u8>>,
     separator_path: Option<u8>,
     path_terminator: Option<u8>,
@@ -39,7 +39,7 @@ impl Default for Config {
             stats: false,
             path: true,
             max_matches: None,
-            exclude_zero: true,
+            include_zero: false,
             separator_field: Arc::new(b":".to_vec()),
             separator_path: None,
             path_terminator: None,
@@ -261,13 +261,13 @@ impl SummaryBuilder {
         self
     }
 
-    /// Exclude count-related summary results with no matches.
+    /// Include count-related summary results with no matches.
     ///
     /// When enabled and the mode is either `Count` or `CountMatches`, then
-    /// results are not printed if no matches were found. Otherwise, every
-    /// search prints a result with a possibly `0` number of matches.
-    pub fn exclude_zero(&mut self, yes: bool) -> &mut SummaryBuilder {
-        self.config.exclude_zero = yes;
+    /// results are printed even if no matches were found. Otherwise, every
+    /// search only prints a result if there were matches.
+    pub fn include_zero(&mut self, yes: bool) -> &mut SummaryBuilder {
+        self.config.include_zero = yes;
         self
     }
 
@@ -666,7 +666,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
         }
 
         let show_count =
-            !self.summary.config.exclude_zero
+            self.summary.config.include_zero
             || self.match_count > 0;
         match self.summary.config.kind {
             SummaryKind::Count => {
@@ -820,7 +820,7 @@ and exhibited clearly, with a label attached.
         ).unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
-            .exclude_zero(false)
+            .include_zero(true)
             .build_no_color(vec![]);
         SearcherBuilder::new()
             .build()
@@ -842,7 +842,7 @@ and exhibited clearly, with a label attached.
         ).unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
-            .exclude_zero(true)
+            .include_zero(false)
             .build_no_color(vec![]);
         SearcherBuilder::new()
             .build()
