@@ -281,6 +281,7 @@ _rg() {
     '--dfa-size-limit=[specify upper size limit of generated DFA]:DFA size (bytes)'
     "(1 stats)--files[show each file that would be searched (but don't search)]"
     '*--ignore-file=[specify additional ignore file]:ignore file:_files'
+    '--include-zero[include files with zero matches in summary]'
     '(-v --invert-match)'{-v,--invert-match}'[invert matching]'
     '(-M --max-columns)'{-M+,--max-columns=}'[specify max length of lines to print]:number of bytes'
     '(-m --max-count)'{-m+,--max-count=}'[specify max number of matches per file]:number of matches'
