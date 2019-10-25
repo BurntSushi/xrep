@@ -283,6 +283,12 @@ $ nix-env --install ripgrep
 $ # (Or using the attribute name, which is also ripgrep.)
 ```
 
+If you're a **Scarf** user you can install ripgrep from the [official repo](https://scarf.sh/package/scarf/ripgrep):
+
+```
+scarf install ripgrep
+```
+
 If you're a **Debian** user (or a user of a Debian derivative like **Ubuntu**),
 then ripgrep can be installed using a binary `.deb` file provided in each
 [ripgrep release](https://github.com/BurntSushi/ripgrep/releases).
