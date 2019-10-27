@@ -65,7 +65,10 @@ use std::fmt;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub use walk::{DirEntry, Walk, WalkBuilder, WalkParallel, WalkState};
+pub use walk::{
+    DirEntry, Walk, WalkBuilder, WalkParallel, WalkState,
+    ParallelVisitorBuilder, ParallelVisitor,
+};
 
 mod dir;
 pub mod gitignore;
