@@ -6,6 +6,8 @@ Bug fixes:
 
 * [BUG #1335](https://github.com/BurntSushi/ripgrep/issues/1335):
   Fixes a performance bug when searching plain text files with very long lines.
+* [FEATURE #1418](https://github.com/BurntSushi/ripgrep/issues/1418):
+  Add `diff` file type for `.patch` and `.diff` files.
 
 
 11.0.2 (2019-08-01)

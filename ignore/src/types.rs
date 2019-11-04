@@ -134,6 +134,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("dart", &["*.dart"]),
     ("d", &["*.d"]),
     ("dhall", &["*.dhall"]),
+    ("diff", &["*.patch", "*.diff"]),
     ("docker", &["*Dockerfile*"]),
     ("edn", &["*.edn"]),
     ("elisp", &["*.el"]),
