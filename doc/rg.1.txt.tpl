@@ -28,8 +28,8 @@ Synopsis
 DESCRIPTION
 -----------
 ripgrep (rg) recursively searches your current directory for a regex pattern.
-By default, ripgrep will respect your .gitignore and automatically skip hidden
-files/directories and binary files.
+By default, ripgrep will respect your .gitignore (and .git/info/exclude)
+and automatically skip hidden files/directories and binary files.
 
 ripgrep's default regex engine uses finite automata and guarantees linear
 time searching. Because of this, features like backreferences and arbitrary
