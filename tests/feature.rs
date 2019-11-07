@@ -728,6 +728,18 @@ rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("\u{FFFD}\u{FFFD}\x00b\n", cmd.stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/pull/1420
+rgtest!(f1420_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir(".git/info");
+    dir.create(".git/info/exclude", "foo");
+    dir.create("bar", "");
+    dir.create("foo", "");
+
+    cmd.arg("--sort").arg("path").arg("--files");
+    eqnice!("bar\n", cmd.stdout());
+    eqnice!("bar\nfoo\n", cmd.arg("--no-ignore-exclude").stdout());
+});
+
 rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
     cmd.args(&[

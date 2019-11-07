@@ -104,6 +104,76 @@ was found. In summary:
   unable to read a file).
 
 
+AUTOMATIC FILTERING
+-------------------
+TL;DR - To disable automatic filtering, use 'rg -uuu'.
+
+One of ripgrep's most important features is its automatic smart filtering.
+It is the most apparent differentiating feature between ripgrep and other tools
+like 'grep'. As such, its behavior may be surprising to users that aren't
+expecting it.
+
+ripgrep does four types of filtering automatically:
+
+    1. Files and directories that match ignore rules are not searched.
+    2. Hidden files and directories are not searched.
+    3. Binary files (files with a 'NUL' byte) are not searched.
+    4. Symbolic links are not followed.
+
+The first type of filtering is the most sophisticated. ripgrep will attempt to
+respect your gitignore rules as faithfully as possible. In particular, this
+includes the following:
+
+    * Any global rules, e.g., in '$HOME/.config/git/ignore'.
+    * Any rules in '.gitignore'.
+    * Any local rules, e.g., in '.git/info/exclude'.
+
+In some cases, ripgrep and git will not always be in sync in terms of which
+files are ignored. For example, a file that is ignored via '.gitignore' but is
+tracked by git would not be searched by ripgrep even though git tracks it. This
+is unlikely to ever be fixed. Instead, you should either make sure your exclude
+rules match the files you track precisely, or otherwise use 'git grep' for
+search.
+
+Additional ignore rules can be provided outside of a git context:
+
+    * Any rules in '.ignore'.
+    * Any rules in '.rgignore'.
+    * Any rules in files specified with the '--ignore-file' flag.
+
+The precedence of ignore rules is as follows, with later items overriding
+earlier items:
+
+    * Files given by '--ignore-file'.
+    * Global gitignore rules, e.g., from '$HOME/.config/git/ignore'.
+    * Local rules from '.git/info/exclude'.
+    * Rules from '.gitignore'.
+    * Rules from '.ignore'.
+    * Rules from '.rgignore'.
+
+So for example, if 'foo' were in a '.gitignore' and '!foo' were in an
+'.rgignore', then 'foo' would not be ignored since '.rgignore' takes precedence
+over '.gitignore'.
+
+Each of the types of filtering can be configured via command line flags:
+
+    * There are several flags starting with '--no-ignore' that toggle which,
+      if any, ignore rules are respected. '--no-ignore' by itself will disable
+      all of them.
+    * '--hidden' will force ripgrep to search hidden files and directories.
+    * '--binary' will force ripgrep to search binary files.
+    * '-L/--follow' will force ripgrep to follow symlinks.
+
+As a special short hand, the `-u` flag can be specified up to three times. Each
+additional time incrementally decreases filtering:
+
+    * '-u' is equivalent to '--no-ignore'.
+    * '-uu' is equivalent to '--no-ignore --hidden'.
+    * '-uuu' is equivalent to '--no-ignore --hidden --binary'.
+
+In particular, 'rg -uuu' should search the same exact content as 'grep -r'.
+
+
 CONFIGURATION FILES
 -------------------
 ripgrep supports reading configuration files that change ripgrep's default

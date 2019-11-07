@@ -129,6 +129,10 @@ _rg() {
     '--ignore-file-case-insensitive[process ignore files case insensitively]'
     $no'--no-ignore-file-case-insensitive[process ignore files case sensitively]'
 
+    + '(ignore-exclude)' # Local exclude (ignore)-file options
+    "--no-ignore-exclude[don't respect local exclude (ignore) files]"
+    $no'--ignore-exclude[respect local exclude (ignore) files]'
+
     + '(ignore-global)' # Global ignore-file options
     "--no-ignore-global[don't respect global ignore files]"
     $no'--ignore-global[respect global ignore files]'

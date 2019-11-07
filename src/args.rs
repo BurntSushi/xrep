@@ -881,7 +881,7 @@ impl ArgMatches {
             .ignore(!self.no_ignore_dot())
             .git_global(!self.no_ignore_vcs() && !self.no_ignore_global())
             .git_ignore(!self.no_ignore_vcs())
-            .git_exclude(!self.no_ignore_vcs())
+            .git_exclude(!self.no_ignore_vcs() && !self.no_ignore_exclude())
             .ignore_case_insensitive(self.ignore_file_case_insensitive());
         if !self.no_ignore() {
             builder.add_custom_ignore_filename(".rgignore");
@@ -1229,6 +1229,11 @@ impl ArgMatches {
     /// Returns true if .ignore files should be ignored.
     fn no_ignore_dot(&self) -> bool {
         self.is_present("no-ignore-dot") || self.no_ignore()
+    }
+
+    /// Returns true if local exclude (ignore) files should be ignored.
+    fn no_ignore_exclude(&self) -> bool {
+        self.is_present("no-ignore-exclude") || self.no_ignore()
     }
 
     /// Returns true if global ignore files should be ignored.
