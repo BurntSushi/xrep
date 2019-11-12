@@ -7,6 +7,9 @@ Bug fixes:
 * [BUG #1335](https://github.com/BurntSushi/ripgrep/issues/1335):
   Fixes a performance bug when searching plain text files with very long lines.
 
+Various:
+
+* Add `.xhtml` to xml file type
 
 11.0.2 (2019-08-01)
 ===================
