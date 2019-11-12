@@ -312,7 +312,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("webidl", &["*.idl", "*.webidl", "*.widl"]),
     ("xml", &[
         "*.xml", "*.xml.dist", "*.dtd", "*.xsl", "*.xslt", "*.xsd", "*.xjb",
-        "*.rng", "*.sch",
+        "*.rng", "*.sch", "*.xhtml",
     ]),
     ("xz", &["*.xz", "*.txz"]),
     ("yacc", &["*.y"]),
