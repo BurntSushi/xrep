@@ -1,7 +1,7 @@
 use std::error;
 use std::io::{self, Write};
 use std::process;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::Instant;
 
 use ignore::WalkState;
@@ -55,16 +55,15 @@ fn main() {
 fn try_main(args: Args) -> Result<()> {
     use args::Command::*;
 
-    let matched =
-        match args.command()? {
-            Search => search(&args),
-            SearchParallel => search_parallel(&args),
-            SearchNever => Ok(false),
-            Files => files(&args),
-            FilesParallel => files_parallel(&args),
-            Types => types(&args),
-            PCRE2Version => pcre2_version(&args),
-        }?;
+    let matched = match args.command()? {
+        Search => search(&args),
+        SearchParallel => search_parallel(&args),
+        SearchNever => Ok(false),
+        Files => files(&args),
+        FilesParallel => files_parallel(&args),
+        Types => types(&args),
+        PCRE2Version => pcre2_version(&args),
+    }?;
     if matched && (args.quiet() || !messages::errored()) {
         process::exit(0)
     } else if messages::errored() {
@@ -126,24 +125,21 @@ fn search_parallel(args: &Args) -> Result<bool> {
 
     let quit_after_match = args.quit_after_match()?;
     let started_at = Instant::now();
-    let subject_builder = Arc::new(args.subject_builder());
-    let bufwtr = Arc::new(args.buffer_writer()?);
-    let stats = Arc::new(args.stats()?.map(Mutex::new));
-    let matched = Arc::new(AtomicBool::new(false));
+    let subject_builder = args.subject_builder();
+    let bufwtr = args.buffer_writer()?;
+    let stats = args.stats()?.map(Mutex::new);
+    let matched = AtomicBool::new(false);
     let mut searcher_err = None;
     args.walker_parallel()?.run(|| {
-        let args = args.clone();
-        let bufwtr = Arc::clone(&bufwtr);
-        let stats = Arc::clone(&stats);
-        let matched = Arc::clone(&matched);
-        let subject_builder = Arc::clone(&subject_builder);
+        let bufwtr = &bufwtr;
+        let stats = &stats;
+        let matched = &matched;
+        let subject_builder = &subject_builder;
         let mut searcher = match args.search_worker(bufwtr.buffer()) {
             Ok(searcher) => searcher,
             Err(err) => {
                 searcher_err = Some(err);
-                return Box::new(move |_| {
-                    WalkState::Quit
-                });
+                return Box::new(move |_| WalkState::Quit);
             }
         };
 
@@ -185,7 +181,7 @@ fn search_parallel(args: &Args) -> Result<bool> {
     if let Some(err) = searcher_err.take() {
         return Err(err);
     }
-    if let Some(ref locked_stats) = *stats {
+    if let Some(ref locked_stats) = stats {
         let elapsed = Instant::now().duration_since(started_at);
         let stats = locked_stats.lock().unwrap();
         let mut searcher = args.search_worker(args.stdout())?;
@@ -235,9 +231,9 @@ fn files_parallel(args: &Args) -> Result<bool> {
     use std::thread;
 
     let quit_after_match = args.quit_after_match()?;
-    let subject_builder = Arc::new(args.subject_builder());
+    let subject_builder = args.subject_builder();
     let mut path_printer = args.path_printer(args.stdout())?;
-    let matched = Arc::new(AtomicBool::new(false));
+    let matched = AtomicBool::new(false);
     let (tx, rx) = mpsc::channel::<Subject>();
 
     let print_thread = thread::spawn(move || -> io::Result<()> {
@@ -247,8 +243,8 @@ fn files_parallel(args: &Args) -> Result<bool> {
         Ok(())
     });
     args.walker_parallel()?.run(|| {
-        let subject_builder = Arc::clone(&subject_builder);
-        let matched = Arc::clone(&matched);
+        let subject_builder = &subject_builder;
+        let matched = &matched;
         let tx = tx.clone();
 
         Box::new(move |result| {
