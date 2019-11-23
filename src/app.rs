@@ -2308,16 +2308,15 @@ fn flag_sort(args: &mut Vec<RGArg>) {
 This flag enables sorting of results in ascending order. The possible values
 for this flag are:
 
-    path        Sort by file path.
-    modified    Sort by the last modified time on a file.
-    accessed    Sort by the last accessed time on a file.
-    created     Sort by the creation time on a file.
-    none        Do not sort results.
+    none      (Default) Do not sort results. Fastest. Can be multi-threaded.
+    path      Sort by file path. Always single-threaded.
+    modified  Sort by the last modified time on a file. Always single-threaded.
+    accessed  Sort by the last accessed time on a file. Always single-threaded.
+    created   Sort by the creation time on a file. Always single-threaded.
 
-If the sorting criteria isn't available on your system (for example, creation
-time is not available on ext4 file systems), then ripgrep will attempt to
-detect this and print an error without searching any results. Otherwise, the
-sort order is unspecified.
+If the chosen (manually or by-default) sorting criteria isn't available on your
+system (for example, creation time is not available on ext4 file systems), then
+ripgrep will attempt to detect this, print an error and exit without searching.
 
 To sort results in reverse or descending order, use the --sortr flag. Also,
 this flag overrides --sortr.
@@ -2341,16 +2340,15 @@ fn flag_sortr(args: &mut Vec<RGArg>) {
 This flag enables sorting of results in descending order. The possible values
 for this flag are:
 
-    path        Sort by file path.
-    modified    Sort by the last modified time on a file.
-    accessed    Sort by the last accessed time on a file.
-    created     Sort by the creation time on a file.
-    none        Do not sort results.
+    none      (Default) Do not sort results. Fastest. Can be multi-threaded.
+    path      Sort by file path. Always single-threaded.
+    modified  Sort by the last modified time on a file. Always single-threaded.
+    accessed  Sort by the last accessed time on a file. Always single-threaded.
+    created   Sort by the creation time on a file. Always single-threaded.
 
-If the sorting criteria isn't available on your system (for example, creation
-time is not available on ext4 file systems), then ripgrep will attempt to
-detect this and print an error without searching any results. Otherwise, the
-sort order is unspecified.
+If the chosen (manually or by-default) sorting criteria isn't available on your
+system (for example, creation time is not available on ext4 file systems), then
+ripgrep will attempt to detect this, print an error and exit without searching.
 
 To sort results in ascending order, use the --sort flag. Also, this flag
 overrides --sort.
