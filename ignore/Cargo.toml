@@ -1,6 +1,6 @@
 [package]
 name = "ignore"
-version = "0.4.9"  #:version
+version = "0.4.10"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A fast library for efficiently matching ignore files such as `.gitignore`
@@ -30,9 +30,6 @@ walkdir = "2.2.7"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.2"
-
-[dev-dependencies]
-tempfile = "3.0.5"
 
 [features]
 simd-accel = ["globset/simd-accel"]

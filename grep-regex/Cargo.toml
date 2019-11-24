@@ -1,6 +1,6 @@
 [package]
 name = "grep-regex"
-version = "0.1.4"  #:version
+version = "0.1.5"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Use Rust's regex library with the 'grep' crate.
@@ -19,4 +19,3 @@ log = "0.4.5"
 regex = "1.1"
 regex-syntax = "0.6.5"
 thread_local = "0.3.6"
-utf8-ranges = "1.0.1"

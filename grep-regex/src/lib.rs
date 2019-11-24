@@ -11,7 +11,6 @@ extern crate log;
 extern crate regex;
 extern crate regex_syntax;
 extern crate thread_local;
-extern crate utf8_ranges;
 
 pub use error::{Error, ErrorKind};
 pub use matcher::{RegexCaptures, RegexMatcher, RegexMatcherBuilder};

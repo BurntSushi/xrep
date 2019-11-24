@@ -143,16 +143,16 @@ would behave identically to the following command
 
 same with using globs
 
-    --glob=!git/*
+    --glob=!.git
 
 or
 
     --glob
-    !git/*
+    !.git
 
 would behave identically to the following command
 
-    rg --glob '!git/*' foo
+    rg --glob '!.git' foo
 
 ripgrep also provides a flag, *--no-config*, that when present will suppress
 any and all support for configuration. This includes any future support

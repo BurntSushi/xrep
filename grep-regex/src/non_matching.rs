@@ -1,6 +1,6 @@
 use grep_matcher::ByteSet;
 use regex_syntax::hir::{self, Hir, HirKind};
-use utf8_ranges::Utf8Sequences;
+use regex_syntax::utf8::Utf8Sequences;
 
 /// Return a confirmed set of non-matching bytes from the given expression.
 pub fn non_matching_bytes(expr: &Hir) -> ByteSet {

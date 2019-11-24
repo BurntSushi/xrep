@@ -537,7 +537,7 @@ impl GitignoreBuilder {
 ///
 /// Note that the file path returned may not exist.
 fn gitconfig_excludes_path() -> Option<PathBuf> {
-    // git supports $HOME/.gitconfig and $XDG_CONFIG_DIR/git/config. Notably,
+    // git supports $HOME/.gitconfig and $XDG_CONFIG_HOME/git/config. Notably,
     // both can be active at the same time, where $HOME/.gitconfig takes
     // precedent. So if $HOME/.gitconfig defines a `core.excludesFile`, then
     // we're done.
@@ -568,7 +568,7 @@ fn gitconfig_home_contents() -> Option<Vec<u8>> {
 }
 
 /// Returns the file contents of git's global config file, if one exists, in
-/// the user's XDG_CONFIG_DIR directory.
+/// the user's XDG_CONFIG_HOME directory.
 fn gitconfig_xdg_contents() -> Option<Vec<u8>> {
     let path = env::var_os("XDG_CONFIG_HOME")
         .and_then(|x| if x.is_empty() { None } else { Some(PathBuf::from(x)) })

@@ -4,8 +4,8 @@ use std::fmt;
 use std::fs::{self, FileType, Metadata};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::vec;
 
@@ -181,14 +181,14 @@ impl DirEntryInner {
         match *self {
             Stdin => {
                 let err = Error::Io(io::Error::new(
-                    io::ErrorKind::Other, "<stdin> has no metadata"));
+                    io::ErrorKind::Other,
+                    "<stdin> has no metadata",
+                ));
                 Err(err.with_path("<stdin>"))
             }
-            Walkdir(ref x) => {
-                x.metadata().map_err(|err| {
-                    Error::Io(io::Error::from(err)).with_path(x.path())
-                })
-            }
+            Walkdir(ref x) => x
+                .metadata()
+                .map_err(|err| Error::Io(io::Error::from(err)).with_path(x.path())),
             Raw(ref x) => x.metadata(),
         }
     }
@@ -222,8 +222,8 @@ impl DirEntryInner {
 
     #[cfg(unix)]
     fn ino(&self) -> Option<u64> {
-        use walkdir::DirEntryExt;
         use self::DirEntryInner::*;
+        use walkdir::DirEntryExt;
         match *self {
             Stdin => None,
             Walkdir(ref x) => Some(x.ino()),
@@ -296,7 +296,8 @@ impl DirEntryRaw {
             fs::metadata(&self.path)
         } else {
             Ok(self.metadata.clone())
-        }.map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
+        }
+        .map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
     }
 
     #[cfg(not(windows))]
@@ -305,7 +306,8 @@ impl DirEntryRaw {
             fs::metadata(&self.path)
         } else {
             fs::symlink_metadata(&self.path)
-        }.map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
+        }
+        .map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
     }
 
     fn file_type(&self) -> FileType {
@@ -313,7 +315,9 @@ impl DirEntryRaw {
     }
 
     fn file_name(&self) -> &OsStr {
-        self.path.file_name().unwrap_or_else(|| self.path.as_os_str())
+        self.path
+            .file_name()
+            .unwrap_or_else(|| self.path.as_os_str())
     }
 
     fn depth(&self) -> usize {
@@ -325,10 +329,7 @@ impl DirEntryRaw {
         self.ino
     }
 
-    fn from_entry(
-        depth: usize,
-        ent: &fs::DirEntry,
-    ) -> Result<DirEntryRaw, Error> {
+    fn from_entry(depth: usize, ent: &fs::DirEntry) -> Result<DirEntryRaw, Error> {
         let ty = ent.file_type().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
             Error::WithDepth {
@@ -386,18 +387,14 @@ impl DirEntryRaw {
         ty: fs::FileType,
     ) -> Result<DirEntryRaw, Error> {
         Err(Error::Io(io::Error::new(
-            io::ErrorKind::Other, "unsupported platform")))
+            io::ErrorKind::Other,
+            "unsupported platform",
+        )))
     }
 
     #[cfg(windows)]
-    fn from_path(
-        depth: usize,
-        pb: PathBuf,
-        link: bool,
-    ) -> Result<DirEntryRaw, Error> {
-        let md = fs::metadata(&pb).map_err(|err| {
-            Error::Io(err).with_path(&pb)
-        })?;
+    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
+        let md = fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -408,16 +405,10 @@ impl DirEntryRaw {
     }
 
     #[cfg(unix)]
-    fn from_path(
-        depth: usize,
-        pb: PathBuf,
-        link: bool,
-    ) -> Result<DirEntryRaw, Error> {
+    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
-        let md = fs::metadata(&pb).map_err(|err| {
-            Error::Io(err).with_path(&pb)
-        })?;
+        let md = fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -429,13 +420,11 @@ impl DirEntryRaw {
 
     // Placeholder implementation to allow compiling on non-standard platforms (e.g. wasm32).
     #[cfg(not(any(windows, unix)))]
-    fn from_path(
-        depth: usize,
-        pb: PathBuf,
-        link: bool,
-    ) -> Result<DirEntryRaw, Error> {
+    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
         Err(Error::Io(io::Error::new(
-            io::ErrorKind::Other, "unsupported platform")))
+            io::ErrorKind::Other,
+            "unsupported platform",
+        )))
     }
 }
 
@@ -546,33 +535,34 @@ impl WalkBuilder {
         let follow_links = self.follow_links;
         let max_depth = self.max_depth;
         let sorter = self.sorter.clone();
-        let its = self.paths.iter().map(move |p| {
-            if p == Path::new("-") {
-                (p.to_path_buf(), None)
-            } else {
-                let mut wd = WalkDir::new(p);
-                wd = wd.follow_links(follow_links || p.is_file());
-                wd = wd.same_file_system(self.same_file_system);
-                if let Some(max_depth) = max_depth {
-                    wd = wd.max_depth(max_depth);
-                }
-                if let Some(ref sorter) = sorter {
-                    match sorter.clone() {
-                        Sorter::ByName(cmp) => {
-                            wd = wd.sort_by(move |a, b| {
-                                cmp(a.file_name(), b.file_name())
-                            });
-                        }
-                        Sorter::ByPath(cmp) => {
-                            wd = wd.sort_by(move |a, b| {
-                                cmp(a.path(), b.path())
-                            });
+        let its = self
+            .paths
+            .iter()
+            .map(move |p| {
+                if p == Path::new("-") {
+                    (p.to_path_buf(), None)
+                } else {
+                    let mut wd = WalkDir::new(p);
+                    wd = wd.follow_links(follow_links || p.is_file());
+                    wd = wd.same_file_system(self.same_file_system);
+                    if let Some(max_depth) = max_depth {
+                        wd = wd.max_depth(max_depth);
+                    }
+                    if let Some(ref sorter) = sorter {
+                        match sorter.clone() {
+                            Sorter::ByName(cmp) => {
+                                wd = wd.sort_by(move |a, b| cmp(a.file_name(), b.file_name()));
+                            }
+                            Sorter::ByPath(cmp) => {
+                                wd = wd.sort_by(move |a, b| cmp(a.path(), b.path()));
+                            }
                         }
                     }
+                    (p.to_path_buf(), Some(WalkEventIter::from(wd)))
                 }
-                (p.to_path_buf(), Some(WalkEventIter::from(wd)))
-            }
-        }).collect::<Vec<_>>().into_iter();
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
         let ig_root = self.ig_builder.build();
         Walk {
             its: its,
@@ -656,8 +646,12 @@ impl WalkBuilder {
         let mut errs = PartialErrorBuilder::default();
         errs.maybe_push(builder.add(path));
         match builder.build() {
-            Ok(gi) => { self.ig_builder.add_ignore(gi); }
-            Err(err) => { errs.push(err); }
+            Ok(gi) => {
+                self.ig_builder.add_ignore(gi);
+            }
+            Err(err) => {
+                errs.push(err);
+            }
         }
         errs.into_error_option()
     }
@@ -670,7 +664,7 @@ impl WalkBuilder {
     /// later names.
     pub fn add_custom_ignore_filename<S: AsRef<OsStr>>(
         &mut self,
-        file_name: S
+        file_name: S,
     ) -> &mut WalkBuilder {
         self.ig_builder.add_custom_ignore_filename(file_name);
         self
@@ -807,11 +801,9 @@ impl WalkBuilder {
     /// by `sort_by_file_name`.
     ///
     /// Note that this is not used in the parallel iterator.
-    pub fn sort_by_file_path<F>(
-        &mut self,
-        cmp: F,
-    ) -> &mut WalkBuilder
-    where F: Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static
+    pub fn sort_by_file_path<F>(&mut self, cmp: F) -> &mut WalkBuilder
+    where
+        F: Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static,
     {
         self.sorter = Some(Sorter::ByPath(Arc::new(cmp)));
         self
@@ -829,7 +821,8 @@ impl WalkBuilder {
     ///
     /// Note that this is not used in the parallel iterator.
     pub fn sort_by_file_name<F>(&mut self, cmp: F) -> &mut WalkBuilder
-    where F: Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static
+    where
+        F: Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static,
     {
         self.sorter = Some(Sorter::ByName(Arc::new(cmp)));
         self
@@ -1010,7 +1003,11 @@ enum WalkEvent {
 
 impl From<WalkDir> for WalkEventIter {
     fn from(it: WalkDir) -> WalkEventIter {
-        WalkEventIter { depth: 0, it: it.into_iter(), next: None }
+        WalkEventIter {
+            depth: 0,
+            it: it.into_iter(),
+            next: None,
+        }
     }
 }
 
@@ -1093,10 +1090,10 @@ impl WalkParallel {
     /// Execute the parallel recursive directory iterator. `mkf` is called
     /// for each thread used for iteration. The function produced by `mkf`
     /// is then in turn called for each visited file path.
-    pub fn run<F>(
-        self,
-        mut mkf: F,
-    ) where F: FnMut() -> Box<dyn FnMut(Result<DirEntry, Error>) -> WalkState + Send + 'static> {
+    pub fn run<F>(self, mut mkf: F)
+    where
+        F: FnMut() -> Box<dyn FnMut(Result<DirEntry, Error>) -> WalkState + Send + 'static>,
+    {
         let mut f = mkf();
         let threads = self.threads();
         // TODO: Figure out how to use a bounded channel here. With an
@@ -1113,30 +1110,16 @@ impl WalkParallel {
         // Note that we only send directories. For files, we send to them the
         // callback directly.
         for path in self.paths {
-            let (dent, root_device) =
-                if path == Path::new("-") {
-                    (DirEntry::new_stdin(), None)
+            let (dent, root_device) = if path == Path::new("-") {
+                (DirEntry::new_stdin(), None)
+            } else {
+                let root_device = if !self.same_file_system {
+                    None
                 } else {
-                    let root_device =
-                        if !self.same_file_system {
-                            None
-                        } else {
-                            match device_num(&path) {
-                                Ok(root_device) => Some(root_device),
-                                Err(err) => {
-                                    let err = Error::Io(err).with_path(path);
-                                    if f(Err(err)).is_quit() {
-                                        return;
-                                    }
-                                    continue;
-                                }
-                            }
-                        };
-                    match DirEntryRaw::from_path(0, path, false) {
-                        Ok(dent) => {
-                            (DirEntry::new_raw(dent, None), root_device)
-                        }
+                    match device_num(&path) {
+                        Ok(root_device) => Some(root_device),
                         Err(err) => {
+                            let err = Error::Io(err).with_path(path);
                             if f(Err(err)).is_quit() {
                                 return;
                             }
@@ -1144,11 +1127,22 @@ impl WalkParallel {
                         }
                     }
                 };
+                match DirEntryRaw::from_path(0, path, false) {
+                    Ok(dent) => (DirEntry::new_raw(dent, None), root_device),
+                    Err(err) => {
+                        if f(Err(err)).is_quit() {
+                            return;
+                        }
+                        continue;
+                    }
+                }
+            };
             tx.send(Message::Work(Work {
                 dent: dent,
                 ignore: self.ig_root.clone(),
                 root_device: root_device,
-            })).unwrap();
+            }))
+            .unwrap();
             any_work = true;
         }
         // ... but there's no need to start workers if we don't need them.
@@ -1324,22 +1318,21 @@ impl Worker {
                     continue;
                 }
             };
-            let descend =
-                if let Some(root_device) = work.root_device {
-                    match is_same_file_system(root_device, work.dent.path()) {
-                        Ok(true) => true,
-                        Ok(false) => false,
-                        Err(err) => {
-                            if (self.f)(Err(err)).is_quit() {
-                                self.quit_now();
-                                continue;
-                            }
-                            false
+            let descend = if let Some(root_device) = work.root_device {
+                match is_same_file_system(root_device, work.dent.path()) {
+                    Ok(true) => true,
+                    Ok(false) => false,
+                    Err(err) => {
+                        if (self.f)(Err(err)).is_quit() {
+                            self.quit_now();
+                            continue;
                         }
+                        false
                     }
-                } else {
-                    true
-                };
+                }
+            } else {
+                true
+            };
 
             let depth = work.dent.depth();
             match (self.f)(Ok(work.dent)) {
@@ -1357,12 +1350,7 @@ impl Worker {
                 continue;
             }
             for result in readdir {
-                let state = self.run_one(
-                    &work.ignore,
-                    depth + 1,
-                    work.root_device,
-                    result,
-                );
+                let state = self.run_one(&work.ignore, depth + 1, work.root_device, result);
                 if state.is_quit() {
                     self.quit_now();
                     continue 'get_work;
@@ -1427,23 +1415,24 @@ impl Worker {
             }
         }
         let should_skip_path = should_skip_entry(ig, &dent);
-        let should_skip_filesize =
-            if self.max_filesize.is_some() && !dent.is_dir() {
-                skip_filesize(
-                    self.max_filesize.unwrap(),
-                    dent.path(),
-                    &dent.metadata().ok(),
-                )
-            } else {
-                false
-            };
+        let should_skip_filesize = if self.max_filesize.is_some() && !dent.is_dir() {
+            skip_filesize(
+                self.max_filesize.unwrap(),
+                dent.path(),
+                &dent.metadata().ok(),
+            )
+        } else {
+            false
+        };
 
         if !should_skip_path && !should_skip_filesize {
-            self.tx.send(Message::Work(Work {
-                dent: dent,
-                ignore: ig.clone(),
-                root_device: root_device,
-            })).unwrap();
+            self.tx
+                .send(Message::Work(Work {
+                    dent: dent,
+                    ignore: ig.clone(),
+                    root_device: root_device,
+                }))
+                .unwrap();
         }
         WalkState::Continue
     }
@@ -1524,17 +1513,25 @@ fn check_symlink_loop(
     child_depth: usize,
 ) -> Result<(), Error> {
     let hchild = Handle::from_path(child_path).map_err(|err| {
-        Error::from(err).with_path(child_path).with_depth(child_depth)
+        Error::from(err)
+            .with_path(child_path)
+            .with_depth(child_depth)
     })?;
-    for ig in ig_parent.parents().take_while(|ig| !ig.is_absolute_parent()) {
+    for ig in ig_parent
+        .parents()
+        .take_while(|ig| !ig.is_absolute_parent())
+    {
         let h = Handle::from_path(ig.path()).map_err(|err| {
-            Error::from(err).with_path(child_path).with_depth(child_depth)
+            Error::from(err)
+                .with_path(child_path)
+                .with_depth(child_depth)
         })?;
         if hchild == h {
             return Err(Error::Loop {
                 ancestor: ig.path().to_path_buf(),
                 child: child_path.to_path_buf(),
-            }.with_depth(child_depth));
+            }
+            .with_depth(child_depth));
         }
     }
     Ok(())
@@ -1542,14 +1539,10 @@ fn check_symlink_loop(
 
 // Before calling this function, make sure that you ensure that is really
 // necessary as the arguments imply a file stat.
-fn skip_filesize(
-    max_filesize: u64,
-    path: &Path,
-    ent: &Option<Metadata>
-) -> bool {
+fn skip_filesize(max_filesize: u64, path: &Path, ent: &Option<Metadata>) -> bool {
     let filesize = match *ent {
         Some(ref md) => Some(md.len()),
-        None => None
+        None => None,
     };
 
     if let Some(fs) = filesize {
@@ -1564,10 +1557,7 @@ fn skip_filesize(
     }
 }
 
-fn should_skip_entry(
-    ig: &Ignore,
-    dent: &DirEntry,
-) -> bool {
+fn should_skip_entry(ig: &Ignore, dent: &DirEntry) -> bool {
     let m = ig.matched_dir_entry(dent);
     if m.is_ignore() {
         debug!("ignoring {}: {:?}", dent.path().display(), m);
@@ -1629,28 +1619,27 @@ fn path_equals(dent: &DirEntry, handle: &Handle) -> Result<bool, Error> {
 /// Returns true if and only if the given path is on the same device as the
 /// given root device.
 fn is_same_file_system(root_device: u64, path: &Path) -> Result<bool, Error> {
-    let dent_device = device_num(path)
-        .map_err(|err| Error::Io(err).with_path(path))?;
+    let dent_device = device_num(path).map_err(|err| Error::Io(err).with_path(path))?;
     Ok(root_device == dent_device)
 }
 
 #[cfg(unix)]
-fn device_num<P: AsRef<Path>>(path: P)-> io::Result<u64> {
+fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
     use std::os::unix::fs::MetadataExt;
 
     path.as_ref().metadata().map(|md| md.dev())
 }
 
- #[cfg(windows)]
+#[cfg(windows)]
 fn device_num<P: AsRef<Path>>(path: P) -> io::Result<u64> {
-    use winapi_util::{Handle, file};
+    use winapi_util::{file, Handle};
 
     let h = Handle::from_path_any(path)?;
     file::information(h).map(|info| info.volume_serial_number())
 }
 
 #[cfg(not(any(unix, windows)))]
-fn device_num<P: AsRef<Path>>(_: P)-> io::Result<u64> {
+fn device_num<P: AsRef<Path>>(_: P) -> io::Result<u64> {
     Err(io::Error::new(
         io::ErrorKind::Other,
         "walkdir: same_file_system option not supported on this platform",
@@ -1664,9 +1653,8 @@ mod tests {
     use std::path::Path;
     use std::sync::{Arc, Mutex};
 
-    use tempfile::{self, TempDir};
-
     use super::{DirEntry, WalkBuilder, WalkState};
+    use tests::TempDir;
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();
@@ -1713,10 +1701,7 @@ mod tests {
         paths
     }
 
-    fn walk_collect_parallel(
-        prefix: &Path,
-        builder: &WalkBuilder,
-    ) -> Vec<String> {
+    fn walk_collect_parallel(prefix: &Path, builder: &WalkBuilder) -> Vec<String> {
         let mut paths = vec![];
         for dent in walk_collect_entries_parallel(builder) {
             let path = dent.path().strip_prefix(prefix).unwrap();
@@ -1751,15 +1736,11 @@ mod tests {
         paths
     }
 
-    fn tmpdir(prefix: &str) -> TempDir {
-        tempfile::Builder::new().prefix(prefix).tempdir().unwrap()
+    fn tmpdir() -> TempDir {
+        TempDir::new().unwrap()
     }
 
-    fn assert_paths(
-        prefix: &Path,
-        builder: &WalkBuilder,
-        expected: &[&str],
-    ) {
+    fn assert_paths(prefix: &Path, builder: &WalkBuilder, expected: &[&str]) {
         let got = walk_collect(prefix, builder);
         assert_eq!(got, mkpaths(expected), "single threaded");
         let got = walk_collect_parallel(prefix, builder);
@@ -1768,20 +1749,22 @@ mod tests {
 
     #[test]
     fn no_ignores() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("a/b/c"));
         mkdirp(td.path().join("x/y"));
         wfile(td.path().join("a/b/foo"), "");
         wfile(td.path().join("x/y/foo"), "");
 
-        assert_paths(td.path(), &WalkBuilder::new(td.path()), &[
-            "x", "x/y", "x/y/foo", "a", "a/b", "a/b/foo", "a/b/c",
-        ]);
+        assert_paths(
+            td.path(),
+            &WalkBuilder::new(td.path()),
+            &["x", "x/y", "x/y/foo", "a", "a/b", "a/b/foo", "a/b/c"],
+        );
     }
 
     #[test]
     fn custom_ignore() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         let custom_ignore = ".customignore";
         mkdirp(td.path().join("a"));
         wfile(td.path().join(custom_ignore), "foo");
@@ -1797,7 +1780,7 @@ mod tests {
 
     #[test]
     fn custom_ignore_exclusive_use() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         let custom_ignore = ".customignore";
         mkdirp(td.path().join("a"));
         wfile(td.path().join(custom_ignore), "foo");
@@ -1817,7 +1800,7 @@ mod tests {
 
     #[test]
     fn gitignore() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join(".git"));
         mkdirp(td.path().join("a"));
         wfile(td.path().join(".gitignore"), "foo");
@@ -1826,14 +1809,16 @@ mod tests {
         wfile(td.path().join("bar"), "");
         wfile(td.path().join("a/bar"), "");
 
-        assert_paths(td.path(), &WalkBuilder::new(td.path()), &[
-            "bar", "a", "a/bar",
-        ]);
+        assert_paths(
+            td.path(),
+            &WalkBuilder::new(td.path()),
+            &["bar", "a", "a/bar"],
+        );
     }
 
     #[test]
     fn explicit_ignore() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         let igpath = td.path().join(".not-an-ignore");
         mkdirp(td.path().join("a"));
         wfile(&igpath, "foo");
@@ -1849,7 +1834,7 @@ mod tests {
 
     #[test]
     fn explicit_ignore_exclusive_use() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         let igpath = td.path().join(".not-an-ignore");
         mkdirp(td.path().join("a"));
         wfile(&igpath, "foo");
@@ -1861,13 +1846,16 @@ mod tests {
         let mut builder = WalkBuilder::new(td.path());
         builder.standard_filters(false);
         assert!(builder.add_ignore(&igpath).is_none());
-        assert_paths(td.path(), &builder,
-            &[".not-an-ignore", "bar", "a", "a/bar"]);
+        assert_paths(
+            td.path(),
+            &builder,
+            &[".not-an-ignore", "bar", "a", "a/bar"],
+        );
     }
 
     #[test]
     fn gitignore_parent() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join(".git"));
         mkdirp(td.path().join("a"));
         wfile(td.path().join(".gitignore"), "foo");
@@ -1880,7 +1868,7 @@ mod tests {
 
     #[test]
     fn max_depth() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("a/b/c"));
         wfile(td.path().join("foo"), "");
         wfile(td.path().join("a/foo"), "");
@@ -1888,19 +1876,23 @@ mod tests {
         wfile(td.path().join("a/b/c/foo"), "");
 
         let mut builder = WalkBuilder::new(td.path());
-        assert_paths(td.path(), &builder, &[
-            "a", "a/b", "a/b/c", "foo", "a/foo", "a/b/foo", "a/b/c/foo",
-        ]);
+        assert_paths(
+            td.path(),
+            &builder,
+            &["a", "a/b", "a/b/c", "foo", "a/foo", "a/b/foo", "a/b/c/foo"],
+        );
         assert_paths(td.path(), builder.max_depth(Some(0)), &[]);
         assert_paths(td.path(), builder.max_depth(Some(1)), &["a", "foo"]);
-        assert_paths(td.path(), builder.max_depth(Some(2)), &[
-            "a", "a/b", "foo", "a/foo",
-        ]);
+        assert_paths(
+            td.path(),
+            builder.max_depth(Some(2)),
+            &["a", "a/b", "foo", "a/foo"],
+        );
     }
 
     #[test]
     fn max_filesize() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("a/b"));
         wfile_size(td.path().join("foo"), 0);
         wfile_size(td.path().join("bar"), 400);
@@ -1910,41 +1902,49 @@ mod tests {
         wfile_size(td.path().join("a/baz"), 200);
 
         let mut builder = WalkBuilder::new(td.path());
-        assert_paths(td.path(), &builder, &[
-            "a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz",
-        ]);
-        assert_paths(td.path(), builder.max_filesize(Some(0)), &[
-            "a", "a/b", "foo"
-        ]);
-        assert_paths(td.path(), builder.max_filesize(Some(500)), &[
-            "a", "a/b", "foo", "bar", "a/bar", "a/baz"
-        ]);
-        assert_paths(td.path(), builder.max_filesize(Some(50000)), &[
-            "a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz",
-        ]);
+        assert_paths(
+            td.path(),
+            &builder,
+            &["a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz"],
+        );
+        assert_paths(
+            td.path(),
+            builder.max_filesize(Some(0)),
+            &["a", "a/b", "foo"],
+        );
+        assert_paths(
+            td.path(),
+            builder.max_filesize(Some(500)),
+            &["a", "a/b", "foo", "bar", "a/bar", "a/baz"],
+        );
+        assert_paths(
+            td.path(),
+            builder.max_filesize(Some(50000)),
+            &["a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz"],
+        );
     }
 
     #[cfg(unix)] // because symlinks on windows are weird
     #[test]
     fn symlinks() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("a/b"));
         symlink(td.path().join("a/b"), td.path().join("z"));
         wfile(td.path().join("a/b/foo"), "");
 
         let mut builder = WalkBuilder::new(td.path());
-        assert_paths(td.path(), &builder, &[
-            "a", "a/b", "a/b/foo", "z",
-        ]);
-        assert_paths(td.path(), &builder.follow_links(true), &[
-            "a", "a/b", "a/b/foo", "z", "z/foo",
-        ]);
+        assert_paths(td.path(), &builder, &["a", "a/b", "a/b/foo", "z"]);
+        assert_paths(
+            td.path(),
+            &builder.follow_links(true),
+            &["a", "a/b", "a/b/foo", "z", "z/foo"],
+        );
     }
 
     #[cfg(unix)] // because symlinks on windows are weird
     #[test]
     fn first_path_not_symlink() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("foo"));
 
         let dents = WalkBuilder::new(td.path().join("foo"))
@@ -1955,9 +1955,7 @@ mod tests {
         assert_eq!(1, dents.len());
         assert!(!dents[0].path_is_symlink());
 
-        let dents = walk_collect_entries_parallel(
-            &WalkBuilder::new(td.path().join("foo")),
-        );
+        let dents = walk_collect_entries_parallel(&WalkBuilder::new(td.path().join("foo")));
         assert_eq!(1, dents.len());
         assert!(!dents[0].path_is_symlink());
     }
@@ -1965,17 +1963,13 @@ mod tests {
     #[cfg(unix)] // because symlinks on windows are weird
     #[test]
     fn symlink_loop() {
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         mkdirp(td.path().join("a/b"));
         symlink(td.path().join("a"), td.path().join("a/b/c"));
 
         let mut builder = WalkBuilder::new(td.path());
-        assert_paths(td.path(), &builder, &[
-            "a", "a/b", "a/b/c",
-        ]);
-        assert_paths(td.path(), &builder.follow_links(true), &[
-            "a", "a/b",
-        ]);
+        assert_paths(td.path(), &builder, &["a", "a/b", "a/b/c"]);
+        assert_paths(td.path(), &builder.follow_links(true), &["a", "a/b"]);
     }
 
     // It's a little tricky to test the 'same_file_system' option since
@@ -1995,7 +1989,7 @@ mod tests {
 
         // If our test directory actually isn't a different volume from /sys,
         // then this test is meaningless and we shouldn't run it.
-        let td = tmpdir("walk-test-");
+        let td = tmpdir();
         if device_num(td.path()).unwrap() == device_num("/sys").unwrap() {
             return;
         }
@@ -2009,8 +2003,6 @@ mod tests {
         // completely.
         let mut builder = WalkBuilder::new(td.path());
         builder.follow_links(true).same_file_system(true);
-        assert_paths(td.path(), &builder, &[
-            "same_file", "same_file/alink",
-        ]);
+        assert_paths(td.path(), &builder, &["same_file", "same_file/alink"]);
     }
 }

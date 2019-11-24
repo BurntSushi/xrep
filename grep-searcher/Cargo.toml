@@ -1,6 +1,6 @@
 [package]
 name = "grep-searcher"
-version = "0.1.5"  #:version
+version = "0.1.6"  #:version
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 Fast line oriented regex searching as a library.

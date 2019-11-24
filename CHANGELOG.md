@@ -1,3 +1,13 @@
+TBD
+===
+TODO
+
+Bug fixes:
+
+* [BUG #1335](https://github.com/BurntSushi/ripgrep/issues/1335):
+  Fixes a performance bug when searching plain text files with very long lines.
+
+
 11.0.2 (2019-08-01)
 ===================
 ripgrep 11.0.2 is a new patch release that fixes a few bugs, including a
