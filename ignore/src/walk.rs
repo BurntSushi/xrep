@@ -1486,7 +1486,7 @@ impl Worker {
                     }
 
                     // Wait for next `Work` or `Quit` message.
-                    value = self.rx.recv().map_err(|_| TryRecvError::Disconnected);
+                    value = Ok(self.rx.recv().expect("channel disconnected while worker is alive"));
                     self.resume();
                 },
                 Err(TryRecvError::Disconnected) => {
