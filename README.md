@@ -250,17 +250,8 @@ repositories.
 $ sudo dnf install ripgrep
 ```
 
-If you're an **openSUSE Leap 15.0** user, you can install ripgrep from the
-[utilities repo](https://build.opensuse.org/package/show/utilities/ripgrep):
-
-```
-$ sudo zypper ar https://download.opensuse.org/repositories/utilities/openSUSE_Leap_15.0/utilities.repo
-$ sudo zypper install ripgrep
-```
-
-
-If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the
-[official repo](https://software.opensuse.org/package/ripgrep):
+If you're an **openSUSE** user, ripgrep is included in **openSUSE Tumbleweed**
+and **openSUSE Leap** since 15.1.
 
 ```
 $ sudo zypper install ripgrep
