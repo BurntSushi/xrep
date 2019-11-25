@@ -27,6 +27,7 @@ regex = "1.1.5"
 
 [dev-dependencies]
 glob = "0.3.0"
+lazy_static = "1"
 
 [features]
 simd-accel = []
