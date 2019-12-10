@@ -38,6 +38,7 @@ jobs:
           os: ubuntu-18.04
           rust: 1.34.0
           target: x86_64-unknown-linux-musl
+          cross: true
         - build: stable
           os: ubuntu-18.04
           rust: stable
@@ -80,17 +81,22 @@ jobs:
       with:
         fetch-depth: 1
     - name: Install Rust
-      uses: hecrj/setup-rust-action@v1
+      uses: actions-rs/toolchain@v1
       with:
-        rust-version: ${{ matrix.rust }}
-    - name: Install Rust Target
-      run: rustup target add ${{ matrix.target }}
+        toolchain: ${{ matrix.rust }}
+        target: ${{ matrix.target }}
+        profile: minimal
+        override: true
     - name: Install musl-gcc
       if: contains(matrix.target, 'musl')
       run: |
         sudo apt-get install musl-tools
     - name: Build everything
-      run: cargo build --verbose --target ${{ matrix.target }} --all --features pcre2
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --verbose --target ${{ matrix.target }} --all --features pcre2
+        use-cross: ${{ matrix.cross }}
     - name: Install zsh
       if: matrix.build == 'stable'
       run: sudo apt-get install zsh
@@ -100,4 +106,8 @@ jobs:
         TARGET: ${{ matrix.target }}
       run: ./ci/test_complete.sh
     - name: Run tests
-      run: cargo test --verbose --target ${{ matrix.target }} --all --features pcre2
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --verbose --target ${{ matrix.target }} --all --features pcre2
+        use-cross: ${{ matrix.cross }}
