@@ -96,6 +96,8 @@ jobs:
       run: sudo apt-get install zsh
     - name: Test zsh auto-completions
       if: matrix.build == 'stable'
+      env:
+        TARGET: ${{ matrix.target }}
       run: ./ci/test_complete.sh
     - name: Run tests
       run: cargo test --verbose --target ${{ matrix.target }} --all --features pcre2
