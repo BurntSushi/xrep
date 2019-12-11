@@ -34,6 +34,8 @@ Bug fixes:
   Fixes a performance bug when searching plain text files with very long lines.
 * [BUG #1344](https://github.com/BurntSushi/ripgrep/issues/1344):
   Document usage of `--type all`.
+* [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
+  ripgrep now respects ignore rules from .git/info/exclude in worktrees.
 
 
 11.0.2 (2019-08-01)

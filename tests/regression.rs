@@ -738,3 +738,19 @@ rgtest!(r1334_crazy_literals, |dir: Dir, mut cmd: TestCommand| {
         cmd.arg("-Ff").arg("patterns").arg("corpus").stdout()
     );
 });
+
+// See: https://github.com/BurntSushi/ripgrep/pull/1446
+rgtest!(r1446_respect_excludes_in_worktree, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir("repo/.git/info");
+    dir.create("repo/.git/info/exclude", "ignored");
+    dir.create_dir("repo/.git/worktrees/repotree");
+    dir.create("repo/.git/worktrees/repotree/commondir", "../..");
+
+    dir.create_dir("repotree");
+    dir.create("repotree/.git", "gitdir: repo/.git/worktrees/repotree");
+    dir.create("repotree/ignored", "");
+    dir.create("repotree/not-ignored", "");
+
+    cmd.arg("--sort").arg("path").arg("--files").arg("repotree");
+    eqnice!("repotree/not-ignored\n", cmd.stdout());
+});

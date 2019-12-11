@@ -15,6 +15,8 @@
 
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
+use std::fs::{File, FileType};
+use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
@@ -220,11 +222,19 @@ impl Ignore {
 
     /// Like add_child, but takes a full path and returns an IgnoreInner.
     fn add_child_path(&self, dir: &Path) -> (IgnoreInner, Option<Error>) {
+        let git_type = if self.0.opts.git_ignore || self.0.opts.git_exclude {
+            dir.join(".git").metadata().ok().map(|md| md.file_type())
+        } else {
+            None
+        };
+        let has_git = git_type.map(|_| true).unwrap_or(false);
+
         let mut errs = PartialErrorBuilder::default();
         let custom_ig_matcher = if self.0.custom_ignore_filenames.is_empty() {
             Gitignore::empty()
         } else {
             let (m, err) = create_gitignore(
+                &dir,
                 &dir,
                 &self.0.custom_ignore_filenames,
                 self.0.opts.ignore_case_insensitive,
@@ -235,34 +245,46 @@ impl Ignore {
         let ig_matcher = if !self.0.opts.ignore {
             Gitignore::empty()
         } else {
-            let (m, err) =
-                create_gitignore(&dir, &[".ignore"], self.0.opts.ignore_case_insensitive);
+            let (m, err) = create_gitignore(
+                &dir,
+                &dir,
+                &[".ignore"],
+                self.0.opts.ignore_case_insensitive,
+            );
             errs.maybe_push(err);
             m
         };
         let gi_matcher = if !self.0.opts.git_ignore {
             Gitignore::empty()
         } else {
-            let (m, err) =
-                create_gitignore(&dir, &[".gitignore"], self.0.opts.ignore_case_insensitive);
+            let (m, err) = create_gitignore(
+                &dir,
+                &dir,
+                &[".gitignore"],
+                self.0.opts.ignore_case_insensitive,
+            );
             errs.maybe_push(err);
             m
         };
         let gi_exclude_matcher = if !self.0.opts.git_exclude {
             Gitignore::empty()
         } else {
-            let (m, err) = create_gitignore(
-                &dir,
-                &[".git/info/exclude"],
-                self.0.opts.ignore_case_insensitive,
-            );
-            errs.maybe_push(err);
-            m
-        };
-        let has_git = if self.0.opts.git_ignore {
-            dir.join(".git").exists()
-        } else {
-            false
+            match resolve_git_commondir(dir, git_type) {
+                Ok(git_dir) => {
+                    let (m, err) = create_gitignore(
+                        &dir,
+                        &git_dir,
+                        &["info/exclude"],
+                        self.0.opts.ignore_case_insensitive,
+                    );
+                    errs.maybe_push(err);
+                    m
+                }
+                Err(err) => {
+                    errs.maybe_push(err);
+                    Gitignore::empty()
+                }
+            }
         };
         let ig = IgnoreInner {
             compiled: self.0.compiled.clone(),
@@ -675,12 +697,15 @@ impl IgnoreBuilder {
 
 /// Creates a new gitignore matcher for the directory given.
 ///
-/// Ignore globs are extracted from each of the file names in `dir` in the
-/// order given (earlier names have lower precedence than later names).
+/// The matcher is meant to match files below `dir`.
+/// Ignore globs are extracted from each of the file names relative to
+/// `dir_for_ignorefile` in the order given (earlier names have lower
+/// precedence than later names).
 ///
 /// I/O errors are ignored.
 pub fn create_gitignore<T: AsRef<OsStr>>(
     dir: &Path,
+    dir_for_ignorefile: &Path,
     names: &[T],
     case_insensitive: bool,
 ) -> (Gitignore, Option<Error>) {
@@ -688,7 +713,7 @@ pub fn create_gitignore<T: AsRef<OsStr>>(
     let mut errs = PartialErrorBuilder::default();
     builder.case_insensitive(case_insensitive).unwrap();
     for name in names {
-        let gipath = dir.join(name.as_ref());
+        let gipath = dir_for_ignorefile.join(name.as_ref());
         // This check is not necessary, but is added for performance. Namely,
         // a simple stat call checking for existence can often be just a bit
         // quicker than actually trying to open a file. Since the number of
@@ -715,10 +740,66 @@ pub fn create_gitignore<T: AsRef<OsStr>>(
     (gi, errs.into_error_option())
 }
 
+/// Find the GIT_COMMON_DIR for the given git worktree.
+///
+/// This is the directory that may contain a private ignore file
+/// "info/exclude". Unlike git, this function does *not* read environment
+/// variables GIT_DIR and GIT_COMMON_DIR, because it is not clear how to use
+/// them when multiple repositories are searched.
+///
+/// Some I/O errors are ignored.
+fn resolve_git_commondir(
+    dir: &Path,
+    git_type: Option<FileType>,
+) -> Result<PathBuf, Option<Error>> {
+    let git_dir_path = || dir.join(".git");
+    let git_dir = git_dir_path();
+    if !git_type.map_or(false, |ft| ft.is_file()) {
+        return Ok(git_dir);
+    }
+    let file = match File::open(git_dir) {
+        Ok(file) => io::BufReader::new(file),
+        Err(err) => {
+            return Err(Some(Error::Io(err).with_path(git_dir_path())));
+        }
+    };
+    let dot_git_line = match file.lines().next() {
+        Some(Ok(line)) => line,
+        Some(Err(err)) => {
+            return Err(Some(Error::Io(err).with_path(git_dir_path())));
+        }
+        None => return Err(None),
+    };
+    if !dot_git_line.starts_with("gitdir: ") {
+        return Err(None);
+    }
+    let real_git_dir = PathBuf::from(&dot_git_line["gitdir: ".len()..]);
+    let git_commondir_file = || real_git_dir.join("commondir");
+    let file = match File::open(git_commondir_file()) {
+        Ok(file) => io::BufReader::new(file),
+        Err(err) => {
+            return Err(Some(Error::Io(err).with_path(git_commondir_file())));
+        }
+    };
+    let commondir_line = match file.lines().next() {
+        Some(Ok(line)) => line,
+        Some(Err(err)) => {
+            return Err(Some(Error::Io(err).with_path(git_commondir_file())));
+        }
+        None => return Err(None),
+    };
+    let commondir_abs = if commondir_line.starts_with(".") {
+        real_git_dir.join(commondir_line) // relative commondir
+    } else {
+        PathBuf::from(commondir_line)
+    };
+    Ok(commondir_abs)
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::{self, File};
-    use std::io::Write;
+    use std::io::{self, Write};
     use std::path::Path;
 
     use dir::IgnoreBuilder;
@@ -1004,5 +1085,64 @@ mod tests {
         assert!(ig2.matched("src/llvm", true).is_none());
         assert!(ig2.matched("foo", false).is_ignore());
         assert!(ig2.matched("src/foo", false).is_ignore());
+    }
+
+    #[test]
+    fn git_info_exclude_in_linked_worktree() {
+        let td = tmpdir();
+        let git_dir = td.path().join(".git");
+        mkdirp(git_dir.join("info"));
+        wfile(git_dir.join("info/exclude"), "ignore_me");
+        mkdirp(git_dir.join("worktrees/linked-worktree"));
+        let commondir_path = || {
+            git_dir.join("worktrees/linked-worktree/commondir")
+        };
+        mkdirp(td.path().join("linked-worktree"));
+        let worktree_git_dir_abs = format!(
+            "gitdir: {}",
+            git_dir.join("worktrees/linked-worktree").to_str().unwrap(),
+        );
+        wfile(td.path().join("linked-worktree/.git"), &worktree_git_dir_abs);
+
+        // relative commondir
+        wfile(commondir_path(), "../..");
+        let ib = IgnoreBuilder::new().build();
+        let (ignore, err) = ib.add_child(td.path().join("linked-worktree"));
+        assert!(err.is_none());
+        assert!(ignore.matched("ignore_me", false).is_ignore());
+
+        // absolute commondir
+        wfile(commondir_path(), git_dir.to_str().unwrap());
+        let (ignore, err) = ib.add_child(td.path().join("linked-worktree"));
+        assert!(err.is_none());
+        assert!(ignore.matched("ignore_me", false).is_ignore());
+
+        // missing commondir file
+        assert!(fs::remove_file(commondir_path()).is_ok());
+        let (_, err) = ib.add_child(td.path().join("linked-worktree"));
+        assert!(err.is_some());
+        assert!(match err {
+            Some(Error::WithPath { path, err }) => {
+                if path != commondir_path() {
+                    false
+                } else {
+                    match *err {
+                        Error::Io(ioerr) => {
+                            ioerr.kind() == io::ErrorKind::NotFound
+                        }
+                        _ => false,
+                    }
+                }
+            }
+            _ => false,
+        });
+
+        wfile(td.path().join("linked-worktree/.git"), "garbage");
+        let (_, err) = ib.add_child(td.path().join("linked-worktree"));
+        assert!(err.is_none());
+
+        wfile(td.path().join("linked-worktree/.git"), "gitdir: garbage");
+        let (_, err) = ib.add_child(td.path().join("linked-worktree"));
+        assert!(err.is_some());
     }
 }
