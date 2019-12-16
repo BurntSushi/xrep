@@ -103,6 +103,14 @@ impl fmt::Display for Glob {
     }
 }
 
+impl str::FromStr for Glob {
+    type Err = Error;
+
+    fn from_str(glob: &str) -> Result<Self, Self::Err> {
+        Self::new(glob)
+    }
+}
+
 /// A matcher for a single pattern.
 #[derive(Clone, Debug)]
 pub struct GlobMatcher {
