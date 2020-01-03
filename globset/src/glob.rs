@@ -122,6 +122,11 @@ impl GlobMatcher {
     pub fn is_match_candidate(&self, path: &Candidate) -> bool {
         self.re.is_match(&path.path)
     }
+
+    /// Returns the `Glob` used to compile this matcher.
+    pub fn glob(&self) -> &Glob {
+        &self.pat
+    }
 }
 
 /// A strategic matcher for a single pattern.
