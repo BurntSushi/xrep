@@ -9,93 +9,100 @@ on:
 jobs:
   test:
     name: test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        # The docs seem to suggest that we can have a matrix with just an
-        # include directive, but it result in a "matrix must define at least
-        # one vector" error in the CI system.
-        build:
-        # - pinned-glibc
-        - pinned-musl
-        - stable
-        # - beta
-        # We test musl with nightly because every once in a while, this will
-        # catch an upstream regression.
-        # - nightly-glibc
-        # - nightly-musl
-        # - macos
-        # - win-msvc-32
-        # - win-msvc-64
-        # - win-gnu-32
-        # - win-gnu-64
-        include:
-        # - build: pinned-glibc
-          # os: ubuntu-18.04
-          # rust: 1.34.0
-          # target: x86_64-unknown-linux-gnu
-        - build: pinned-musl
-          os: ubuntu-18.04
-          rust: 1.34.0
-          target: x86_64-unknown-linux-musl
-        - build: stable
-          os: ubuntu-18.04
-          rust: stable
-          target: x86_64-unknown-linux-gnu
-        # - build: beta
-          # os: ubuntu-18.04
-          # rust: beta
-          # target: x86_64-unknown-linux-gnu
-        # - build: nightly-glibc
-          # os: ubuntu-18.04
-          # rust: nightly
-          # target: x86_64-unknown-linux-gnu
-        # - build: nightly-musl
-          # os: ubuntu-18.04
-          # rust: nightly
-          # target: x86_64-unknown-linux-musl
-        # - build: macos
-          # os: macOS-10.14
-          # rust: stable
-          # target: x86_64-apple-darwin
-        # - build: win-msvc-32
-          # os: windows-2019
-          # rust: stable
-          # target: i686-pc-windows-msvc
-        # - build: win-msvc-64
-          # os: windows-2019
-          # rust: stable
-          # target: x86_64-pc-windows-msvc
-        # - build: win-gnu-32
-          # os: windows-2019
-          # rust: stable-i686-gnu
-          # target: i686-pc-windows-gnu
-        # - build: win-gnu-64
-          # os: windows-2019
-          # rust: stable-x86_64-gnu
-          # target: x86_64-pc-windows-gnu
+    runs-on: ubuntu-18.04
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v1
-      with:
-        fetch-depth: 1
-    - name: Install Rust
-      uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: ${{ matrix.rust }}
-    - name: Install Rust Target
-      run: rustup target add ${{ matrix.target }}
-    - name: Install musl-gcc
-      if: contains(matrix.target, 'musl')
-      run: |
-        sudo apt-get install musl-tools
-    - name: Build everything
-      run: cargo build --verbose --target ${{ matrix.target }} --all --features pcre2
-    - name: Install zsh
-      if: matrix.build == 'stable'
-      run: sudo apt-get install zsh
-    - name: Test zsh auto-completions
-      if: matrix.build == 'stable'
-      run: ./ci/test_complete.sh
-    - name: Run tests
-      run: cargo test --verbose --target ${{ matrix.target }} --all --features pcre2
+    - name: no-op
+      run: echo hello
+
+#  test:
+#    name: test
+#    runs-on: ${{ matrix.os }}
+#    strategy:
+#      matrix:
+#        # The docs seem to suggest that we can have a matrix with just an
+#        # include directive, but it result in a "matrix must define at least
+#        # one vector" error in the CI system.
+#        build:
+#        # - pinned-glibc
+#        - pinned-musl
+#        - stable
+#        # - beta
+#        # We test musl with nightly because every once in a while, this will
+#        # catch an upstream regression.
+#        # - nightly-glibc
+#        # - nightly-musl
+#        # - macos
+#        # - win-msvc-32
+#        # - win-msvc-64
+#        # - win-gnu-32
+#        # - win-gnu-64
+#        include:
+#        # - build: pinned-glibc
+#          # os: ubuntu-18.04
+#          # rust: 1.34.0
+#          # target: x86_64-unknown-linux-gnu
+#        - build: pinned-musl
+#          os: ubuntu-18.04
+#          rust: 1.34.0
+#          target: x86_64-unknown-linux-musl
+#        - build: stable
+#          os: ubuntu-18.04
+#          rust: stable
+#          target: x86_64-unknown-linux-gnu
+#        # - build: beta
+#          # os: ubuntu-18.04
+#          # rust: beta
+#          # target: x86_64-unknown-linux-gnu
+#        # - build: nightly-glibc
+#          # os: ubuntu-18.04
+#          # rust: nightly
+#          # target: x86_64-unknown-linux-gnu
+#        # - build: nightly-musl
+#          # os: ubuntu-18.04
+#          # rust: nightly
+#          # target: x86_64-unknown-linux-musl
+#        # - build: macos
+#          # os: macOS-10.14
+#          # rust: stable
+#          # target: x86_64-apple-darwin
+#        # - build: win-msvc-32
+#          # os: windows-2019
+#          # rust: stable
+#          # target: i686-pc-windows-msvc
+#        # - build: win-msvc-64
+#          # os: windows-2019
+#          # rust: stable
+#          # target: x86_64-pc-windows-msvc
+#        # - build: win-gnu-32
+#          # os: windows-2019
+#          # rust: stable-i686-gnu
+#          # target: i686-pc-windows-gnu
+#        # - build: win-gnu-64
+#          # os: windows-2019
+#          # rust: stable-x86_64-gnu
+#          # target: x86_64-pc-windows-gnu
+#    steps:
+#    - name: Checkout repository
+#      uses: actions/checkout@v1
+#      with:
+#        fetch-depth: 1
+#    - name: Install Rust
+#      uses: hecrj/setup-rust-action@v1
+#      with:
+#        rust-version: ${{ matrix.rust }}
+#    - name: Install Rust Target
+#      run: rustup target add ${{ matrix.target }}
+#    - name: Install musl-gcc
+#      if: contains(matrix.target, 'musl')
+#      run: |
+#        sudo apt-get install musl-tools
+#    - name: Build everything
+#      run: cargo build --verbose --target ${{ matrix.target }} --all --features pcre2
+#    - name: Install zsh
+#      if: matrix.build == 'stable'
+#      run: sudo apt-get install zsh
+#    - name: Test zsh auto-completions
+#      if: matrix.build == 'stable'
+#      run: ./ci/test_complete.sh
+#    - name: Run tests
+#      run: cargo test --verbose --target ${{ matrix.target }} --all --features pcre2
