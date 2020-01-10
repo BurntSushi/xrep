@@ -1,4 +1,4 @@
-FROM japaric/x86_64-unknown-linux-musl:v0.1.14
+FROM rustembedded/cross:x86_64-unknown-linux-musl
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
