@@ -515,7 +515,7 @@ impl Types {
                 return Match::None;
             }
         };
-        let mut matches = self.matches.get_default().borrow_mut();
+        let mut matches = self.matches.get_or_default().borrow_mut();
         self.set.matches_into(name, &mut *matches);
         // The highest precedent match is the last one.
         if let Some(&i) = matches.last() {

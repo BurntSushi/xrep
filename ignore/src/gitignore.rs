@@ -249,7 +249,7 @@ impl Gitignore {
             return Match::None;
         }
         let path = path.as_ref();
-        let _matches = self.matches.as_ref().unwrap().get_default();
+        let _matches = self.matches.as_ref().unwrap().get_or_default();
         let mut matches = _matches.borrow_mut();
         let candidate = Candidate::new(path);
         self.set.matches_candidate_into(&candidate, &mut *matches);

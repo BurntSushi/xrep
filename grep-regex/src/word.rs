@@ -78,7 +78,7 @@ impl Matcher for WordMatcher {
         // if it's worth it.
 
         let cell = self.locs.get_or(|| {
-            Box::new(RefCell::new(self.regex.capture_locations()))
+            RefCell::new(self.regex.capture_locations())
         });
         let mut caps = cell.borrow_mut();
         self.regex.captures_read_at(&mut caps, haystack, at);

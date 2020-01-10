@@ -18,4 +18,4 @@ grep-matcher = { version = "0.1.2", path = "../grep-matcher" }
 log = "0.4.5"
 regex = "1.1"
 regex-syntax = "0.6.5"
-thread_local = "0.3.6"
+thread_local = "1"
