@@ -716,8 +716,8 @@ binary files:
    **only applies to files searched by ripgrep as a result of recursive
    directory traversal**, which is consistent with ripgrep's other automatic
    filtering. For example, `rg foo .file` will search `.file` even though it
-   is hidden. Similarly, `rg foo binary-file` search `binary-file` in "binary"
-   mode automatically.
+   is hidden. Similarly, `rg foo binary-file` will search `binary-file` in
+   "binary" mode automatically.
 2. Binary mode is similar to the default mode, except it will not always
    stop searching after it sees a `NUL` byte. Namely, in this mode, ripgrep
    will continue searching a file that is known to be binary until the first
