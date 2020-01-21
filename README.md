@@ -13,7 +13,7 @@ and grep.
 [![Crates.io](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
 [![Packaging status](https://repology.org/badge/tiny-repos/ripgrep.svg)](https://repology.org/project/ripgrep/badges)
 
-Dual-licensed under MIT or the [UNLICENSE](http://unlicense.org).
+Dual-licensed under MIT or the [UNLICENSE](https://unlicense.org).
 
 
 ### CHANGELOG
@@ -34,7 +34,7 @@ Please see the [CHANGELOG](CHANGELOG.md) for a release history.
 
 ### Screenshot of search results
 
-[![A screenshot of a sample search with ripgrep](http://burntsushi.net/stuff/ripgrep1.png)](http://burntsushi.net/stuff/ripgrep1.png)
+[![A screenshot of a sample search with ripgrep](https://burntsushi.net/stuff/ripgrep1.png)](https://burntsushi.net/stuff/ripgrep1.png)
 
 
 ### Quick examples comparing tools
@@ -45,7 +45,7 @@ words. Timings were collected on a system with an Intel i7-6900K 3.2 GHz, and
 ripgrep was compiled with SIMD enabled.
 
 Please remember that a single benchmark is never enough! See my
-[blog post on ripgrep](http://blog.burntsushi.net/ripgrep/)
+[blog post on ripgrep](https://blog.burntsushi.net/ripgrep/)
 for a very detailed comparison with more benchmarks and analysis.
 
 | Tool | Command | Line count | Time |
@@ -55,11 +55,11 @@ for a very detailed comparison with more benchmarks and analysis.
 | [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 450 | 0.589s |
 | [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 2.266s |
 | [sift](https://github.com/svent/sift) | `sift --git -n -w '[A-Z]+_SUSPEND'` | 450 | 3.505s |
-| [ack](https://github.com/petdance/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 6.823s |
+| [ack](https://github.com/beyondgrep/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 6.823s |
 | [The Platinum Searcher](https://github.com/monochromegane/the_platinum_searcher) | `pt -w -e '[A-Z]+_SUSPEND'` | 450 | 14.208s |
 
-(Yes, `ack` [has](https://github.com/petdance/ack2/issues/445) a
-[bug](https://github.com/petdance/ack2/issues/14).)
+(Yes, `ack` [has](https://github.com/beyondgrep/ack2/issues/445) a
+[bug](https://github.com/beyondgrep/ack2/issues/14).)
 
 Here's another benchmark that disregards gitignore files and searches with a
 whitelist instead. The corpus is the same as in the previous benchmark, and the
@@ -150,12 +150,12 @@ or more of the following:
 ### Is it really faster than everything else?
 
 Generally, yes. A large number of benchmarks with detailed analysis for each is
-[available on my blog](http://blog.burntsushi.net/ripgrep/).
+[available on my blog](https://blog.burntsushi.net/ripgrep/).
 
 Summarizing, ripgrep is fast because:
 
 * It is built on top of
-  [Rust's regex engine](https://github.com/rust-lang-nursery/regex).
+  [Rust's regex engine](https://github.com/rust-lang/regex).
   Rust's regex engine uses finite automata, SIMD and aggressive literal
   optimizations to make searching very fast. (PCRE2 support can be opted into
   with the `-P/--pcre2` flag.)
@@ -261,7 +261,7 @@ $ sudo zypper install ripgrep
 
 
 If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the
-[official repo](http://software.opensuse.org/package/ripgrep):
+[official repo](https://software.opensuse.org/package/ripgrep):
 
 ```
 $ sudo zypper install ripgrep
