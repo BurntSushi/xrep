@@ -332,6 +332,20 @@ If you're a **NetBSD** user, then you can install ripgrep from
 # pkgin install ripgrep
 ```
 
+If you're a **Haiku x86_64** user, then you can install ripgrep from the
+[official ports](https://github.com/haikuports/haikuports/tree/master/sys-apps/ripgrep):
+
+```
+$ pkgman install ripgrep
+```
+
+If you're a **Haiku x86_gcc2** user, then you can install ripgrep from the
+same port as Haiku x86_64 using the x86 secondary architecture build:
+
+```
+$ pkgman install ripgrep_x86
+```
+
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 
 * Note that the minimum supported version of Rust for ripgrep is **1.34.0**,
