@@ -152,6 +152,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("go", &["*.go"]),
     ("gzip", &["*.gz", "*.tgz"]),
     ("groovy", &["*.groovy", "*.gradle"]),
+    ("gradle", &["*.gradle"]),
     ("h", &["*.h", "*.hpp"]),
     ("hbs", &["*.hbs"]),
     ("haskell", &["*.hs", "*.lhs", "*.cpphs", "*.c2hs", "*.hsc"]),
