@@ -2457,6 +2457,12 @@ fn flag_type(args: &mut Vec<RGArg>) {
     const LONG: &str = long!("\
 Only search files matching TYPE. Multiple type flags may be provided. Use the
 --type-list flag to list all available types.
+
+This flag supports the special value 'all', which will behave as if --type
+was provided for every file type supported by ripgrep (including any custom
+file types). The end result is that '--type all' causes ripgrep to search in
+\"whitelist\" mode, where it will only search files it recognizes via its type
+definitions.
 ");
     let arg = RGArg::flag("type", "TYPE").short("t")
         .help(SHORT).long_help(LONG)

@@ -20,6 +20,8 @@ Bug fixes:
 
 * [BUG #1335](https://github.com/BurntSushi/ripgrep/issues/1335):
   Fixes a performance bug when searching plain text files with very long lines.
+* [BUG #1344](https://github.com/BurntSushi/ripgrep/issues/1344):
+  Document usage of `--type all`.
 
 
 11.0.2 (2019-08-01)
