@@ -226,7 +226,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("objc", &["*.h", "*.m"]),
     ("objcpp", &["*.h", "*.mm"]),
     ("ocaml", &["*.ml", "*.mli", "*.mll", "*.mly"]),
-    ("org", &["*.org"]),
+    ("org", &["*.org", "*.org_archive"]),
     ("pascal", &["*.pas", "*.dpr", "*.lpr", "*.pp", "*.inc"]),
     ("perl", &["*.perl", "*.pl", "*.PL", "*.plh", "*.plx", "*.pm", "*.t"]),
     ("pdf", &["*.pdf"]),
