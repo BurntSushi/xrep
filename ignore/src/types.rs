@@ -297,6 +297,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("txt", &["*.txt"]),
     ("toml", &["*.toml", "Cargo.lock"]),
     ("twig", &["*.twig"]),
+    ("typoscript", &["*.typoscript", "*.ts"]),
     ("vala", &["*.vala"]),
     ("vb", &["*.vb"]),
     ("verilog", &["*.v", "*.vh", "*.sv", "*.svh"]),
