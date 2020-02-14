@@ -162,7 +162,7 @@ const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
     ("java", &["*.java", "*.jsp", "*.jspx", "*.properties"]),
     ("jinja", &["*.j2", "*.jinja", "*.jinja2"]),
     ("js", &[
-        "*.js", "*.jsx", "*.vue",
+        "*.js", "*.jsx", "*.vue", "*.svelte",
     ]),
     ("json", &["*.json", "composer.lock"]),
     ("jsonl", &["*.jsonl"]),
