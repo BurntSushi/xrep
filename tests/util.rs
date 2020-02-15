@@ -76,6 +76,9 @@ impl Dir {
             .join(TEST_DIR)
             .join(name)
             .join(&format!("{}", id));
+        if dir.exists() {
+            nice_err(&dir, fs::remove_dir_all(&dir));
+        }
         nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
         Dir {
             root: root,
