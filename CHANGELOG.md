@@ -9,7 +9,8 @@ Performance improvements:
 
 Feature enhancements:
 
-* Added or improved file type filtering for diff.
+* Added or improved file type filtering for erb, diff, Gradle, HAML, Org,
+  Postscript, Skim, Slim, Slime, Typoscript.
 * [FEATURE #1390](https://github.com/BurntSushi/ripgrep/pull/1390):
   Add new `--no-context-separator` flag that always hides context separators.
 
