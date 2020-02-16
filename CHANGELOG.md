@@ -6,6 +6,10 @@ Performance improvements:
 
 * [PERF #1381](https://github.com/BurntSushi/ripgrep/pull/1381):
   Directory traversal is sped up with speculative ignore-file existence checks.
+* PERF:
+  Improve inner literal detection to cover more cases more effectively.
+  e.g., ` +Sherlock Holmes +` now has ` Sherlock Holmes ` extracted instead
+  of ` `.
 
 Feature enhancements:
 

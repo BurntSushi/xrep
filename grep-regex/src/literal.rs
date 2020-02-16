@@ -146,7 +146,6 @@ fn union_required(expr: &Hir, lits: &mut Literals) {
                 hir::RepetitionKind::ZeroOrMore => lits.cut(),
                 hir::RepetitionKind::OneOrMore => {
                     union_required(&x.hir, lits);
-                    lits.cut();
                 }
                 hir::RepetitionKind::Range(ref rng) => {
                     let (min, max) = match *rng {
