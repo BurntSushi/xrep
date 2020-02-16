@@ -12,6 +12,8 @@ Performance improvements:
   of ` `.
 * PERF:
   Improve literal detection when the `-w/--word-regexp` flag is used.
+* PERF:
+  Improve overall performance of the `-w/--word-regexp` flag.
 
 Feature enhancements:
 

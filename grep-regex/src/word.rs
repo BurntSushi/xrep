@@ -15,6 +15,9 @@ use matcher::RegexCaptures;
 pub struct WordMatcher {
     /// The regex which is roughly `(?:^|\W)(<original pattern>)(?:$|\W)`.
     regex: Regex,
+    /// The original regex supplied by the user, which we use in a fast path
+    /// to try and detect matches before deferring to slower engines.
+    original: Regex,
     /// A map from capture group name to capture group index.
     names: HashMap<String, usize>,
     /// A reusable buffer for finding the match location of the inner group.
@@ -28,6 +31,7 @@ impl Clone for WordMatcher {
         // usings `locs` to hit the fast path.
         WordMatcher {
             regex: self.regex.clone(),
+            original: self.original.clone(),
             names: self.names.clone(),
             locs: Arc::new(CachedThreadLocal::new()),
         }
@@ -41,8 +45,13 @@ impl WordMatcher {
     /// The given options are used to construct the regular expression
     /// internally.
     pub fn new(expr: &ConfiguredHIR) -> Result<WordMatcher, Error> {
+        let original = expr.with_pattern(|pat| {
+            format!("^(?:{})$", pat)
+        })?.regex()?;
         let word_expr = expr.with_pattern(|pat| {
-            format!(r"(?:(?m:^)|\W)({})(?:(?m:$)|\W)", pat)
+            let pat = format!(r"(?:(?-m:^)|\W)({})(?:(?-m:$)|\W)", pat);
+            debug!("word regex: {:?}", pat);
+            pat
         })?;
         let regex = word_expr.regex()?;
         let locs = Arc::new(CachedThreadLocal::new());
@@ -53,12 +62,64 @@ impl WordMatcher {
                 names.insert(name.to_string(), i.checked_sub(1).unwrap());
             }
         }
-        Ok(WordMatcher { regex, names, locs })
+        Ok(WordMatcher { regex, original, names, locs })
     }
 
     /// Return the underlying regex used by this matcher.
     pub fn regex(&self) -> &Regex {
         &self.regex
+    }
+
+    /// Attempt to do a fast confirmation of a word match that covers a subset
+    /// (but hopefully a big subset) of most cases. Ok(Some(..)) is returned
+    /// when a match is found. Ok(None) is returned when there is definitively
+    /// no match. Err(()) is returned when this routine could not detect
+    /// whether there was a match or not.
+    fn fast_find(
+        &self,
+        haystack: &[u8],
+        at: usize,
+    ) -> Result<Option<Match>, ()> {
+        // This is a bit hairy. The whole point here is to avoid running an
+        // NFA simulation in the regex engine. Remember, our word regex looks
+        // like this:
+        //
+        //     (^|\W)(<original regex>)($|\W)
+        //     where ^ and $ have multiline mode DISABLED
+        //
+        // What we want are the match offsets of <original regex>. So in the
+        // easy/common case, the original regex will be sandwiched between
+        // two codepoints that are in the \W class. So our approach here is to
+        // look for a match of the overall word regexp, strip the \W ends and
+        // then check whether the original regex matches what's left. If so,
+        // then we are guaranteed a correct match.
+        //
+        // This only works though if we know that the match is sandwiched
+        // between two \W codepoints. This only occurs when neither ^ nor $
+        // match. This in turn only occurs when the match is at either the
+        // beginning or end of the haystack. In either of those cases, we
+        // declare defeat and defer to the slower implementation.
+        //
+        // The reason why we cannot handle the ^/$ cases here is because we
+        // can't assume anything about the original pattern. (Try commenting
+        // out the checks for ^/$ below and run the tests to see examples.)
+        let mut cand = match self.regex.find_at(haystack, at) {
+            None => return Ok(None),
+            Some(m) => Match::new(m.start(), m.end()),
+        };
+        if cand.start() == 0 || cand.end() == haystack.len() {
+            return Err(());
+        }
+        let (_, slen) = bstr::decode_utf8(&haystack[cand]);
+        let (_, elen) = bstr::decode_last_utf8(&haystack[cand]);
+        cand = cand
+            .with_start(cand.start() + slen)
+            .with_end(cand.end() - elen);
+        if self.original.is_match(&haystack[cand]) {
+            Ok(Some(cand))
+        } else {
+            Err(())
+        }
     }
 }
 
@@ -76,6 +137,16 @@ impl Matcher for WordMatcher {
         // of `0`. We *could* use `find_at` here and then trim the match after
         // the fact, but that's a bit harder to get right, and it's not clear
         // if it's worth it.
+        //
+        // OK, well, it turns out that it is worth it! But it is quite tricky.
+        // See `fast_find` for details. Effectively, this lets us skip running
+        // the NFA simulation in the regex engine in the vast majority of
+        // cases. However, the NFA simulation is required for full correctness.
+        match self.fast_find(haystack, at) {
+            Ok(Some(m)) => return Ok(Some(m)),
+            Ok(None) => return Ok(None),
+            Err(()) => {}
+        }
 
         let cell = self.locs.get_or(|| {
             RefCell::new(self.regex.capture_locations())
@@ -152,9 +223,31 @@ mod tests {
 
         assert_eq!(Some((0, 3)), find(r"foo", "foo☃"));
         assert_eq!(None, find(r"foo", "fooб"));
-        // assert_eq!(Some((0, 3)), find(r"foo", "fooб"));
 
-        // See: https://github.com/BurntSushi/ripgrep/issues/389
+        assert_eq!(Some((0, 4)), find(r"foo5", "foo5"));
+        assert_eq!(None, find(r"foo", "foo5"));
+
+        assert_eq!(Some((1, 4)), find(r"foo", "!foo!"));
+        assert_eq!(Some((1, 5)), find(r"foo!", "!foo!"));
+        assert_eq!(Some((0, 5)), find(r"!foo!", "!foo!"));
+
+        assert_eq!(Some((0, 3)), find(r"foo", "foo\n"));
+        assert_eq!(Some((1, 4)), find(r"foo", "!foo!\n"));
+        assert_eq!(Some((1, 5)), find(r"foo!", "!foo!\n"));
+        assert_eq!(Some((0, 5)), find(r"!foo!", "!foo!\n"));
+
+        assert_eq!(Some((1, 6)), find(r"!?foo!?", "!!foo!!"));
+        assert_eq!(Some((0, 5)), find(r"!?foo!?", "!foo!"));
+        assert_eq!(Some((2, 5)), find(r"!?foo!?", "a!foo!a"));
+
+        assert_eq!(Some((2, 7)), find(r"!?foo!?", "##!foo!\n"));
+        assert_eq!(Some((3, 7)), find(r"f?oo!?", "##\nfoo!##"));
+        assert_eq!(Some((2, 5)), find(r"(?-u)foo[^a]*", "#!foo☃aaa"));
+    }
+
+    // See: https://github.com/BurntSushi/ripgrep/issues/389
+    #[test]
+    fn regression_dash() {
         assert_eq!(Some((0, 2)), find(r"-2", "-2"));
     }
 
