@@ -110,7 +110,63 @@ impl LiteralSets {
             // We're matching raw bytes, so disable Unicode mode.
             Some(format!("(?-u:{})", alts.join("|")))
         } else if lit.is_empty() {
-            None
+            // If we're here, then we have no LCP. No LCS. And no detected
+            // inner required literals. In theory this shouldn't happen, but
+            // the inner literal detector isn't as nice as we hope and doens't
+            // actually support returning a set of alternating required
+            // literals. (Instead, it only returns a set where EVERY literal
+            // in it is required. It cannot currently express "either P or Q
+            // is required.")
+            //
+            // In this case, it is possible that we still have meaningful
+            // prefixes or suffixes to use. So we look for the set of literals
+            // with the highest minimum length and use that to build our "fast"
+            // regex.
+            //
+            // This manifest in fairly common scenarios. e.g.,
+            //
+            //     rg -w 'foo|bar|baz|quux'
+            //
+            // Normally, without the `-w`, the regex engine itself would
+            // detect the prefix correctly. Unfortunately, the `-w` option
+            // turns the regex into something like this:
+            //
+            //     rg '(^|\W)(foo|bar|baz|quux)($|\W)'
+            //
+            // Which will defeat all prefix and suffix literal optimizations.
+            // (Not in theory---it could be better. But the current
+            // implementation isn't good enough.) ... So we make up for it
+            // here.
+            let p_min_len = self.prefixes.min_len();
+            let s_min_len = self.suffixes.min_len();
+            let lits = match (p_min_len, s_min_len) {
+                (None, None) => return None,
+                (Some(_), None) => {
+                    debug!("prefix literals found");
+                    self.prefixes.literals()
+                }
+                (None, Some(_)) => {
+                    debug!("suffix literals found");
+                    self.suffixes.literals()
+                }
+                (Some(p), Some(s)) => {
+                    if p >= s {
+                        debug!("prefix literals found");
+                        self.prefixes.literals()
+                    } else {
+                        debug!("suffix literals found");
+                        self.suffixes.literals()
+                    }
+                }
+            };
+
+            debug!("prefix/suffix literals found: {:?}", lits);
+            let alts: Vec<String> = lits
+                .into_iter()
+                .map(|x| util::bytes_to_regex(x))
+                .collect();
+            // We're matching raw bytes, so disable Unicode mode.
+            Some(format!("(?-u:{})", alts.join("|")))
         } else {
             debug!("required literal found: {:?}", util::show_bytes(lit));
             Some(format!("(?-u:{})", util::bytes_to_regex(&lit)))

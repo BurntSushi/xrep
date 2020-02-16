@@ -49,7 +49,7 @@ impl RegexMatcherBuilder {
         let fast_line_regex = chir.fast_line_regex()?;
         let non_matching_bytes = chir.non_matching_bytes();
         if let Some(ref re) = fast_line_regex {
-            trace!("extracted fast line regex: {:?}", re);
+            debug!("extracted fast line regex: {:?}", re);
         }
 
         let matcher = RegexMatcherImpl::new(&chir)?;

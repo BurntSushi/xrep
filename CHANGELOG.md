@@ -10,6 +10,8 @@ Performance improvements:
   Improve inner literal detection to cover more cases more effectively.
   e.g., ` +Sherlock Holmes +` now has ` Sherlock Holmes ` extracted instead
   of ` `.
+* PERF:
+  Improve literal detection when the `-w/--word-regexp` flag is used.
 
 Feature enhancements:
 
