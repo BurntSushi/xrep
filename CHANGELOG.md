@@ -23,6 +23,8 @@ Feature enhancements:
   Add `--include-zero` flag that shows files searched without matches.
 * [FEATURE #1390](https://github.com/BurntSushi/ripgrep/pull/1390):
   Add `--no-context-separator` flag that always hides context separators.
+* [FEATURE #1414](https://github.com/BurntSushi/ripgrep/pull/1414):
+  Add `--no-require-git` flag to allow ripgrep to respect gitignores anywhere.
 * [FEATURE #1420](https://github.com/BurntSushi/ripgrep/pull/1420):
   Add `--no-ignore-exclude` to disregard rules in `.git/info/exclude` files.
 

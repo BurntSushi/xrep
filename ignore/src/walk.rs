@@ -780,6 +780,16 @@ impl WalkBuilder {
         self
     }
 
+    /// Whether a git repository is required to apply git-related ignore
+    /// rules (global rules, .gitignore and local exclude rules).
+    ///
+    /// When disabled, git-related ignore rules are applied even when searching
+    /// outside a git repository.
+    pub fn require_git(&mut self, yes: bool) -> &mut WalkBuilder {
+        self.ig_builder.require_git(yes);
+        self
+    }
+
     /// Process ignore files case insensitively
     ///
     /// This is disabled by default.

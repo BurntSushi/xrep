@@ -728,6 +728,34 @@ rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("\u{FFFD}\u{FFFD}\x00b\n", cmd.stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1414
+rgtest!(f1414_no_require_git, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".gitignore", "foo");
+    dir.create("foo", "");
+    dir.create("bar", "");
+
+    let stdout = cmd.args(&[
+        "--sort", "path",
+        "--files",
+    ]).stdout();
+    eqnice!("bar\nfoo\n", stdout);
+
+    let stdout = cmd.args(&[
+        "--sort", "path",
+        "--files",
+        "--no-require-git",
+    ]).stdout();
+    eqnice!("bar\n", stdout);
+
+    let stdout = cmd.args(&[
+        "--sort", "path",
+        "--files",
+        "--no-require-git",
+        "--require-git",
+    ]).stdout();
+    eqnice!("bar\nfoo\n", stdout);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/pull/1420
 rgtest!(f1420_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
     dir.create_dir(".git/info");

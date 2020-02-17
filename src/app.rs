@@ -602,6 +602,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_no_ignore_vcs(&mut args);
     flag_no_messages(&mut args);
     flag_no_pcre2_unicode(&mut args);
+    flag_no_require_git(&mut args);
     flag_null(&mut args);
     flag_null_data(&mut args);
     flag_one_file_system(&mut args);
@@ -1925,6 +1926,28 @@ This flag can be disabled with --pcre2-unicode.
     let arg = RGArg::switch("pcre2-unicode")
         .hidden()
         .overrides("no-pcre2-unicode");
+    args.push(arg);
+}
+
+fn flag_no_require_git(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Do not require a git repository to use gitignores.";
+    const LONG: &str = long!("\
+By default, ripgrep will only respect global gitignore rules, .gitignore rules
+and local exclude rules if ripgrep detects that you are searching inside a
+git repository. This flag allows you to relax this restriction such that
+ripgrep will respect all git related ignore rules regardless of whether you're
+searching in a git repository or not.
+
+This flag can be disabled with --require-git.
+");
+    let arg = RGArg::switch("no-require-git")
+        .help(SHORT).long_help(LONG)
+        .overrides("require-git");
+    args.push(arg);
+
+    let arg = RGArg::switch("require-git")
+        .hidden()
+        .overrides("no-require-git");
     args.push(arg);
 }
 

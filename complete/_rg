@@ -144,6 +144,8 @@ _rg() {
     + '(ignore-vcs)' # VCS ignore-file options
     "--no-ignore-vcs[don't respect version control ignore files]"
     $no'--ignore-vcs[respect version control ignore files]'
+    "--no-require-git[don't require git repository to respect gitignore rules]"
+    $no'--require-git[require git repository to respect gitignore rules]'
 
     + '(ignore-dot)' # .ignore-file options
     "--no-ignore-dot[don't respect .ignore files]"
@@ -284,6 +286,7 @@ _rg() {
     '--context-separator=[specify string used to separate non-continuous context lines in output]:separator'
     $no"--no-context-separator[don't print context separators]"
     '--debug[show debug messages]'
+    '--trace[show more verbose debug messages]'
     '--dfa-size-limit=[specify upper size limit of generated DFA]:DFA size (bytes)'
     "(1 stats)--files[show each file that would be searched (but don't search)]"
     '*--ignore-file=[specify additional ignore file]:ignore file:_files'

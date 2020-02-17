@@ -78,6 +78,9 @@ struct IgnoreOptions {
     git_exclude: bool,
     /// Whether to ignore files case insensitively
     ignore_case_insensitive: bool,
+    /// Whether a git repository must be present in order to apply any
+    /// git-related ignore rules.
+    require_git: bool,
 }
 
 /// Ignore is a matcher useful for recursively walking one or more directories.
@@ -385,7 +388,9 @@ impl Ignore {
             Match::None,
             Match::None,
         );
-        let any_git = self.parents().any(|ig| ig.0.has_git);
+        let any_git =
+            !self.0.opts.require_git
+            || self.parents().any(|ig| ig.0.has_git);
         let mut saw_git = false;
         for ig in self.parents().take_while(|ig| !ig.0.is_absolute_parent) {
             if m_custom_ignore.is_none() {
@@ -537,6 +542,7 @@ impl IgnoreBuilder {
                 git_ignore: true,
                 git_exclude: true,
                 ignore_case_insensitive: false,
+                require_git: true,
             },
         }
     }
@@ -683,6 +689,16 @@ impl IgnoreBuilder {
     /// This is enabled by default.
     pub fn git_exclude(&mut self, yes: bool) -> &mut IgnoreBuilder {
         self.opts.git_exclude = yes;
+        self
+    }
+
+    /// Whether a git repository is required to apply git-related ignore
+    /// rules (global rules, .gitignore and local exclude rules).
+    ///
+    /// When disabled, git-related ignore rules are applied even when searching
+    /// outside a git repository.
+    pub fn require_git(&mut self, yes: bool) -> &mut IgnoreBuilder {
+        self.opts.require_git = yes;
         self
     }
 
@@ -879,6 +895,21 @@ mod tests {
         assert!(err.is_none());
         assert!(ig.matched("foo", false).is_none());
         assert!(ig.matched("bar", false).is_none());
+        assert!(ig.matched("baz", false).is_none());
+    }
+
+    #[test]
+    fn gitignore_allowed_no_git() {
+        let td = tmpdir();
+        wfile(td.path().join(".gitignore"), "foo\n!bar");
+
+        let (ig, err) = IgnoreBuilder::new()
+            .require_git(false)
+            .build()
+            .add_child(td.path());
+        assert!(err.is_none());
+        assert!(ig.matched("foo", false).is_ignore());
+        assert!(ig.matched("bar", false).is_whitelist());
         assert!(ig.matched("baz", false).is_none());
     }
 
