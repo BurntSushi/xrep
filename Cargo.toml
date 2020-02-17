@@ -101,7 +101,7 @@ assets = [
   ["deployment/deb/rg.1", "usr/share/man/man1/rg.1", "644"],
   # Similarly for shell completions.
   ["deployment/deb/rg.bash", "usr/share/bash-completion/completions/rg", "644"],
-  ["deployment/deb/rg.fish", "usr/share/fish/completions/rg.fish", "644"],
+  ["deployment/deb/rg.fish", "usr/share/fish/vendor_completions.d/rg.fish", "644"],
   ["deployment/deb/_rg", "usr/share/zsh/vendor-completions/", "644"],
 ]
 extended-description = """\

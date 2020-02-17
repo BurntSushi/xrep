@@ -39,6 +39,9 @@ Bug fixes:
   Document usage of `--type all`.
 * [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
   ripgrep now respects ignore rules from .git/info/exclude in worktrees.
+* [BUG #1485](https://github.com/BurntSushi/ripgrep/issues/1485):
+  Fish shell completions from the release Debian package are now installed to
+  `/usr/share/fish/vendor_completions.d/rg.fish`.
 
 
 11.0.2 (2019-08-01)
