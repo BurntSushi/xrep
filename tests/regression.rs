@@ -747,6 +747,21 @@ rgtest!(r1334_crazy_literals, |dir: Dir, mut cmd: TestCommand| {
     );
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1389
+rgtest!(r1389_bad_symlinks_no_biscuit, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir("mydir");
+    dir.create("mydir/file.txt", "test");
+    dir.link_dir("mydir", "mylink");
+
+    let stdout = cmd.args(&[
+        "test",
+        "--no-ignore",
+        "--sort", "path",
+        "mylink",
+    ]).stdout();
+    eqnice!("mylink/file.txt:test\n", stdout);
+});
+
 // See: https://github.com/BurntSushi/ripgrep/pull/1446
 rgtest!(r1446_respect_excludes_in_worktree, |dir: Dir, mut cmd: TestCommand| {
     dir.create_dir("repo/.git/info");

@@ -49,6 +49,8 @@ Bug fixes:
   This was a serious performance regression in some cases.
 * [BUG #1344](https://github.com/BurntSushi/ripgrep/issues/1344):
   Document usage of `--type all`.
+* [BUG #1389](https://github.com/BurntSushi/ripgrep/issues/1389):
+  Fixes a bug where ripgrep would panic when searching a symlinked directory.
 * [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
   ripgrep now respects ignore rules from .git/info/exclude in worktrees.
 * [BUG #1485](https://github.com/BurntSushi/ripgrep/issues/1485):

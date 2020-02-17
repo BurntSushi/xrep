@@ -1043,7 +1043,7 @@ impl Iterator for WalkEventIter {
             None => None,
             Some(Err(err)) => Some(Err(err)),
             Some(Ok(dent)) => {
-                if dent.file_type().is_dir() {
+                if walkdir_is_dir(&dent) {
                     self.depth += 1;
                     Some(Ok(WalkEvent::Dir(dent)))
                 } else {
@@ -1789,6 +1789,24 @@ fn path_equals(dent: &DirEntry, handle: &Handle) -> Result<bool, Error> {
     Handle::from_path(dent.path())
         .map(|h| &h == handle)
         .map_err(|err| Error::Io(err).with_path(dent.path()))
+}
+
+/// Returns true if the given walkdir entry corresponds to a directory.
+///
+/// This is normally just `dent.file_type().is_dir()`, but when we aren't
+/// following symlinks, the root directory entry may be a symlink to a
+/// directory that we *do* follow---by virtue of it being specified by the user
+/// explicitly. In that case, we need to follow the symlink and query whether
+/// it's a directory or not. But we only do this for root entries to avoid an
+/// additional stat check in most cases.
+fn walkdir_is_dir(dent: &walkdir::DirEntry) -> bool {
+    if dent.file_type().is_dir() {
+        return true;
+    }
+    if !dent.file_type().is_symlink() || dent.depth() > 0 {
+        return false;
+    }
+    dent.path().metadata().ok().map_or(false, |md| md.file_type().is_dir())
 }
 
 /// Returns true if and only if the given path is on the same device as the
