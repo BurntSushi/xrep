@@ -2,6 +2,14 @@ TBD
 ===
 TODO
 
+Deprecations:
+
+* The `--no-pcre2-unicode` flag is deprecated. Instead, use the `--no-unicode`
+  flag, which applies to both the default regex engine and PCRE2. For now,
+  `--no-pcre2-unicode` and `--pcre2-unicode` are aliases to `--no-unicode`
+  and `--unicode`, respectively. The `--[no-]pcre2-unicode` flags may be
+  removed in a future release.
+
 Performance improvements:
 
 * [PERF #1381](https://github.com/BurntSushi/ripgrep/pull/1381):
@@ -27,6 +35,8 @@ Feature enhancements:
   Add `--no-require-git` flag to allow ripgrep to respect gitignores anywhere.
 * [FEATURE #1420](https://github.com/BurntSushi/ripgrep/pull/1420):
   Add `--no-ignore-exclude` to disregard rules in `.git/info/exclude` files.
+* FEATURE:
+  Add `--no-unicode` flag. This works on all supported regex engines.
 
 Bug fixes:
 

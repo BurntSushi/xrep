@@ -654,7 +654,7 @@ impl ArgMatches {
             .case_smart(self.case_smart())
             .case_insensitive(self.case_insensitive())
             .multi_line(true)
-            .unicode(true)
+            .unicode(self.unicode())
             .octal(false)
             .word(self.is_present("word-regexp"));
         if self.is_present("multiline") {
@@ -720,7 +720,7 @@ impl ArgMatches {
                 // 10MB.
                 .max_jit_stack_size(Some(10 * (1<<20)));
         }
-        if self.pcre2_unicode() {
+        if self.unicode() {
             builder.utf(true).ucp(true);
             if self.encoding()?.has_explicit_encoding() {
                 // SAFETY: If an encoding was specified, then we're guaranteed
@@ -1602,11 +1602,17 @@ impl ArgMatches {
         self.occurrences_of("unrestricted")
     }
 
-    /// Returns true if and only if PCRE2's Unicode mode should be enabled.
+    /// Returns true if and only if Unicode mode should be enabled.
+    fn unicode(&self) -> bool {
+        // Unicode mode is enabled by default, so only disable it when
+        // --no-unicode is given explicitly.
+        !(self.is_present("no-unicode") || self.is_present("no-pcre2-unicode"))
+    }
+
+    /// Returns true if and only if PCRE2 is enabled and its Unicode mode is
+    /// enabled.
     fn pcre2_unicode(&self) -> bool {
-        // PCRE2 Unicode is enabled by default, so only disable it when told
-        // to do so explicitly.
-        self.is_present("pcre2") && !self.is_present("no-pcre2-unicode")
+        self.is_present("pcre2") && self.unicode()
     }
 
     /// Returns true if and only if file names containing each match should

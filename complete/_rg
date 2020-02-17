@@ -144,6 +144,8 @@ _rg() {
     + '(ignore-vcs)' # VCS ignore-file options
     "--no-ignore-vcs[don't respect version control ignore files]"
     $no'--ignore-vcs[respect version control ignore files]'
+
+    + '(require-git)' # git specific settings
     "--no-require-git[don't require git repository to respect gitignore rules]"
     $no'--require-git[require git repository to respect gitignore rules]'
 
@@ -269,6 +271,10 @@ _rg() {
     + '(word-line)' # Whole-word/line match options
     {-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     {-x,--line-regexp}'[only show matches surrounded by line boundaries]'
+
+    + '(unicode)' # Unicode options
+    $no'--unicode[enable Unicode mode]'
+    '--no-unicode[disable Unicode mode]'
 
     + '(zip)' # Compression options
     '(--pre)'{-z,--search-zip}'[search in compressed files]'

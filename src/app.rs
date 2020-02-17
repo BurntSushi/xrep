@@ -603,6 +603,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_no_messages(&mut args);
     flag_no_pcre2_unicode(&mut args);
     flag_no_require_git(&mut args);
+    flag_no_unicode(&mut args);
     flag_null(&mut args);
     flag_null_data(&mut args);
     flag_one_file_system(&mut args);
@@ -1890,42 +1891,21 @@ This flag can be disabled with the --messages flag.
 fn flag_no_pcre2_unicode(args: &mut Vec<RGArg>) {
     const SHORT: &str = "Disable Unicode mode for PCRE2 matching.";
     const LONG: &str = long!("\
-When PCRE2 matching is enabled, this flag will disable Unicode mode, which is
-otherwise enabled by default. If PCRE2 matching is not enabled, then this flag
-has no effect.
+DEPRECATED. Use --no-unicode instead.
 
-When PCRE2's Unicode mode is enabled, several different types of patterns
-become Unicode aware. This includes '\\b', '\\B', '\\w', '\\W', '\\d', '\\D',
-'\\s' and '\\S'. Similarly, the '.' meta character will match any Unicode
-codepoint instead of any byte. Caseless matching will also use Unicode simple
-case folding instead of ASCII-only case insensitivity.
-
-Unicode mode in PCRE2 represents a critical trade off in the user experience
-of ripgrep. In particular, unlike the default regex engine, PCRE2 does not
-support the ability to search possibly invalid UTF-8 with Unicode features
-enabled. Instead, PCRE2 *requires* that everything it searches when Unicode
-mode is enabled is valid UTF-8. (Or valid UTF-16/UTF-32, but for the purposes
-of ripgrep, we only discuss UTF-8.) This means that if you have PCRE2's Unicode
-mode enabled and you attempt to search invalid UTF-8, then the search for that
-file will halt and print an error. For this reason, when PCRE2's Unicode mode
-is enabled, ripgrep will automatically \"fix\" invalid UTF-8 sequences by
-replacing them with the Unicode replacement codepoint.
-
-If you would rather see the encoding errors surfaced by PCRE2 when Unicode mode
-is enabled, then pass the --no-encoding flag to disable all transcoding.
-
-Related flags: --pcre2
-
-This flag can be disabled with --pcre2-unicode.
+This flag is now an alias for --no-unicode. And --pcre2-unicode is an alias
+for --unicode.
 ");
     let arg = RGArg::switch("no-pcre2-unicode")
         .help(SHORT).long_help(LONG)
-        .overrides("pcre2-unicode");
+        .overrides("pcre2-unicode")
+        .overrides("unicode");
     args.push(arg);
 
     let arg = RGArg::switch("pcre2-unicode")
         .hidden()
-        .overrides("no-pcre2-unicode");
+        .overrides("no-pcre2-unicode")
+        .overrides("no-unicode");
     args.push(arg);
 }
 
@@ -1948,6 +1928,55 @@ This flag can be disabled with --require-git.
     let arg = RGArg::switch("require-git")
         .hidden()
         .overrides("no-require-git");
+    args.push(arg);
+}
+
+fn flag_no_unicode(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Disable Unicode mode.";
+    const LONG: &str = long!("\
+By default, ripgrep will enable \"Unicode mode\" in all of its regexes. This
+has a number of consequences:
+
+* '.' will only match valid UTF-8 encoded scalar values.
+* Classes like '\\w', '\\s', '\\d' are all Unicode aware and much bigger
+  than their ASCII only versions.
+* Case insensitive matching will use Unicode case folding.
+* A large array of classes like '\\p{Emoji}' are available.
+* Word boundaries ('\\b' and '\\B') use the Unicode definition of a word
+  character.
+
+In some cases it can be desirable to turn these things off. The --no-unicode
+flag will do exactly that.
+
+For PCRE2 specifically, Unicode mode represents a critical trade off in the
+user experience of ripgrep. In particular, unlike the default regex engine,
+PCRE2 does not support the ability to search possibly invalid UTF-8 with
+Unicode features enabled. Instead, PCRE2 *requires* that everything it searches
+when Unicode mode is enabled is valid UTF-8. (Or valid UTF-16/UTF-32, but for
+the purposes of ripgrep, we only discuss UTF-8.) This means that if you have
+PCRE2's Unicode mode enabled and you attempt to search invalid UTF-8, then
+the search for that file will halt and print an error. For this reason, when
+PCRE2's Unicode mode is enabled, ripgrep will automatically \"fix\" invalid
+UTF-8 sequences by replacing them with the Unicode replacement codepoint. This
+penalty does not occur when using the default regex engine.
+
+If you would rather see the encoding errors surfaced by PCRE2 when Unicode mode
+is enabled, then pass the --no-encoding flag to disable all transcoding.
+
+The --no-unicode flag can be disabled with --unicode. Note that
+--no-pcre2-unicode and --pcre2-unicode are aliases for --no-unicode and
+--unicode, respectively.
+");
+    let arg = RGArg::switch("no-unicode")
+        .help(SHORT).long_help(LONG)
+        .overrides("unicode")
+        .overrides("pcre2-unicode");
+    args.push(arg);
+
+    let arg = RGArg::switch("unicode")
+        .hidden()
+        .overrides("no-unicode")
+        .overrides("no-pcre2-unicode");
     args.push(arg);
 }
 

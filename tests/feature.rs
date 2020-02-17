@@ -834,3 +834,8 @@ rgtest!(context_sep_empty, |dir: Dir, mut cmd: TestCommand| {
     ]);
     eqnice!("foo\nctx\n\nfoo\nctx\n", cmd.stdout());
 });
+
+rgtest!(no_unicode, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "δ");
+    cmd.arg("-i").arg("--no-unicode").arg("Δ").assert_err();
+});
