@@ -25,7 +25,7 @@ appveyor = { repository = "BurntSushi/ripgrep" }
 
 [[bin]]
 bench = false
-path = "src/main.rs"
+path = "crates/core/main.rs"
 name = "rg"
 
 [[test]]
@@ -34,21 +34,21 @@ path = "tests/tests.rs"
 
 [workspace]
 members = [
-  "globset",
-  "grep",
-  "grep-cli",
-  "grep-matcher",
-  "grep-pcre2",
-  "grep-printer",
-  "grep-regex",
-  "grep-searcher",
-  "ignore",
+  "crates/globset",
+  "crates/grep",
+  "crates/cli",
+  "crates/matcher",
+  "crates/pcre2",
+  "crates/printer",
+  "crates/regex",
+  "crates/searcher",
+  "crates/ignore",
 ]
 
 [dependencies]
 bstr = "0.2.0"
-grep = { version = "0.2.4", path = "grep" }
-ignore = { version = "0.4.7", path = "ignore" }
+grep = { version = "0.2.4", path = "crates/grep" }
+ignore = { version = "0.4.7", path = "crates/ignore" }
 lazy_static = "1.1.0"
 log = "0.4.5"
 num_cpus = "1.8.0"

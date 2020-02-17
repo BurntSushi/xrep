@@ -9,7 +9,7 @@ use clap::Shell;
 use app::{RGArg, RGArgKind};
 
 #[allow(dead_code)]
-#[path = "src/app.rs"]
+#[path = "crates/core/app.rs"]
 mod app;
 
 fn main() {

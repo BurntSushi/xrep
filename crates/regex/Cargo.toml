@@ -15,7 +15,7 @@ license = "Unlicense/MIT"
 [dependencies]
 aho-corasick = "0.7.3"
 bstr = "0.2.10"
-grep-matcher = { version = "0.1.2", path = "../grep-matcher" }
+grep-matcher = { version = "0.1.2", path = "../matcher" }
 log = "0.4.5"
 regex = "1.1"
 regex-syntax = "0.6.5"
