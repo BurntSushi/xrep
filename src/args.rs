@@ -1277,17 +1277,23 @@ impl ArgMatches {
 
     /// Builds the set of glob overrides from the command line flags.
     fn overrides(&self) -> Result<Override> {
-        let mut builder = OverrideBuilder::new(env::current_dir()?);
+        let globs = self.values_of_lossy_vec("glob");
+        let iglobs = self.values_of_lossy_vec("iglob");
+        if globs.is_empty() && iglobs.is_empty() {
+            return Ok(Override::empty());
+        }
+
+        let mut builder = OverrideBuilder::new(current_dir()?);
         // Make all globs case insensitive with --glob-case-insensitive.
         if self.is_present("glob-case-insensitive") {
             builder.case_insensitive(true).unwrap();
         }
-        for glob in self.values_of_lossy_vec("glob") {
+        for glob in globs {
             builder.add(&glob)?;
         }
         // This only enables case insensitivity for subsequent globs.
         builder.case_insensitive(true).unwrap();
-        for glob in self.values_of_lossy_vec("iglob") {
+        for glob in iglobs {
             builder.add(&glob)?;
         }
         Ok(builder.build()?)
@@ -1489,8 +1495,12 @@ impl ArgMatches {
     /// flag. If no --pre-globs are available, then this always returns an
     /// empty set of globs.
     fn preprocessor_globs(&self) -> Result<Override> {
-        let mut builder = OverrideBuilder::new(env::current_dir()?);
-        for glob in self.values_of_lossy_vec("pre-glob") {
+        let globs = self.values_of_lossy_vec("pre-glob");
+        if globs.is_empty() {
+            return Ok(Override::empty());
+        }
+        let mut builder = OverrideBuilder::new(current_dir()?);
+        for glob in globs {
             builder.add(&glob)?;
         }
         Ok(builder.build()?)
@@ -1793,4 +1803,26 @@ where I: IntoIterator<Item=T>,
     // doing this will panic on a broken pipe error.)
     let _ = write!(io::stdout(), "{}", err);
     process::exit(0);
+}
+
+/// Attempts to discover the current working directory. This mostly just defers
+/// to the standard library, however, such things will fail if ripgrep is in
+/// a directory that no longer exists. We attempt some fallback mechanisms,
+/// such as querying the PWD environment variable, but otherwise return an
+/// error.
+fn current_dir() -> Result<PathBuf> {
+    let err = match env::current_dir() {
+        Err(err) => err,
+        Ok(cwd) => return Ok(cwd),
+    };
+    if let Some(cwd) = env::var_os("PWD") {
+        if !cwd.is_empty() {
+            return Ok(PathBuf::from(cwd));
+        }
+    }
+    Err(format!(
+        "failed to get current working directory: {} \
+         --- did your CWD get deleted?",
+        err,
+    ).into())
 }
