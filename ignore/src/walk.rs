@@ -102,24 +102,15 @@ impl DirEntry {
     }
 
     fn new_stdin() -> DirEntry {
-        DirEntry {
-            dent: DirEntryInner::Stdin,
-            err: None,
-        }
+        DirEntry { dent: DirEntryInner::Stdin, err: None }
     }
 
     fn new_walkdir(dent: walkdir::DirEntry, err: Option<Error>) -> DirEntry {
-        DirEntry {
-            dent: DirEntryInner::Walkdir(dent),
-            err: err,
-        }
+        DirEntry { dent: DirEntryInner::Walkdir(dent), err: err }
     }
 
     fn new_raw(dent: DirEntryRaw, err: Option<Error>) -> DirEntry {
-        DirEntry {
-            dent: DirEntryInner::Raw(dent),
-            err: err,
-        }
+        DirEntry { dent: DirEntryInner::Raw(dent), err: err }
     }
 }
 
@@ -185,9 +176,9 @@ impl DirEntryInner {
                 ));
                 Err(err.with_path("<stdin>"))
             }
-            Walkdir(ref x) => x
-                .metadata()
-                .map_err(|err| Error::Io(io::Error::from(err)).with_path(x.path())),
+            Walkdir(ref x) => x.metadata().map_err(|err| {
+                Error::Io(io::Error::from(err)).with_path(x.path())
+            }),
             Raw(ref x) => x.metadata(),
         }
     }
@@ -314,9 +305,7 @@ impl DirEntryRaw {
     }
 
     fn file_name(&self) -> &OsStr {
-        self.path
-            .file_name()
-            .unwrap_or_else(|| self.path.as_os_str())
+        self.path.file_name().unwrap_or_else(|| self.path.as_os_str())
     }
 
     fn depth(&self) -> usize {
@@ -328,13 +317,13 @@ impl DirEntryRaw {
         self.ino
     }
 
-    fn from_entry(depth: usize, ent: &fs::DirEntry) -> Result<DirEntryRaw, Error> {
+    fn from_entry(
+        depth: usize,
+        ent: &fs::DirEntry,
+    ) -> Result<DirEntryRaw, Error> {
         let ty = ent.file_type().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
-            Error::WithDepth {
-                depth: depth,
-                err: Box::new(err),
-            }
+            Error::WithDepth { depth: depth, err: Box::new(err) }
         })?;
         DirEntryRaw::from_entry_os(depth, ent, ty)
     }
@@ -347,10 +336,7 @@ impl DirEntryRaw {
     ) -> Result<DirEntryRaw, Error> {
         let md = ent.metadata().map_err(|err| {
             let err = Error::Io(io::Error::from(err)).with_path(ent.path());
-            Error::WithDepth {
-                depth: depth,
-                err: Box::new(err),
-            }
+            Error::WithDepth { depth: depth, err: Box::new(err) }
         })?;
         Ok(DirEntryRaw {
             path: ent.path(),
@@ -392,8 +378,13 @@ impl DirEntryRaw {
     }
 
     #[cfg(windows)]
-    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
-        let md = fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
+        let md =
+            fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -404,10 +395,15 @@ impl DirEntryRaw {
     }
 
     #[cfg(unix)]
-    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
-        let md = fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
+        let md =
+            fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -419,7 +415,11 @@ impl DirEntryRaw {
 
     // Placeholder implementation to allow compiling on non-standard platforms (e.g. wasm32).
     #[cfg(not(any(windows, unix)))]
-    fn from_path(depth: usize, pb: PathBuf, link: bool) -> Result<DirEntryRaw, Error> {
+    fn from_path(
+        depth: usize,
+        pb: PathBuf,
+        link: bool,
+    ) -> Result<DirEntryRaw, Error> {
         Err(Error::Io(io::Error::new(
             io::ErrorKind::Other,
             "unsupported platform",
@@ -490,7 +490,9 @@ pub struct WalkBuilder {
 
 #[derive(Clone)]
 enum Sorter {
-    ByName(Arc<dyn Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static>),
+    ByName(
+        Arc<dyn Fn(&OsStr, &OsStr) -> cmp::Ordering + Send + Sync + 'static>,
+    ),
     ByPath(Arc<dyn Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static>),
 }
 
@@ -550,10 +552,14 @@ impl WalkBuilder {
                     if let Some(ref sorter) = sorter {
                         match sorter.clone() {
                             Sorter::ByName(cmp) => {
-                                wd = wd.sort_by(move |a, b| cmp(a.file_name(), b.file_name()));
+                                wd = wd.sort_by(move |a, b| {
+                                    cmp(a.file_name(), b.file_name())
+                                });
                             }
                             Sorter::ByPath(cmp) => {
-                                wd = wd.sort_by(move |a, b| cmp(a.path(), b.path()));
+                                wd = wd.sort_by(move |a, b| {
+                                    cmp(a.path(), b.path())
+                                });
                             }
                         }
                     }
@@ -1012,11 +1018,7 @@ enum WalkEvent {
 
 impl From<WalkDir> for WalkEventIter {
     fn from(it: WalkDir) -> WalkEventIter {
-        WalkEventIter {
-            depth: 0,
-            it: it.into_iter(),
-            next: None,
-        }
+        WalkEventIter { depth: 0, it: it.into_iter(), next: None }
     }
 }
 
@@ -1085,8 +1087,8 @@ pub trait ParallelVisitorBuilder<'s> {
     fn build(&mut self) -> Box<dyn ParallelVisitor + 's>;
 }
 
-impl<'a, 's, P: ParallelVisitorBuilder<'s>>
-    ParallelVisitorBuilder<'s> for &'a mut P
+impl<'a, 's, P: ParallelVisitorBuilder<'s>> ParallelVisitorBuilder<'s>
+    for &'a mut P
 {
     fn build(&mut self) -> Box<dyn ParallelVisitor + 's> {
         (**self).build()
@@ -1109,16 +1111,17 @@ struct FnBuilder<F> {
     builder: F,
 }
 
-impl<'s, F: FnMut() -> FnVisitor<'s>> ParallelVisitorBuilder<'s> for FnBuilder<F> {
+impl<'s, F: FnMut() -> FnVisitor<'s>> ParallelVisitorBuilder<'s>
+    for FnBuilder<F>
+{
     fn build(&mut self) -> Box<dyn ParallelVisitor + 's> {
         let visitor = (self.builder)();
         Box::new(FnVisitorImp { visitor })
     }
 }
 
-type FnVisitor<'s> = Box<
-    dyn FnMut(Result<DirEntry, Error>) -> WalkState + Send + 's
->;
+type FnVisitor<'s> =
+    Box<dyn FnMut(Result<DirEntry, Error>) -> WalkState + Send + 's>;
 
 struct FnVisitorImp<'s> {
     visitor: FnVisitor<'s>,
@@ -1263,7 +1266,8 @@ impl WalkParallel {
             for handle in handles {
                 handle.join().unwrap();
             }
-        }).unwrap(); // Pass along panics from threads
+        })
+        .unwrap(); // Pass along panics from threads
     }
 
     fn threads(&self) -> usize {
@@ -1488,7 +1492,9 @@ impl<'s> Worker<'s> {
         let fs_dent = match result {
             Ok(fs_dent) => fs_dent,
             Err(err) => {
-                return self.visitor.visit(Err(Error::from(err).with_depth(depth)));
+                return self
+                    .visitor
+                    .visit(Err(Error::from(err).with_depth(depth)));
             }
         };
         let mut dent = match DirEntryRaw::from_entry(depth, &fs_dent) {
@@ -1522,15 +1528,16 @@ impl<'s> Worker<'s> {
             }
         }
         let should_skip_path = should_skip_entry(ig, &dent);
-        let should_skip_filesize = if self.max_filesize.is_some() && !dent.is_dir() {
-            skip_filesize(
-                self.max_filesize.unwrap(),
-                dent.path(),
-                &dent.metadata().ok(),
-            )
-        } else {
-            false
-        };
+        let should_skip_filesize =
+            if self.max_filesize.is_some() && !dent.is_dir() {
+                skip_filesize(
+                    self.max_filesize.unwrap(),
+                    dent.path(),
+                    &dent.metadata().ok(),
+                )
+            } else {
+                false
+            };
 
         if !should_skip_path && !should_skip_filesize {
             self.tx
@@ -1579,11 +1586,12 @@ impl<'s> Worker<'s> {
                         return None;
                     }
                     // Wait for next `Work` or `Quit` message.
-                    value = Ok(self.rx.recv().expect(
-                        "channel disconnected while worker is alive",
-                    ));
+                    value = Ok(self
+                        .rx
+                        .recv()
+                        .expect("channel disconnected while worker is alive"));
                     self.resume();
-                },
+                }
                 Err(TryRecvError::Disconnected) => {
                     unreachable!("channel disconnected while worker is alive");
                 }
@@ -1619,18 +1627,11 @@ fn check_symlink_loop(
     child_depth: usize,
 ) -> Result<(), Error> {
     let hchild = Handle::from_path(child_path).map_err(|err| {
-        Error::from(err)
-            .with_path(child_path)
-            .with_depth(child_depth)
+        Error::from(err).with_path(child_path).with_depth(child_depth)
     })?;
-    for ig in ig_parent
-        .parents()
-        .take_while(|ig| !ig.is_absolute_parent())
-    {
+    for ig in ig_parent.parents().take_while(|ig| !ig.is_absolute_parent()) {
         let h = Handle::from_path(ig.path()).map_err(|err| {
-            Error::from(err)
-                .with_path(child_path)
-                .with_depth(child_depth)
+            Error::from(err).with_path(child_path).with_depth(child_depth)
         })?;
         if hchild == h {
             return Err(Error::Loop {
@@ -1645,7 +1646,11 @@ fn check_symlink_loop(
 
 // Before calling this function, make sure that you ensure that is really
 // necessary as the arguments imply a file stat.
-fn skip_filesize(max_filesize: u64, path: &Path, ent: &Option<Metadata>) -> bool {
+fn skip_filesize(
+    max_filesize: u64,
+    path: &Path,
+    ent: &Option<Metadata>,
+) -> bool {
     let filesize = match *ent {
         Some(ref md) => Some(md.len()),
         None => None,
@@ -1743,7 +1748,8 @@ fn walkdir_is_dir(dent: &walkdir::DirEntry) -> bool {
 /// Returns true if and only if the given path is on the same device as the
 /// given root device.
 fn is_same_file_system(root_device: u64, path: &Path) -> Result<bool, Error> {
-    let dent_device = device_num(path).map_err(|err| Error::Io(err).with_path(path))?;
+    let dent_device =
+        device_num(path).map_err(|err| Error::Io(err).with_path(path))?;
     Ok(root_device == dent_device)
 }
 
@@ -1825,7 +1831,10 @@ mod tests {
         paths
     }
 
-    fn walk_collect_parallel(prefix: &Path, builder: &WalkBuilder) -> Vec<String> {
+    fn walk_collect_parallel(
+        prefix: &Path,
+        builder: &WalkBuilder,
+    ) -> Vec<String> {
         let mut paths = vec![];
         for dent in walk_collect_entries_parallel(builder) {
             let path = dent.path().strip_prefix(prefix).unwrap();
@@ -2079,7 +2088,9 @@ mod tests {
         assert_eq!(1, dents.len());
         assert!(!dents[0].path_is_symlink());
 
-        let dents = walk_collect_entries_parallel(&WalkBuilder::new(td.path().join("foo")));
+        let dents = walk_collect_entries_parallel(&WalkBuilder::new(
+            td.path().join("foo"),
+        ));
         assert_eq!(1, dents.len());
         assert!(!dents[0].path_is_symlink());
     }

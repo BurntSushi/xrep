@@ -91,8 +91,8 @@ pub fn strip_prefix<'a, P: AsRef<Path> + ?Sized>(
 /// the empty string.
 #[cfg(unix)]
 pub fn is_file_name<P: AsRef<Path>>(path: P) -> bool {
-    use std::os::unix::ffi::OsStrExt;
     use memchr::memchr;
+    use std::os::unix::ffi::OsStrExt;
 
     let path = path.as_ref().as_os_str().as_bytes();
     memchr(b'/', path).is_none()
@@ -113,8 +113,8 @@ pub fn is_file_name<P: AsRef<Path>>(path: P) -> bool {
 pub fn file_name<'a, P: AsRef<Path> + ?Sized>(
     path: &'a P,
 ) -> Option<&'a OsStr> {
-    use std::os::unix::ffi::OsStrExt;
     use memchr::memrchr;
+    use std::os::unix::ffi::OsStrExt;
 
     let path = path.as_ref().as_os_str().as_bytes();
     if path.is_empty() {

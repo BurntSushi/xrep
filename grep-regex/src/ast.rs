@@ -1,5 +1,5 @@
-use regex_syntax::ast::{self, Ast};
 use regex_syntax::ast::parse::Parser;
+use regex_syntax::ast::{self, Ast};
 
 /// The results of analyzing AST of a regular expression (e.g., for supporting
 /// smart case).

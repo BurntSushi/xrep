@@ -3,12 +3,11 @@ use std::cmp;
 use bstr::ByteSlice;
 
 use grep_matcher::{LineMatchKind, Matcher};
-use lines::{self, LineStep};
 use line_buffer::BinaryDetection;
+use lines::{self, LineStep};
 use searcher::{Config, Range, Searcher};
 use sink::{
-    Sink, SinkError,
-    SinkFinish, SinkContext, SinkContextKind, SinkMatch,
+    Sink, SinkContext, SinkContextKind, SinkError, SinkFinish, SinkMatch,
 };
 
 #[derive(Debug)]
@@ -36,11 +35,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         binary: bool,
     ) -> Core<'s, M, S> {
         let line_number =
-            if searcher.config.line_number {
-                Some(1)
-            } else {
-                None
-            };
+            if searcher.config.line_number { Some(1) } else { None };
         let core = Core {
             config: &searcher.config,
             matcher: matcher,
@@ -108,10 +103,8 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
     ) -> Result<(), S::Error> {
         self.sink.finish(
             &self.searcher,
-            &SinkFinish {
-                byte_count,
-                binary_byte_offset,
-            })
+            &SinkFinish { byte_count, binary_byte_offset },
+        )
     }
 
     pub fn match_by_line(&mut self, buf: &[u8]) -> Result<bool, S::Error> {
@@ -123,23 +116,22 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
     }
 
     pub fn roll(&mut self, buf: &[u8]) -> usize {
-        let consumed =
-            if self.config.max_context() == 0 {
-                buf.len()
-            } else {
-                // It might seem like all we need to care about here is just
-                // the "before context," but in order to sink the context
-                // separator (when before_context==0 and after_context>0), we
-                // need to know something about the position of the previous
-                // line visited, even if we're at the beginning of the buffer.
-                let context_start = lines::preceding(
-                    buf,
-                    self.config.line_term.as_byte(),
-                    self.config.max_context(),
-                );
-                let consumed = cmp::max(context_start, self.last_line_visited);
-                consumed
-            };
+        let consumed = if self.config.max_context() == 0 {
+            buf.len()
+        } else {
+            // It might seem like all we need to care about here is just
+            // the "before context," but in order to sink the context
+            // separator (when before_context==0 and after_context>0), we
+            // need to know something about the position of the previous
+            // line visited, even if we're at the beginning of the buffer.
+            let context_start = lines::preceding(
+                buf,
+                self.config.line_term.as_byte(),
+                self.config.max_context(),
+            );
+            let consumed = cmp::max(context_start, self.last_line_visited);
+            consumed
+        };
         self.count_lines(buf, consumed);
         self.absolute_byte_offset += consumed as u64;
         self.last_line_counted = 0;
@@ -185,11 +177,12 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         if range.is_empty() {
             return Ok(true);
         }
-        let before_context_start = range.start() + lines::preceding(
-            &buf[range],
-            self.config.line_term.as_byte(),
-            self.config.before_context - 1,
-        );
+        let before_context_start = range.start()
+            + lines::preceding(
+                &buf[range],
+                self.config.line_term.as_byte(),
+                self.config.before_context - 1,
+            );
 
         let range = Range::new(before_context_start, range.end());
         let mut stepper = LineStep::new(
@@ -552,8 +545,7 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
     ) -> Result<bool, S::Error> {
         let is_gap = self.last_line_visited < start_of_line;
         let any_context =
-            self.config.before_context > 0
-            || self.config.after_context > 0;
+            self.config.before_context > 0 || self.config.after_context > 0;
 
         if !any_context || !self.has_sunk || !is_gap {
             Ok(true)

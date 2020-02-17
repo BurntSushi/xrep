@@ -19,7 +19,7 @@ pub fn interpolate<A, N>(
     dst: &mut Vec<u8>,
 ) where
     A: FnMut(usize, &mut Vec<u8>),
-    N: FnMut(&str) -> Option<usize>
+    N: FnMut(&str) -> Option<usize>,
 {
     while !replacement.is_empty() {
         match memchr(b'$', replacement) {
@@ -134,14 +134,14 @@ fn find_cap_ref(replacement: &[u8]) -> Option<CaptureRef> {
 /// Returns true if and only if the given byte is allowed in a capture name.
 fn is_valid_cap_letter(b: &u8) -> bool {
     match *b {
-        b'0' ..= b'9' | b'a' ..= b'z' | b'A' ..= b'Z' | b'_' => true,
+        b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' | b'_' => true,
         _ => false,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CaptureRef, find_cap_ref, interpolate};
+    use super::{find_cap_ref, interpolate, CaptureRef};
 
     macro_rules! find {
         ($name:ident, $text:expr) => {
@@ -211,7 +211,7 @@ mod tests {
             fn $name() {
                 assert_eq!($expected, interpolate_string($map, $caps, $hay));
             }
-        }
+        };
     }
 
     interp!(

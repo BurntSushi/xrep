@@ -1,5 +1,5 @@
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
-use grep_matcher::{Matcher, Match, NoError};
+use grep_matcher::{Match, Matcher, NoError};
 use regex_syntax::hir::Hir;
 
 use error::Error;
@@ -93,15 +93,13 @@ pub fn alternation_literals(expr: &Hir) -> Option<Vec<Vec<u8>>> {
         _ => return None, // one literal isn't worth it
     };
 
-    let extendlit = |lit: &Literal, dst: &mut Vec<u8>| {
-        match *lit {
-            Literal::Unicode(c) => {
-                let mut buf = [0; 4];
-                dst.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
-            }
-            Literal::Byte(b) => {
-                dst.push(b);
-            }
+    let extendlit = |lit: &Literal, dst: &mut Vec<u8>| match *lit {
+        Literal::Unicode(c) => {
+            let mut buf = [0; 4];
+            dst.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+        }
+        Literal::Byte(b) => {
+            dst.push(b);
         }
     };
 

@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use grep_matcher::{Match, Matcher, NoError};
@@ -45,9 +45,8 @@ impl WordMatcher {
     /// The given options are used to construct the regular expression
     /// internally.
     pub fn new(expr: &ConfiguredHIR) -> Result<WordMatcher, Error> {
-        let original = expr.with_pattern(|pat| {
-            format!("^(?:{})$", pat)
-        })?.regex()?;
+        let original =
+            expr.with_pattern(|pat| format!("^(?:{})$", pat))?.regex()?;
         let word_expr = expr.with_pattern(|pat| {
             let pat = format!(r"(?:(?-m:^)|\W)({})(?:(?-m:$)|\W)", pat);
             debug!("word regex: {:?}", pat);
@@ -112,9 +111,8 @@ impl WordMatcher {
         }
         let (_, slen) = bstr::decode_utf8(&haystack[cand]);
         let (_, elen) = bstr::decode_last_utf8(&haystack[cand]);
-        cand = cand
-            .with_start(cand.start() + slen)
-            .with_end(cand.end() - elen);
+        cand =
+            cand.with_start(cand.start() + slen).with_end(cand.end() - elen);
         if self.original.is_match(&haystack[cand]) {
             Ok(Some(cand))
         } else {
@@ -148,9 +146,8 @@ impl Matcher for WordMatcher {
             Err(()) => {}
         }
 
-        let cell = self.locs.get_or(|| {
-            RefCell::new(self.regex.capture_locations())
-        });
+        let cell =
+            self.locs.get_or(|| RefCell::new(self.regex.capture_locations()));
         let mut caps = cell.borrow_mut();
         self.regex.captures_read_at(&mut caps, haystack, at);
         Ok(caps.get(1).map(|m| Match::new(m.0, m.1)))
@@ -174,9 +171,8 @@ impl Matcher for WordMatcher {
         at: usize,
         caps: &mut RegexCaptures,
     ) -> Result<bool, NoError> {
-        let r = self.regex.captures_read_at(
-            caps.locations_mut(), haystack, at,
-        );
+        let r =
+            self.regex.captures_read_at(caps.locations_mut(), haystack, at);
         Ok(r.is_some())
     }
 
@@ -187,9 +183,9 @@ impl Matcher for WordMatcher {
 
 #[cfg(test)]
 mod tests {
-    use grep_matcher::{Captures, Match, Matcher};
-    use config::Config;
     use super::WordMatcher;
+    use config::Config;
+    use grep_matcher::{Captures, Match, Matcher};
 
     fn matcher(pattern: &str) -> WordMatcher {
         let chir = Config::default().hir(pattern).unwrap();

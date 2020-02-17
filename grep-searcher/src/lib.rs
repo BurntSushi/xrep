@@ -112,14 +112,13 @@ extern crate regex;
 
 pub use lines::{LineIter, LineStep};
 pub use searcher::{
-    BinaryDetection, ConfigError, Encoding, MmapChoice,
-    Searcher, SearcherBuilder,
-};
-pub use sink::{
-    Sink, SinkError,
-    SinkContext, SinkContextKind, SinkFinish, SinkMatch,
+    BinaryDetection, ConfigError, Encoding, MmapChoice, Searcher,
+    SearcherBuilder,
 };
 pub use sink::sinks;
+pub use sink::{
+    Sink, SinkContext, SinkContextKind, SinkError, SinkFinish, SinkMatch,
+};
 
 #[macro_use]
 mod macros;

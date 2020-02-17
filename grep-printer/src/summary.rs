@@ -168,10 +168,7 @@ impl SummaryBuilder {
     ///
     /// This is a convenience routine for
     /// `SummaryBuilder::build(termcolor::NoColor::new(wtr))`.
-    pub fn build_no_color<W: io::Write>(
-        &self,
-        wtr: W,
-    ) -> Summary<NoColor<W>> {
+    pub fn build_no_color<W: io::Write>(&self, wtr: W) -> Summary<NoColor<W>> {
         self.build(NoColor::new(wtr))
     }
 
@@ -204,10 +201,7 @@ impl SummaryBuilder {
     /// builder.
     ///
     /// The default color specifications provide no styling.
-    pub fn color_specs(
-        &mut self,
-        specs: ColorSpecs,
-    ) -> &mut SummaryBuilder {
+    pub fn color_specs(&mut self, specs: ColorSpecs) -> &mut SummaryBuilder {
         self.config.colors = specs;
         self
     }
@@ -281,10 +275,7 @@ impl SummaryBuilder {
     /// `CountMatches` modes.
     ///
     /// By default, this is set to `:`.
-    pub fn separator_field(
-        &mut self,
-        sep: Vec<u8>,
-    ) -> &mut SummaryBuilder {
+    pub fn separator_field(&mut self, sep: Vec<u8>) -> &mut SummaryBuilder {
         self.config.separator_field = Arc::new(sep);
         self
     }
@@ -300,10 +291,7 @@ impl SummaryBuilder {
     /// `\`.
     ///
     /// This is disabled by default.
-    pub fn separator_path(
-        &mut self,
-        sep: Option<u8>,
-    ) -> &mut SummaryBuilder {
+    pub fn separator_path(&mut self, sep: Option<u8>) -> &mut SummaryBuilder {
         self.config.separator_path = sep;
         self
     }
@@ -382,12 +370,11 @@ impl<W: WriteColor> Summary<W> {
         &'s mut self,
         matcher: M,
     ) -> SummarySink<'static, 's, M, W> {
-        let stats =
-            if self.config.stats || self.config.kind.requires_stats() {
-                Some(Stats::new())
-            } else {
-                None
-            };
+        let stats = if self.config.stats || self.config.kind.requires_stats() {
+            Some(Stats::new())
+        } else {
+            None
+        };
         SummarySink {
             matcher: matcher,
             summary: self,
@@ -408,20 +395,22 @@ impl<W: WriteColor> Summary<W> {
         matcher: M,
         path: &'p P,
     ) -> SummarySink<'p, 's, M, W>
-    where M: Matcher,
-          P: ?Sized + AsRef<Path>,
+    where
+        M: Matcher,
+        P: ?Sized + AsRef<Path>,
     {
         if !self.config.path && !self.config.kind.requires_path() {
             return self.sink(matcher);
         }
-        let stats =
-            if self.config.stats || self.config.kind.requires_stats() {
-                Some(Stats::new())
-            } else {
-                None
-            };
+        let stats = if self.config.stats || self.config.kind.requires_stats() {
+            Some(Stats::new())
+        } else {
+            None
+        };
         let ppath = PrinterPath::with_separator(
-            path.as_ref(), self.config.separator_path);
+            path.as_ref(),
+            self.config.separator_path,
+        );
         SummarySink {
             matcher: matcher,
             summary: self,
@@ -596,10 +585,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
         self.match_count += 1;
         if let Some(ref mut stats) = self.stats {
             let mut match_count = 0;
-            self.matcher.find_iter(mat.bytes(), |_| {
-                match_count += 1;
-                true
-            }).map_err(io::Error::error_message)?;
+            self.matcher
+                .find_iter(mat.bytes(), |_| {
+                    match_count += 1;
+                    true
+                })
+                .map_err(io::Error::error_message)?;
             stats.add_matches(match_count);
             stats.add_matched_lines(mat.lines().count() as u64);
         } else if self.summary.config.kind.quit_early() {
@@ -608,10 +599,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
         Ok(!self.should_quit())
     }
 
-    fn begin(
-        &mut self,
-        _searcher: &Searcher,
-    ) -> Result<bool, io::Error> {
+    fn begin(&mut self, _searcher: &Searcher) -> Result<bool, io::Error> {
         if self.path.is_none() && self.summary.config.kind.requires_path() {
             return Err(io::Error::error_message(format!(
                 "output kind {:?} requires a file path",
@@ -674,8 +662,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
         }
 
         let show_count =
-            !self.summary.config.exclude_zero
-            || self.match_count > 0;
+            !self.summary.config.exclude_zero || self.match_count > 0;
         match self.summary.config.kind {
             SummaryKind::Count => {
                 if show_count {
@@ -686,7 +673,8 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
             }
             SummaryKind::CountMatches => {
                 if show_count {
-                    let stats = self.stats
+                    let stats = self
+                        .stats
                         .as_ref()
                         .expect("CountMatches should enable stats tracking");
                     self.write_path_field()?;
@@ -716,7 +704,7 @@ mod tests {
     use grep_searcher::SearcherBuilder;
     use termcolor::NoColor;
 
-    use super::{Summary, SummaryKind, SummaryBuilder};
+    use super::{Summary, SummaryBuilder, SummaryKind};
 
     const SHERLOCK: &'static [u8] = b"\
 For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -727,45 +715,41 @@ but Doctor Watson has to have it taken out for him and dusted,
 and exhibited clearly, with a label attached.
 ";
 
-    fn printer_contents(
-        printer: &mut Summary<NoColor<Vec<u8>>>,
-    ) -> String {
+    fn printer_contents(printer: &mut Summary<NoColor<Vec<u8>>>) -> String {
         String::from_utf8(printer.get_mut().get_ref().to_owned()).unwrap()
     }
 
     #[test]
     fn path_with_match_error() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithMatch)
             .build_no_color(vec![]);
-        let res = SearcherBuilder::new()
-            .build()
-            .search_reader(&matcher, SHERLOCK, printer.sink(&matcher));
+        let res = SearcherBuilder::new().build().search_reader(
+            &matcher,
+            SHERLOCK,
+            printer.sink(&matcher),
+        );
         assert!(res.is_err());
     }
 
     #[test]
     fn path_without_match_error() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithoutMatch)
             .build_no_color(vec![]);
-        let res = SearcherBuilder::new()
-            .build()
-            .search_reader(&matcher, SHERLOCK, printer.sink(&matcher));
+        let res = SearcherBuilder::new().build().search_reader(
+            &matcher,
+            SHERLOCK,
+            printer.sink(&matcher),
+        );
         assert!(res.is_err());
     }
 
     #[test]
     fn count_no_path() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .build_no_color(vec![]);
@@ -780,9 +764,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_no_path_even_with_path() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .path(false)
@@ -802,9 +784,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .build_no_color(vec![]);
@@ -823,9 +803,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path_with_zero() {
-        let matcher = RegexMatcher::new(
-            r"NO MATCH"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"NO MATCH").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .exclude_zero(false)
@@ -845,9 +823,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path_without_zero() {
-        let matcher = RegexMatcher::new(
-            r"NO MATCH"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"NO MATCH").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .exclude_zero(true)
@@ -867,9 +843,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path_field_separator() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .separator_field(b"ZZ".to_vec())
@@ -889,9 +863,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path_terminator() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .path_terminator(Some(b'\x00'))
@@ -911,9 +883,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_path_separator() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .separator_path(Some(b'\\'))
@@ -933,9 +903,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_max_matches() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Count)
             .max_matches(Some(1))
@@ -951,9 +919,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn count_matches() {
-        let matcher = RegexMatcher::new(
-            r"Watson|Sherlock"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson|Sherlock").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::CountMatches)
             .build_no_color(vec![]);
@@ -972,9 +938,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn path_with_match_found() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithMatch)
             .build_no_color(vec![]);
@@ -993,9 +957,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn path_with_match_not_found() {
-        let matcher = RegexMatcher::new(
-            r"ZZZZZZZZ"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"ZZZZZZZZ").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithMatch)
             .build_no_color(vec![]);
@@ -1012,12 +974,9 @@ and exhibited clearly, with a label attached.
         assert_eq_printed!("", got);
     }
 
-
     #[test]
     fn path_without_match_found() {
-        let matcher = RegexMatcher::new(
-            r"ZZZZZZZZZ"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"ZZZZZZZZZ").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithoutMatch)
             .build_no_color(vec![]);
@@ -1036,9 +995,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn path_without_match_not_found() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::PathWithoutMatch)
             .build_no_color(vec![]);
@@ -1057,9 +1014,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn quiet() {
-        let matcher = RegexMatcher::new(
-            r"Watson|Sherlock"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson|Sherlock").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Quiet)
             .build_no_color(vec![]);
@@ -1081,9 +1036,7 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn quiet_with_stats() {
-        let matcher = RegexMatcher::new(
-            r"Watson|Sherlock"
-        ).unwrap();
+        let matcher = RegexMatcher::new(r"Watson|Sherlock").unwrap();
         let mut printer = SummaryBuilder::new()
             .kind(SummaryKind::Quiet)
             .stats(true)

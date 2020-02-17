@@ -4,8 +4,8 @@ use std::time::Instant;
 
 use grep_matcher::{Match, Matcher};
 use grep_searcher::{
-    Searcher,
-    Sink, SinkError, SinkContext, SinkContextKind, SinkFinish, SinkMatch,
+    Searcher, Sink, SinkContext, SinkContextKind, SinkError, SinkFinish,
+    SinkMatch,
 };
 use serde_json as json;
 
@@ -27,11 +27,7 @@ struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config {
-            pretty: false,
-            max_matches: None,
-            always_begin_end: false,
-        }
+        Config { pretty: false, max_matches: None, always_begin_end: false }
     }
 }
 
@@ -492,8 +488,9 @@ impl<W: io::Write> JSON<W> {
         matcher: M,
         path: &'p P,
     ) -> JSONSink<'p, 's, M, W>
-    where M: Matcher,
-          P: ?Sized + AsRef<Path>,
+    where
+        M: Matcher,
+        P: ?Sized + AsRef<Path>,
     {
         JSONSink {
             matcher: matcher,
@@ -615,10 +612,12 @@ impl<'p, 's, M: Matcher, W: io::Write> JSONSink<'p, 's, M, W> {
         // the extent that it's easy to ensure that we never do more than
         // one search to find the matches.
         let matches = &mut self.json.matches;
-        self.matcher.find_iter(bytes, |m| {
-            matches.push(m);
-            true
-        }).map_err(io::Error::error_message)?;
+        self.matcher
+            .find_iter(bytes, |m| {
+                matches.push(m);
+                true
+            })
+            .map_err(io::Error::error_message)?;
         // Don't report empty matches appearing at the end of the bytes.
         if !matches.is_empty()
             && matches.last().unwrap().is_empty()
@@ -650,9 +649,7 @@ impl<'p, 's, M: Matcher, W: io::Write> JSONSink<'p, 's, M, W> {
         if self.begin_printed {
             return Ok(());
         }
-        let msg = jsont::Message::Begin(jsont::Begin {
-            path: self.path,
-        });
+        let msg = jsont::Message::Begin(jsont::Begin { path: self.path });
         self.json.write_message(&msg)?;
         self.begin_printed = true;
         Ok(())
@@ -699,13 +696,12 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
             self.after_context_remaining =
                 self.after_context_remaining.saturating_sub(1);
         }
-        let submatches =
-            if searcher.invert_match() {
-                self.record_matches(ctx.bytes())?;
-                SubMatches::new(ctx.bytes(), &self.json.matches)
-            } else {
-                SubMatches::empty()
-            };
+        let submatches = if searcher.invert_match() {
+            self.record_matches(ctx.bytes())?;
+            SubMatches::new(ctx.bytes(), &self.json.matches)
+        } else {
+            SubMatches::empty()
+        };
         let msg = jsont::Message::Context(jsont::Context {
             path: self.path,
             lines: ctx.bytes(),
@@ -717,10 +713,7 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
         Ok(!self.should_quit())
     }
 
-    fn begin(
-        &mut self,
-        _searcher: &Searcher,
-    ) -> Result<bool, io::Error> {
+    fn begin(&mut self, _searcher: &Searcher) -> Result<bool, io::Error> {
         self.json.wtr.reset_count();
         self.start_time = Instant::now();
         self.match_count = 0;
@@ -779,7 +772,7 @@ enum SubMatches<'a> {
 impl<'a> SubMatches<'a> {
     /// Create a new set of match ranges from a set of matches and the
     /// corresponding bytes that those matches apply to.
-    fn new(bytes: &'a[u8], matches: &[Match]) -> SubMatches<'a> {
+    fn new(bytes: &'a [u8], matches: &[Match]) -> SubMatches<'a> {
         if matches.len() == 1 {
             let mat = matches[0];
             SubMatches::Small([jsont::SubMatch {
@@ -817,11 +810,11 @@ impl<'a> SubMatches<'a> {
 
 #[cfg(test)]
 mod tests {
-    use grep_regex::{RegexMatcher, RegexMatcherBuilder};
     use grep_matcher::LineTerminator;
+    use grep_regex::{RegexMatcher, RegexMatcherBuilder};
     use grep_searcher::SearcherBuilder;
 
-    use super::{JSON, JSONBuilder};
+    use super::{JSONBuilder, JSON};
 
     const SHERLOCK: &'static [u8] = b"\
 For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -832,9 +825,7 @@ but Doctor Watson has to have it taken out for him and dusted,
 and exhibited clearly, with a label attached.
 ";
 
-    fn printer_contents(
-        printer: &mut JSON<Vec<u8>>,
-    ) -> String {
+    fn printer_contents(printer: &mut JSON<Vec<u8>>) -> String {
         String::from_utf8(printer.get_mut().to_owned()).unwrap()
     }
 
@@ -851,11 +842,8 @@ but Doctor Watson has to have it taken out for him and dusted,
 and exhibited clearly, with a label attached.\
 ";
 
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
-        let mut printer = JSONBuilder::new()
-            .build(vec![]);
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
+        let mut printer = JSONBuilder::new().build(vec![]);
         SearcherBuilder::new()
             .binary_detection(BinaryDetection::quit(b'\x00'))
             .heap_limit(Some(80))
@@ -871,12 +859,9 @@ and exhibited clearly, with a label attached.\
 
     #[test]
     fn max_matches() {
-        let matcher = RegexMatcher::new(
-            r"Watson"
-        ).unwrap();
-        let mut printer = JSONBuilder::new()
-            .max_matches(Some(1))
-            .build(vec![]);
+        let matcher = RegexMatcher::new(r"Watson").unwrap();
+        let mut printer =
+            JSONBuilder::new().max_matches(Some(1)).build(vec![]);
         SearcherBuilder::new()
             .build()
             .search_reader(&matcher, SHERLOCK, printer.sink(&matcher))
@@ -888,11 +873,8 @@ and exhibited clearly, with a label attached.\
 
     #[test]
     fn no_match() {
-        let matcher = RegexMatcher::new(
-            r"DOES NOT MATCH"
-        ).unwrap();
-        let mut printer = JSONBuilder::new()
-            .build(vec![]);
+        let matcher = RegexMatcher::new(r"DOES NOT MATCH").unwrap();
+        let mut printer = JSONBuilder::new().build(vec![]);
         SearcherBuilder::new()
             .build()
             .search_reader(&matcher, SHERLOCK, printer.sink(&matcher))
@@ -904,12 +886,9 @@ and exhibited clearly, with a label attached.\
 
     #[test]
     fn always_begin_end_no_match() {
-        let matcher = RegexMatcher::new(
-            r"DOES NOT MATCH"
-        ).unwrap();
-        let mut printer = JSONBuilder::new()
-            .always_begin_end(true)
-            .build(vec![]);
+        let matcher = RegexMatcher::new(r"DOES NOT MATCH").unwrap();
+        let mut printer =
+            JSONBuilder::new().always_begin_end(true).build(vec![]);
         SearcherBuilder::new()
             .build()
             .search_reader(&matcher, SHERLOCK, printer.sink(&matcher))
@@ -924,11 +903,8 @@ and exhibited clearly, with a label attached.\
     fn missing_crlf() {
         let haystack = "test\r\n".as_bytes();
 
-        let matcher = RegexMatcherBuilder::new()
-            .build("test")
-            .unwrap();
-        let mut printer = JSONBuilder::new()
-            .build(vec![]);
+        let matcher = RegexMatcherBuilder::new().build("test").unwrap();
+        let mut printer = JSONBuilder::new().build(vec![]);
         SearcherBuilder::new()
             .build()
             .search_reader(&matcher, haystack, printer.sink(&matcher))
@@ -941,12 +917,9 @@ and exhibited clearly, with a label attached.\
             got.lines().nth(1).unwrap(),
         );
 
-        let matcher = RegexMatcherBuilder::new()
-            .crlf(true)
-            .build("test")
-            .unwrap();
-        let mut printer = JSONBuilder::new()
-            .build(vec![]);
+        let matcher =
+            RegexMatcherBuilder::new().crlf(true).build("test").unwrap();
+        let mut printer = JSONBuilder::new().build(vec![]);
         SearcherBuilder::new()
             .line_terminator(LineTerminator::crlf())
             .build()

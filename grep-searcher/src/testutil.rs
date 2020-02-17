@@ -52,10 +52,7 @@ impl RegexMatcher {
     /// Whether to return every line as a candidate or not.
     ///
     /// This forces searchers to handle the case of reporting a false positive.
-    pub fn every_line_is_candidate(
-        &mut self,
-        yes: bool,
-    ) -> &mut RegexMatcher {
+    pub fn every_line_is_candidate(&mut self, yes: bool) -> &mut RegexMatcher {
         self.every_line_is_candidate = yes;
         self
     }
@@ -70,9 +67,10 @@ impl Matcher for RegexMatcher {
         haystack: &[u8],
         at: usize,
     ) -> Result<Option<Match>, NoError> {
-        Ok(self.regex
-           .find_at(haystack, at)
-           .map(|m| Match::new(m.start(), m.end())))
+        Ok(self
+            .regex
+            .find_at(haystack, at)
+            .map(|m| Match::new(m.start(), m.end())))
     }
 
     fn new_captures(&self) -> Result<NoCaptures, NoError> {
@@ -253,8 +251,10 @@ impl SearcherTester {
             panic!("an 'expected' string with NO line numbers must be given");
         }
         if self.line_number && self.expected_with_line_number.is_none() {
-            panic!("an 'expected' string with line numbers must be given, \
-                    or disable testing with line numbers");
+            panic!(
+                "an 'expected' string with line numbers must be given, \
+                    or disable testing with line numbers"
+            );
         }
 
         let configs = self.configs();
@@ -465,18 +465,17 @@ impl SearcherTester {
             lens.sort();
             lens.reverse();
 
-            let context_count =
-                if self.passthru {
-                    self.haystack.lines().count()
-                } else {
-                    // Why do we add 2 here? Well, we need to add 1 in order to
-                    // have room to search at least one line. We add another
-                    // because the implementation will occasionally include
-                    // an additional line when handling the context. There's
-                    // no particularly good reason, other than keeping the
-                    // implementation simple.
-                    2 + self.before_context + self.after_context
-                };
+            let context_count = if self.passthru {
+                self.haystack.lines().count()
+            } else {
+                // Why do we add 2 here? Well, we need to add 1 in order to
+                // have room to search at least one line. We add another
+                // because the implementation will occasionally include
+                // an additional line when handling the context. There's
+                // no particularly good reason, other than keeping the
+                // implementation simple.
+                2 + self.before_context + self.after_context
+            };
 
             // We add 1 to each line since `str::lines` doesn't include the
             // line terminator.
@@ -635,10 +634,11 @@ impl SearcherTester {
         if self.multi_line && self.line_number {
             let mut builder = builder.clone();
             let expected_slice = match self.expected_slice_with_line_number {
-                None => {
-                    self.expected_with_line_number
-                        .as_ref().unwrap().to_string()
-                }
+                None => self
+                    .expected_with_line_number
+                    .as_ref()
+                    .unwrap()
+                    .to_string(),
                 Some(ref e) => e.to_string(),
             };
 

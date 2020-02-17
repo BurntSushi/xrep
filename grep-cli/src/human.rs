@@ -46,7 +46,9 @@ impl ParseSizeError {
 }
 
 impl error::Error for ParseSizeError {
-    fn description(&self) -> &str { "invalid size" }
+    fn description(&self) -> &str {
+        "invalid size"
+    }
 }
 
 impl fmt::Display for ParseSizeError {
@@ -54,26 +56,19 @@ impl fmt::Display for ParseSizeError {
         use self::ParseSizeErrorKind::*;
 
         match self.kind {
-            InvalidFormat => {
-                write!(
-                    f,
-                    "invalid format for size '{}', which should be a sequence \
+            InvalidFormat => write!(
+                f,
+                "invalid format for size '{}', which should be a sequence \
                      of digits followed by an optional 'K', 'M' or 'G' \
                      suffix",
-                    self.original
-                )
-            }
-            InvalidInt(ref err) => {
-                write!(
-                    f,
-                    "invalid integer found in size '{}': {}",
-                    self.original,
-                    err
-                )
-            }
-            Overflow => {
-                write!(f, "size too big in '{}'", self.original)
-            }
+                self.original
+            ),
+            InvalidInt(ref err) => write!(
+                f,
+                "invalid integer found in size '{}': {}",
+                self.original, err
+            ),
+            Overflow => write!(f, "size too big in '{}'", self.original),
         }
     }
 }
@@ -104,17 +99,16 @@ pub fn parse_human_readable_size(size: &str) -> Result<u64, ParseSizeError> {
         Some(caps) => caps,
         None => return Err(ParseSizeError::format(size)),
     };
-    let value: u64 = caps[1].parse().map_err(|err| {
-        ParseSizeError::int(size, err)
-    })?;
+    let value: u64 =
+        caps[1].parse().map_err(|err| ParseSizeError::int(size, err))?;
     let suffix = match caps.get(2) {
         None => return Ok(value),
         Some(cap) => cap.as_str(),
     };
     let bytes = match suffix {
-        "K" => value.checked_mul(1<<10),
-        "M" => value.checked_mul(1<<20),
-        "G" => value.checked_mul(1<<30),
+        "K" => value.checked_mul(1 << 10),
+        "M" => value.checked_mul(1 << 20),
+        "G" => value.checked_mul(1 << 30),
         // Because if the regex matches this group, it must be [KMG].
         _ => unreachable!(),
     };
@@ -134,19 +128,19 @@ mod tests {
     #[test]
     fn suffix_k() {
         let x = parse_human_readable_size("123K").unwrap();
-        assert_eq!(123 * (1<<10), x);
+        assert_eq!(123 * (1 << 10), x);
     }
 
     #[test]
     fn suffix_m() {
         let x = parse_human_readable_size("123M").unwrap();
-        assert_eq!(123 * (1<<20), x);
+        assert_eq!(123 * (1 << 20), x);
     }
 
     #[test]
     fn suffix_g() {
         let x = parse_human_readable_size("123G").unwrap();
-        assert_eq!(123 * (1<<30), x);
+        assert_eq!(123 * (1 << 30), x);
     }
 
     #[test]

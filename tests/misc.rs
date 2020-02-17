@@ -1,5 +1,5 @@
 use crate::hay::SHERLOCK;
-use crate::util::{Dir, TestCommand, cmd_exists, sort_lines};
+use crate::util::{cmd_exists, sort_lines, Dir, TestCommand};
 
 // This file contains "miscellaneous" tests that were either written before
 // features were tracked more explicitly, or were simply written without
@@ -65,8 +65,10 @@ rgtest!(with_heading, |dir: Dir, mut cmd: TestCommand| {
     cmd.args(&[
         // This forces the issue since --with-filename is disabled by default
         // when searching one file.
-        "--with-filename", "--heading",
-        "Sherlock", "sherlock",
+        "--with-filename",
+        "--heading",
+        "Sherlock",
+        "sherlock",
     ]);
 
     let expected = "\
@@ -184,9 +186,7 @@ be, to a very large extent, the result of luck. FooBar Holmes
 
 rgtest!(replace_groups, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "-r", "$2, $1", "([A-Z][a-z]+) ([A-Z][a-z]+)", "sherlock",
-    ]);
+    cmd.args(&["-r", "$2, $1", "([A-Z][a-z]+) ([A-Z][a-z]+)", "sherlock"]);
 
     let expected = "\
 For the Watsons, Doctor of this world, as opposed to the Sherlock
@@ -199,7 +199,8 @@ but Watson, Doctor has to have it taken out for him and dusted,
 rgtest!(replace_named_groups, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-r", "$last, $first",
+        "-r",
+        "$last, $first",
         "(?P<first>[A-Z][a-z]+) (?P<last>[A-Z][a-z]+)",
         "sherlock",
     ]);
@@ -279,9 +280,7 @@ rgtest!(file_type_add, |dir: Dir, mut cmd: TestCommand| {
     dir.create("file.py", "Sherlock");
     dir.create("file.rs", "Sherlock");
     dir.create("file.wat", "Sherlock");
-    cmd.args(&[
-        "--type-add", "wat:*.wat", "-t", "wat", "Sherlock",
-    ]);
+    cmd.args(&["--type-add", "wat:*.wat", "-t", "wat", "Sherlock"]);
 
     eqnice!("file.wat:Sherlock\n", cmd.stdout());
 });
@@ -292,9 +291,12 @@ rgtest!(file_type_add_compose, |dir: Dir, mut cmd: TestCommand| {
     dir.create("file.rs", "Sherlock");
     dir.create("file.wat", "Sherlock");
     cmd.args(&[
-        "--type-add", "wat:*.wat",
-        "--type-add", "combo:include:wat,py",
-        "-t", "combo",
+        "--type-add",
+        "wat:*.wat",
+        "--type-add",
+        "combo:include:wat,py",
+        "-t",
+        "combo",
         "Sherlock",
     ]);
 
@@ -394,11 +396,7 @@ rgtest!(count_matches_via_only, |dir: Dir, mut cmd: TestCommand| {
 
 rgtest!(include_zero, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "--count",
-        "--include-zero",
-        "nada",
-    ]);
+    cmd.args(&["--count", "--include-zero", "nada"]);
     cmd.assert_err();
 
     let output = cmd.cmd().output().unwrap();
@@ -410,12 +408,7 @@ rgtest!(include_zero, |dir: Dir, mut cmd: TestCommand| {
 
 rgtest!(include_zero_override, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "--count",
-        "--include-zero",
-        "--no-include-zero",
-        "nada",
-    ]);
+    cmd.args(&["--count", "--include-zero", "--no-include-zero", "nada"]);
     cmd.assert_err();
 
     let output = cmd.cmd().output().unwrap();

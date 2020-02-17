@@ -84,7 +84,7 @@ pub fn normalize_path(mut path: Cow<[u8]>) -> Cow<[u8]> {
 mod tests {
     use std::borrow::Cow;
 
-    use bstr::{B, ByteVec};
+    use bstr::{ByteVec, B};
 
     use super::{file_name_ext, normalize_path};
 

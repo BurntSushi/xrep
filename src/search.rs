@@ -7,9 +7,9 @@ use std::time::Duration;
 use grep::cli;
 use grep::matcher::Matcher;
 #[cfg(feature = "pcre2")]
-use grep::pcre2::{RegexMatcher as PCRE2RegexMatcher};
-use grep::printer::{JSON, Standard, Summary, Stats};
-use grep::regex::{RegexMatcher as RustRegexMatcher};
+use grep::pcre2::RegexMatcher as PCRE2RegexMatcher;
+use grep::printer::{Standard, Stats, Summary, JSON};
+use grep::regex::RegexMatcher as RustRegexMatcher;
 use grep::searcher::{BinaryDetection, Searcher};
 use ignore::overrides::Override;
 use serde_json as json;
@@ -86,8 +86,12 @@ impl SearchWorkerBuilder {
         let command_builder = self.command_builder.clone();
         let decomp_builder = self.decomp_builder.clone();
         SearchWorker {
-            config, command_builder, decomp_builder,
-            matcher, searcher, printer,
+            config,
+            command_builder,
+            decomp_builder,
+            matcher,
+            searcher,
+            printer,
         }
     }
 
@@ -227,9 +231,7 @@ impl<W: WriteColor> Printer<W> {
         stats: &Stats,
     ) -> io::Result<()> {
         match *self {
-            Printer::JSON(_) => {
-                self.print_stats_json(total_duration, stats)
-            }
+            Printer::JSON(_) => self.print_stats_json(total_duration, stats),
             Printer::Standard(_) | Printer::Summary(_) => {
                 self.print_stats_human(total_duration, stats)
             }
@@ -273,17 +275,20 @@ impl<W: WriteColor> Printer<W> {
         // the grep-printer crate. We simply "extend" it with the 'summary'
         // message type.
         let fractional = fractional_seconds(total_duration);
-        json::to_writer(self.get_mut(), &json!({
-            "type": "summary",
-            "data": {
-                "stats": stats,
-                "elapsed_total": {
-                    "secs": total_duration.as_secs(),
-                    "nanos": total_duration.subsec_nanos(),
-                    "human": format!("{:0.6}s", fractional),
-                },
-            }
-        }))?;
+        json::to_writer(
+            self.get_mut(),
+            &json!({
+                "type": "summary",
+                "data": {
+                    "stats": stats,
+                    "elapsed_total": {
+                        "secs": total_duration.as_secs(),
+                        "nanos": total_duration.subsec_nanos(),
+                        "human": format!("{:0.6}s", fractional),
+                    },
+                }
+            }),
+        )?;
         write!(self.get_mut(), "\n")
     }
 
@@ -315,12 +320,11 @@ pub struct SearchWorker<W> {
 impl<W: WriteColor> SearchWorker<W> {
     /// Execute a search over the given subject.
     pub fn search(&mut self, subject: &Subject) -> io::Result<SearchResult> {
-        let bin =
-            if subject.is_explicit() {
-                self.config.binary_explicit.clone()
-            } else {
-                self.config.binary_implicit.clone()
-            };
+        let bin = if subject.is_explicit() {
+            self.config.binary_explicit.clone()
+        } else {
+            self.config.binary_implicit.clone()
+        };
         self.searcher.set_binary_detection(bin);
 
         let path = subject.path();
@@ -389,19 +393,15 @@ impl<W: WriteColor> SearchWorker<W> {
         let mut cmd = Command::new(bin);
         cmd.arg(path).stdin(Stdio::from(File::open(path)?));
 
-        let rdr = self
-            .command_builder
-            .build(&mut cmd)
-            .map_err(|err| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    format!(
-                        "preprocessor command could not start: '{:?}': {}",
-                        cmd,
-                        err,
-                    ),
-                )
-            })?;
+        let rdr = self.command_builder.build(&mut cmd).map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "preprocessor command could not start: '{:?}': {}",
+                    cmd, err,
+                ),
+            )
+        })?;
         self.search_reader(path, rdr).map_err(|err| {
             io::Error::new(
                 io::ErrorKind::Other,
@@ -413,10 +413,7 @@ impl<W: WriteColor> SearchWorker<W> {
     /// Attempt to decompress the data at the given file path and search the
     /// result. If the given file path isn't recognized as a compressed file,
     /// then search it without doing any decompression.
-    fn search_decompress(
-        &mut self,
-        path: &Path,
-    ) -> io::Result<SearchResult> {
+    fn search_decompress(&mut self, path: &Path) -> io::Result<SearchResult> {
         let rdr = self.decomp_builder.build(path)?;
         self.search_reader(path, rdr)
     }

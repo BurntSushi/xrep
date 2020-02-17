@@ -38,10 +38,7 @@ impl Default for DecompressionMatcherBuilder {
 impl DecompressionMatcherBuilder {
     /// Create a new builder for configuring a decompression matcher.
     pub fn new() -> DecompressionMatcherBuilder {
-        DecompressionMatcherBuilder {
-            commands: vec![],
-            defaults: true,
-        }
+        DecompressionMatcherBuilder { commands: vec![], defaults: true }
     }
 
     /// Build a matcher for determining how to decompress files.
@@ -49,12 +46,11 @@ impl DecompressionMatcherBuilder {
     /// If there was a problem compiling the matcher, then an error is
     /// returned.
     pub fn build(&self) -> Result<DecompressionMatcher, CommandError> {
-        let defaults =
-            if !self.defaults {
-                vec![]
-            } else {
-                default_decompression_commands()
-            };
+        let defaults = if !self.defaults {
+            vec![]
+        } else {
+            default_decompression_commands()
+        };
         let mut glob_builder = GlobSetBuilder::new();
         let mut commands = vec![];
         for decomp_cmd in defaults.iter().chain(&self.commands) {
@@ -93,17 +89,15 @@ impl DecompressionMatcherBuilder {
         program: P,
         args: I,
     ) -> &mut DecompressionMatcherBuilder
-    where P: AsRef<OsStr>,
-          I: IntoIterator<Item=A>,
-          A: AsRef<OsStr>,
+    where
+        P: AsRef<OsStr>,
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
     {
-
         let glob = glob.to_string();
         let bin = program.as_ref().to_os_string();
-        let args = args
-            .into_iter()
-            .map(|a| a.as_ref().to_os_string())
-            .collect();
+        let args =
+            args.into_iter().map(|a| a.as_ref().to_os_string()).collect();
         self.commands.push(DecompressionCommand { glob, bin, args });
         self
     }

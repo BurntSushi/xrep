@@ -130,14 +130,9 @@ pub fn without_terminator(bytes: &[u8], line_term: LineTerminator) -> &[u8] {
 ///
 /// Line terminators are considered part of the line they terminate.
 #[inline(always)]
-pub fn locate(
-    bytes: &[u8],
-    line_term: u8,
-    range: Match,
-) -> Match {
-    let line_start = bytes[..range.start()]
-        .rfind_byte(line_term)
-        .map_or(0, |i| i + 1);
+pub fn locate(bytes: &[u8], line_term: u8, range: Match) -> Match {
+    let line_start =
+        bytes[..range.start()].rfind_byte(line_term).map_or(0, |i| i + 1);
     let line_end =
         if range.end() > line_start && bytes[range.end() - 1] == line_term {
             range.end()
@@ -201,10 +196,10 @@ fn preceding_by_pos(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use grep_matcher::Match;
     use std::ops::Range;
     use std::str;
-    use grep_matcher::Match;
-    use super::*;
 
     const SHERLOCK: &'static str = "\
 For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -260,29 +255,37 @@ and exhibited clearly, with a label attached.\
 
         assert_eq!(
             loc(t, lines[0].start, lines[0].end),
-            m(lines[0].start, lines[0].end));
+            m(lines[0].start, lines[0].end)
+        );
         assert_eq!(
             loc(t, lines[0].start + 1, lines[0].end),
-            m(lines[0].start, lines[0].end));
+            m(lines[0].start, lines[0].end)
+        );
         assert_eq!(
             loc(t, lines[0].end - 1, lines[0].end),
-            m(lines[0].start, lines[0].end));
+            m(lines[0].start, lines[0].end)
+        );
         assert_eq!(
             loc(t, lines[0].end, lines[0].end),
-            m(lines[1].start, lines[1].end));
+            m(lines[1].start, lines[1].end)
+        );
 
         assert_eq!(
             loc(t, lines[5].start, lines[5].end),
-            m(lines[5].start, lines[5].end));
+            m(lines[5].start, lines[5].end)
+        );
         assert_eq!(
             loc(t, lines[5].start + 1, lines[5].end),
-            m(lines[5].start, lines[5].end));
+            m(lines[5].start, lines[5].end)
+        );
         assert_eq!(
             loc(t, lines[5].end - 1, lines[5].end),
-            m(lines[5].start, lines[5].end));
+            m(lines[5].start, lines[5].end)
+        );
         assert_eq!(
             loc(t, lines[5].end, lines[5].end),
-            m(lines[5].start, lines[5].end));
+            m(lines[5].start, lines[5].end)
+        );
     }
 
     #[test]

@@ -9,10 +9,10 @@ use encoding_rs;
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use grep_matcher::{LineTerminator, Match, Matcher};
 use line_buffer::{
-    self, BufferAllocation, LineBuffer, LineBufferBuilder, LineBufferReader,
-    DEFAULT_BUFFER_CAPACITY, alloc_error,
+    self, alloc_error, BufferAllocation, LineBuffer, LineBufferBuilder,
+    LineBufferReader, DEFAULT_BUFFER_CAPACITY,
 };
-use searcher::glue::{ReadByLine, SliceByLine, MultiLine};
+use searcher::glue::{MultiLine, ReadByLine, SliceByLine};
 use sink::{Sink, SinkError};
 
 pub use self::mmap::MmapChoice;
@@ -211,12 +211,11 @@ impl Config {
             .binary_detection(self.binary.0);
 
         if let Some(limit) = self.heap_limit {
-            let (capacity, additional) =
-                if limit <= DEFAULT_BUFFER_CAPACITY {
-                    (limit, 0)
-                } else {
-                    (DEFAULT_BUFFER_CAPACITY, limit - DEFAULT_BUFFER_CAPACITY)
-                };
+            let (capacity, additional) = if limit <= DEFAULT_BUFFER_CAPACITY {
+                (limit, 0)
+            } else {
+                (DEFAULT_BUFFER_CAPACITY, limit - DEFAULT_BUFFER_CAPACITY)
+            };
             builder
                 .capacity(capacity)
                 .buffer_alloc(BufferAllocation::Error(additional));
@@ -258,7 +257,9 @@ pub enum ConfigError {
 }
 
 impl ::std::error::Error for ConfigError {
-    fn description(&self) -> &str { "grep-searcher configuration error" }
+    fn description(&self) -> &str {
+        "grep-searcher configuration error"
+    }
 }
 
 impl fmt::Display for ConfigError {
@@ -272,17 +273,14 @@ impl fmt::Display for ConfigError {
                     f,
                     "grep config error: mismatched line terminators, \
                      matcher has {:?} but searcher has {:?}",
-                    matcher,
-                    searcher
+                    matcher, searcher
                 )
             }
-            ConfigError::UnknownEncoding { ref label } => {
-                write!(
-                    f,
-                    "grep config error: unknown encoding: {}",
-                    String::from_utf8_lossy(label),
-                )
-            }
+            ConfigError::UnknownEncoding { ref label } => write!(
+                f,
+                "grep config error: unknown encoding: {}",
+                String::from_utf8_lossy(label),
+            ),
             _ => panic!("BUG: unexpected variant found"),
         }
     }
@@ -310,9 +308,7 @@ impl Default for SearcherBuilder {
 impl SearcherBuilder {
     /// Create a new searcher builder with a default configuration.
     pub fn new() -> SearcherBuilder {
-        SearcherBuilder {
-            config: Config::default(),
-        }
+        SearcherBuilder { config: Config::default() }
     }
 
     /// Build a searcher with the given matcher.
@@ -334,7 +330,7 @@ impl SearcherBuilder {
         Searcher {
             config: config,
             decode_builder: decode_builder,
-            decode_buffer: RefCell::new(vec![0; 8 * (1<<10)]),
+            decode_buffer: RefCell::new(vec![0; 8 * (1 << 10)]),
             line_buffer: RefCell::new(self.config.line_buffer()),
             multi_line_buffer: RefCell::new(vec![]),
         }
@@ -622,9 +618,10 @@ impl Searcher {
         path: P,
         write_to: S,
     ) -> Result<(), S::Error>
-    where P: AsRef<Path>,
-          M: Matcher,
-          S: Sink,
+    where
+        P: AsRef<Path>,
+        M: Matcher,
+        S: Sink,
     {
         let path = path.as_ref();
         let file = File::open(path).map_err(S::Error::error_io)?;
@@ -643,8 +640,9 @@ impl Searcher {
         file: &File,
         write_to: S,
     ) -> Result<(), S::Error>
-    where M: Matcher,
-          S: Sink,
+    where
+        M: Matcher,
+        S: Sink,
     {
         self.search_file_maybe_path(matcher, None, file, write_to)
     }
@@ -656,8 +654,9 @@ impl Searcher {
         file: &File,
         write_to: S,
     ) -> Result<(), S::Error>
-    where M: Matcher,
-          S: Sink,
+    where
+        M: Matcher,
+        S: Sink,
     {
         if let Some(mmap) = self.config.mmap.open(file, path) {
             trace!("{:?}: searching via memory map", path);
@@ -675,7 +674,8 @@ impl Searcher {
                 matcher,
                 &*self.multi_line_buffer.borrow(),
                 write_to,
-            ).run()
+            )
+            .run()
         } else {
             trace!("{:?}: searching using generic reader", path);
             self.search_reader(matcher, file, write_to)
@@ -699,14 +699,16 @@ impl Searcher {
         read_from: R,
         write_to: S,
     ) -> Result<(), S::Error>
-    where M: Matcher,
-          R: io::Read,
-          S: Sink,
+    where
+        M: Matcher,
+        R: io::Read,
+        S: Sink,
     {
         self.check_config(&matcher).map_err(S::Error::error_config)?;
 
         let mut decode_buffer = self.decode_buffer.borrow_mut();
-        let read_from = self.decode_builder
+        let read_from = self
+            .decode_builder
             .build_with_buffer(read_from, &mut *decode_buffer)
             .map_err(S::Error::error_io)?;
 
@@ -719,7 +721,8 @@ impl Searcher {
                 matcher,
                 &*self.multi_line_buffer.borrow(),
                 write_to,
-            ).run()
+            )
+            .run()
         } else {
             let mut line_buffer = self.line_buffer.borrow_mut();
             let rdr = LineBufferReader::new(read_from, &mut *line_buffer);
@@ -736,8 +739,9 @@ impl Searcher {
         slice: &[u8],
         write_to: S,
     ) -> Result<(), S::Error>
-    where M: Matcher,
-          S: Sink,
+    where
+        M: Matcher,
+        S: Sink,
     {
         self.check_config(&matcher).map_err(S::Error::error_config)?;
 
@@ -764,8 +768,7 @@ impl Searcher {
     /// Check that the searcher's configuration and the matcher are consistent
     /// with each other.
     fn check_config<M: Matcher>(&self, matcher: M) -> Result<(), ConfigError> {
-        if self.config.heap_limit == Some(0)
-            && !self.config.mmap.is_enabled()
+        if self.config.heap_limit == Some(0) && !self.config.mmap.is_enabled()
         {
             return Err(ConfigError::SearchUnavailable);
         }
@@ -785,7 +788,7 @@ impl Searcher {
     /// Returns true if and only if the given slice needs to be transcoded.
     fn slice_needs_transcoding(&self, slice: &[u8]) -> bool {
         self.config.encoding.is_some()
-        || (self.config.bom_sniffing && slice_has_utf16_bom(slice))
+            || (self.config.bom_sniffing && slice_has_utf16_bom(slice))
     }
 }
 
@@ -886,7 +889,8 @@ impl Searcher {
         assert!(self.config.multi_line);
 
         let mut decode_buffer = self.decode_buffer.borrow_mut();
-        let mut read_from = self.decode_builder
+        let mut read_from = self
+            .decode_builder
             .build_with_buffer(file, &mut *decode_buffer)
             .map_err(S::Error::error_io)?;
 
@@ -900,10 +904,8 @@ impl Searcher {
         if self.config.heap_limit.is_none() {
             let mut buf = self.multi_line_buffer.borrow_mut();
             buf.clear();
-            let cap = file
-                .metadata()
-                .map(|m| m.len() as usize + 1)
-                .unwrap_or(0);
+            let cap =
+                file.metadata().map(|m| m.len() as usize + 1).unwrap_or(0);
             buf.reserve(cap);
             read_from.read_to_end(&mut *buf).map_err(S::Error::error_io)?;
             return Ok(());
@@ -929,7 +931,9 @@ impl Searcher {
         let heap_limit = match self.config.heap_limit {
             Some(heap_limit) => heap_limit,
             None => {
-                read_from.read_to_end(&mut *buf).map_err(S::Error::error_io)?;
+                read_from
+                    .read_to_end(&mut *buf)
+                    .map_err(S::Error::error_io)?;
                 return Ok(());
             }
         };
@@ -983,16 +987,14 @@ fn slice_has_utf16_bom(slice: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use testutil::{KitchenSink, RegexMatcher};
     use super::*;
+    use testutil::{KitchenSink, RegexMatcher};
 
     #[test]
     fn config_error_heap_limit() {
         let matcher = RegexMatcher::new("");
         let sink = KitchenSink::new();
-        let mut searcher = SearcherBuilder::new()
-            .heap_limit(Some(0))
-            .build();
+        let mut searcher = SearcherBuilder::new().heap_limit(Some(0)).build();
         let res = searcher.search_slice(matcher, &[], sink);
         assert!(res.is_err());
     }

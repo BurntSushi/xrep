@@ -115,9 +115,7 @@ impl OverrideBuilder {
     ///
     /// Matching is done relative to the directory path provided.
     pub fn new<P: AsRef<Path>>(path: P) -> OverrideBuilder {
-        OverrideBuilder {
-            builder: GitignoreBuilder::new(path),
-        }
+        OverrideBuilder { builder: GitignoreBuilder::new(path) }
     }
 
     /// Builds a new override matcher from the globs added so far.
@@ -240,9 +238,12 @@ mod tests {
     #[test]
     fn case_insensitive() {
         let ov = OverrideBuilder::new(ROOT)
-            .case_insensitive(true).unwrap()
-            .add("*.html").unwrap()
-            .build().unwrap();
+            .case_insensitive(true)
+            .unwrap()
+            .add("*.html")
+            .unwrap()
+            .build()
+            .unwrap();
         assert!(ov.matched("foo.html", false).is_whitelist());
         assert!(ov.matched("foo.HTML", false).is_whitelist());
         assert!(ov.matched("foo.htm", false).is_ignore());
@@ -251,9 +252,8 @@ mod tests {
 
     #[test]
     fn default_case_sensitive() {
-        let ov = OverrideBuilder::new(ROOT)
-            .add("*.html").unwrap()
-            .build().unwrap();
+        let ov =
+            OverrideBuilder::new(ROOT).add("*.html").unwrap().build().unwrap();
         assert!(ov.matched("foo.html", false).is_whitelist());
         assert!(ov.matched("foo.HTML", false).is_ignore());
         assert!(ov.matched("foo.htm", false).is_ignore());

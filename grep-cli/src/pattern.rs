@@ -29,7 +29,9 @@ impl InvalidPatternError {
 }
 
 impl error::Error for InvalidPatternError {
-    fn description(&self) -> &str { "invalid pattern" }
+    fn description(&self) -> &str {
+        "invalid pattern"
+    }
 }
 
 impl fmt::Display for InvalidPatternError {
@@ -39,8 +41,7 @@ impl fmt::Display for InvalidPatternError {
             "found invalid UTF-8 in pattern at byte offset {} \
              (use hex escape sequences to match arbitrary bytes \
              in a pattern, e.g., \\xFF): '{}'",
-            self.valid_up_to,
-            self.original,
+            self.valid_up_to, self.original,
         )
     }
 }
@@ -79,11 +80,9 @@ pub fn pattern_from_os(pattern: &OsStr) -> Result<&str, InvalidPatternError> {
 pub fn pattern_from_bytes(
     pattern: &[u8],
 ) -> Result<&str, InvalidPatternError> {
-    str::from_utf8(pattern).map_err(|err| {
-        InvalidPatternError {
-            original: escape(pattern),
-            valid_up_to: err.valid_up_to(),
-        }
+    str::from_utf8(pattern).map_err(|err| InvalidPatternError {
+        original: escape(pattern),
+        valid_up_to: err.valid_up_to(),
     })
 }
 
@@ -119,10 +118,7 @@ pub fn patterns_from_stdin() -> io::Result<Vec<String>> {
     let stdin = io::stdin();
     let locked = stdin.lock();
     patterns_from_reader(locked).map_err(|err| {
-        io::Error::new(
-            io::ErrorKind::Other,
-            format!("<stdin>:{}", err),
-        )
+        io::Error::new(io::ErrorKind::Other, format!("<stdin>:{}", err))
     })
 }
 
@@ -166,12 +162,10 @@ pub fn patterns_from_reader<R: io::Read>(rdr: R) -> io::Result<Vec<String>> {
                 patterns.push(pattern.to_string());
                 Ok(true)
             }
-            Err(err) => {
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("{}: {}", line_number, err),
-                ))
-            }
+            Err(err) => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("{}: {}", line_number, err),
+            )),
         }
     })?;
     Ok(patterns)
@@ -191,8 +185,8 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn os() {
-        use std::os::unix::ffi::OsStrExt;
         use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
 
         let pat = OsStr::from_bytes(b"abc\xFFxyz");
         let err = pattern_from_os(pat).unwrap_err();

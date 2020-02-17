@@ -33,7 +33,9 @@ impl CommandError {
 }
 
 impl error::Error for CommandError {
-    fn description(&self) -> &str { "command error" }
+    fn description(&self) -> &str {
+        "command error"
+    }
 }
 
 impl fmt::Display for CommandError {
@@ -46,7 +48,12 @@ impl fmt::Display for CommandError {
                     write!(f, "<stderr is empty>")
                 } else {
                     let div = iter::repeat('-').take(79).collect::<String>();
-                    write!(f, "\n{div}\n{msg}\n{div}", div=div, msg=msg.trim())
+                    write!(
+                        f,
+                        "\n{div}\n{msg}\n{div}",
+                        div = div,
+                        msg = msg.trim()
+                    )
                 }
             }
         }
@@ -101,12 +108,11 @@ impl CommandReaderBuilder {
             .stderr(process::Stdio::piped())
             .spawn()?;
         let stdout = child.stdout.take().unwrap();
-        let stderr =
-            if self.async_stderr {
-                StderrReader::async(child.stderr.take().unwrap())
-            } else {
-                StderrReader::sync(child.stderr.take().unwrap())
-            };
+        let stderr = if self.async_stderr {
+            StderrReader::async(child.stderr.take().unwrap())
+        } else {
+            StderrReader::sync(child.stderr.take().unwrap())
+        };
         Ok(CommandReader {
             child: child,
             stdout: stdout,
@@ -226,9 +232,8 @@ enum StderrReader {
 impl StderrReader {
     /// Create a reader for stderr that reads contents asynchronously.
     fn async(mut stderr: process::ChildStderr) -> StderrReader {
-        let handle = thread::spawn(move || {
-            stderr_to_command_error(&mut stderr)
-        });
+        let handle =
+            thread::spawn(move || stderr_to_command_error(&mut stderr));
         StderrReader::Async(Some(handle))
     }
 
@@ -247,9 +252,7 @@ impl StderrReader {
                 let handle = handle
                     .take()
                     .expect("read_to_end cannot be called more than once");
-                handle
-                    .join()
-                    .expect("stderr reading thread does not panic")
+                handle.join().expect("stderr reading thread does not panic")
             }
             StderrReader::Sync(ref mut stderr) => {
                 stderr_to_command_error(stderr)

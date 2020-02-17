@@ -8,16 +8,15 @@ use std::time::Instant;
 use bstr::ByteSlice;
 use grep_matcher::{Match, Matcher};
 use grep_searcher::{
-    LineStep, Searcher,
-    Sink, SinkError,
-    SinkContext, SinkContextKind, SinkFinish, SinkMatch,
+    LineStep, Searcher, Sink, SinkContext, SinkContextKind, SinkError,
+    SinkFinish, SinkMatch,
 };
 use termcolor::{ColorSpec, NoColor, WriteColor};
 
 use color::ColorSpecs;
 use counter::CounterWriter;
 use stats::Stats;
-use util::{PrinterPath, Replacer, Sunk, trim_ascii_prefix};
+use util::{trim_ascii_prefix, PrinterPath, Replacer, Sunk};
 
 /// The configuration for the standard printer.
 ///
@@ -151,10 +150,7 @@ impl StandardBuilder {
     /// This completely overrides any previous color specifications. This does
     /// not add to any previously provided color specifications on this
     /// builder.
-    pub fn color_specs(
-        &mut self,
-        specs: ColorSpecs,
-    ) -> &mut StandardBuilder {
+    pub fn color_specs(&mut self, specs: ColorSpecs) -> &mut StandardBuilder {
         self.config.colors = specs;
         self
     }
@@ -409,10 +405,7 @@ impl StandardBuilder {
     /// A typical use for this option is to permit cygwin users on Windows to
     /// set the path separator to `/` instead of using the system default of
     /// `\`.
-    pub fn separator_path(
-        &mut self,
-        sep: Option<u8>,
-    ) -> &mut StandardBuilder {
+    pub fn separator_path(&mut self, sep: Option<u8>) -> &mut StandardBuilder {
         self.config.separator_path = sep;
         self
     }
@@ -487,12 +480,7 @@ impl<W: WriteColor> Standard<W> {
         &'s mut self,
         matcher: M,
     ) -> StandardSink<'static, 's, M, W> {
-        let stats =
-            if self.config.stats {
-                Some(Stats::new())
-            } else {
-                None
-            };
+        let stats = if self.config.stats { Some(Stats::new()) } else { None };
         let needs_match_granularity = self.needs_match_granularity();
         StandardSink {
             matcher: matcher,
@@ -517,20 +505,18 @@ impl<W: WriteColor> Standard<W> {
         matcher: M,
         path: &'p P,
     ) -> StandardSink<'p, 's, M, W>
-    where M: Matcher,
-          P: ?Sized + AsRef<Path>,
+    where
+        M: Matcher,
+        P: ?Sized + AsRef<Path>,
     {
         if !self.config.path {
             return self.sink(matcher);
         }
-        let stats =
-            if self.config.stats {
-                Some(Stats::new())
-            } else {
-                None
-            };
+        let stats = if self.config.stats { Some(Stats::new()) } else { None };
         let ppath = PrinterPath::with_separator(
-            path.as_ref(), self.config.separator_path);
+            path.as_ref(),
+            self.config.separator_path,
+        );
         let needs_match_granularity = self.needs_match_granularity();
         StandardSink {
             matcher: matcher,
@@ -689,10 +675,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
         // one search to find the matches (well, for replacements, we do one
         // additional search to perform the actual replacement).
         let matches = &mut self.standard.matches;
-        self.matcher.find_iter(bytes, |m| {
-            matches.push(m);
-            true
-        }).map_err(io::Error::error_message)?;
+        self.matcher
+            .find_iter(bytes, |m| {
+                matches.push(m);
+                true
+            })
+            .map_err(io::Error::error_message)?;
         // Don't report empty matches appearing at the end of the bytes.
         if !matches.is_empty()
             && matches.last().unwrap().is_empty()
@@ -714,11 +702,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
                 .as_ref()
                 .map(|r| &*r)
                 .unwrap();
-            self.replacer.replace_all(
-                &self.matcher,
-                bytes,
-                replacement,
-            )?;
+            self.replacer.replace_all(&self.matcher, bytes, replacement)?;
         }
         Ok(())
     }
@@ -811,10 +795,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
         Ok(true)
     }
 
-    fn begin(
-        &mut self,
-        _searcher: &Searcher,
-    ) -> Result<bool, io::Error> {
+    fn begin(&mut self, _searcher: &Searcher) -> Result<bool, io::Error> {
         self.standard.wtr.borrow_mut().reset_count();
         self.start_time = Instant::now();
         self.match_count = 0;
@@ -887,10 +868,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             &sink.standard.matches,
             sink.replacer.replacement(),
         );
-        StandardImpl {
-            sunk: sunk,
-            ..StandardImpl::new(searcher, sink)
-        }
+        StandardImpl { sunk: sunk, ..StandardImpl::new(searcher, sink) }
     }
 
     /// Bundle self with a searcher and return the core implementation of Sink
@@ -905,10 +883,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             &sink.standard.matches,
             sink.replacer.replacement(),
         );
-        StandardImpl {
-            sunk: sunk,
-            ..StandardImpl::new(searcher, sink)
-        }
+        StandardImpl { sunk: sunk, ..StandardImpl::new(searcher, sink) }
     }
 
     fn sink(&self) -> io::Result<()> {
@@ -1084,10 +1059,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
                     line = line.with_start(upto);
                     if self.exceeds_max_columns(&bytes[this_line]) {
                         self.write_exceeded_line(
-                            bytes,
-                            this_line,
-                            matches,
-                            &mut midx,
+                            bytes, this_line, matches, &mut midx,
                         )?;
                     } else {
                         self.write_spec(spec, &bytes[this_line])?;
@@ -1178,14 +1150,14 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
     }
 
     #[inline(always)]
-    fn write_line(
-        &self,
-        line: &[u8],
-    ) -> io::Result<()> {
+    fn write_line(&self, line: &[u8]) -> io::Result<()> {
         if self.exceeds_max_columns(line) {
             let range = Match::new(0, line.len());
             self.write_exceeded_line(
-                line, range, self.sunk.matches(), &mut 0,
+                line,
+                range,
+                self.sunk.matches(),
+                &mut 0,
             )?;
         } else {
             self.write_trim(line)?;
@@ -1279,7 +1251,8 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
                 .map(|(_, end, _)| end)
                 .take(self.config().max_columns.unwrap_or(0) as usize)
                 .last()
-                .unwrap_or(0) + line.start();
+                .unwrap_or(0)
+                + line.start();
             line = line.with_end(end);
             self.write_colored_matches(bytes, line, matches, match_index)?;
 
@@ -1292,16 +1265,12 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
                         m.start() >= line.end() && m.start() < original.end()
                     })
                     .count();
-                let tense =
-                    if remaining == 1 {
-                        "match"
-                    } else {
-                        "matches"
-                    };
+                let tense = if remaining == 1 { "match" } else { "matches" };
                 write!(
                     self.wtr().borrow_mut(),
                     " [... {} more {}]",
-                    remaining, tense,
+                    remaining,
+                    tense,
                 )?;
             }
             self.write_line_term()?;
@@ -1396,7 +1365,8 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             }
             let remainder = format!(
                 "after match (found {:?} byte around offset {})\n",
-                [byte].as_bstr(), offset,
+                [byte].as_bstr(),
+                offset,
             );
             self.write(remainder.as_bytes())?;
         } else if let Some(byte) = bin.convert_byte() {
@@ -1407,7 +1377,8 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
             }
             let remainder = format!(
                 "matches (found {:?} byte around offset {})\n",
-                [byte].as_bstr(), offset,
+                [byte].as_bstr(),
+                offset,
             );
             self.write(remainder.as_bytes())?;
         }
@@ -1600,17 +1571,14 @@ but Doctor Watson has to have it taken out for him and dusted,\r
 and exhibited clearly, with a label attached.\
 ";
 
-    fn printer_contents(
-        printer: &mut Standard<NoColor<Vec<u8>>>,
-    ) -> String {
+    fn printer_contents(printer: &mut Standard<NoColor<Vec<u8>>>) -> String {
         String::from_utf8(printer.get_mut().get_ref().to_owned()).unwrap()
     }
 
     #[test]
     fn reports_match() {
         let matcher = RegexMatcher::new("Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         let mut sink = printer.sink(&matcher);
         SearcherBuilder::new()
             .line_number(false)
@@ -1620,8 +1588,7 @@ and exhibited clearly, with a label attached.\
         assert!(sink.has_match());
 
         let matcher = RegexMatcher::new("zzzzz").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         let mut sink = printer.sink(&matcher);
         SearcherBuilder::new()
             .line_number(false)
@@ -1636,8 +1603,7 @@ and exhibited clearly, with a label attached.\
         use grep_searcher::BinaryDetection;
 
         let matcher = RegexMatcher::new("Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         let mut sink = printer.sink(&matcher);
         SearcherBuilder::new()
             .line_number(false)
@@ -1647,8 +1613,7 @@ and exhibited clearly, with a label attached.\
         assert!(sink.binary_byte_offset().is_none());
 
         let matcher = RegexMatcher::new(".+").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         let mut sink = printer.sink(&matcher);
         SearcherBuilder::new()
             .line_number(false)
@@ -1664,9 +1629,8 @@ and exhibited clearly, with a label attached.\
         use std::time::Duration;
 
         let matcher = RegexMatcher::new("Sherlock|opposed").unwrap();
-        let mut printer = StandardBuilder::new()
-            .stats(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().stats(true).build(NoColor::new(vec![]));
         let stats = {
             let mut sink = printer.sink(&matcher);
             SearcherBuilder::new()
@@ -1685,7 +1649,6 @@ and exhibited clearly, with a label attached.\
         assert_eq!(stats.bytes_printed(), buf.len() as u64);
         assert_eq!(stats.matched_lines(), 2);
         assert_eq!(stats.matches(), 3);
-
     }
 
     #[test]
@@ -1693,9 +1656,8 @@ and exhibited clearly, with a label attached.\
         use std::time::Duration;
 
         let matcher = RegexMatcher::new("Sherlock|opposed").unwrap();
-        let mut printer = StandardBuilder::new()
-            .stats(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().stats(true).build(NoColor::new(vec![]));
         let stats = {
             let mut sink = printer.sink(&matcher);
             SearcherBuilder::new()
@@ -1860,9 +1822,8 @@ and exhibited clearly, with a label attached.
     #[test]
     fn path() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .path(false)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().path(false).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(true)
             .build()
@@ -1963,9 +1924,8 @@ books/sherlockZbut Doctor Watson has to have it taken out for him and dusted,
     #[test]
     fn heading() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .heading(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().heading(true).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .build()
@@ -1988,9 +1948,8 @@ but Doctor Watson has to have it taken out for him and dusted,
     #[test]
     fn no_heading() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .heading(false)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().heading(false).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .build()
@@ -2012,9 +1971,8 @@ sherlock:but Doctor Watson has to have it taken out for him and dusted,
     #[test]
     fn no_heading_multiple() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .heading(false)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().heading(false).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .build()
@@ -2049,9 +2007,8 @@ sherlock:be, to a very large extent, the result of luck. Sherlock Holmes
     #[test]
     fn heading_multiple() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .heading(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().heading(true).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .build()
@@ -2161,8 +2118,7 @@ Watson
     #[test]
     fn line_number() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(true)
             .build()
@@ -2184,8 +2140,7 @@ Watson
     #[test]
     fn line_number_multi_line() {
         let matcher = RegexMatcher::new("(?s)Watson.+Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(true)
             .multi_line(true)
@@ -2211,9 +2166,8 @@ Watson
     #[test]
     fn column_number() {
         let matcher = RegexMatcher::new("Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .column(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().column(true).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .build()
@@ -2235,9 +2189,8 @@ Watson
     #[test]
     fn column_number_multi_line() {
         let matcher = RegexMatcher::new("(?s)Watson.+Watson").unwrap();
-        let mut printer = StandardBuilder::new()
-            .column(true)
-            .build(NoColor::new(vec![]));
+        let mut printer =
+            StandardBuilder::new().column(true).build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(false)
             .multi_line(true)
@@ -2440,9 +2393,8 @@ and exhibited clearly, with a label attached.
 
     #[test]
     fn max_columns_with_count_preview_two_matches() {
-        let matcher = RegexMatcher::new(
-            "exhibited|dusted|has to have it",
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new("exhibited|dusted|has to have it").unwrap();
         let mut printer = StandardBuilder::new()
             .stats(true)
             .max_columns(Some(46))
@@ -2493,9 +2445,9 @@ but Doctor Watson has to have it taken out for him and dusted,
 
     #[test]
     fn max_columns_multi_line_preview() {
-        let matcher = RegexMatcher::new(
-            "(?s)clew|cigar ash.+have it|exhibited",
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new("(?s)clew|cigar ash.+have it|exhibited")
+                .unwrap();
         let mut printer = StandardBuilder::new()
             .stats(true)
             .max_columns(Some(46))
@@ -2673,9 +2625,8 @@ For the Doctor Watsons of this world, as opposed to the Sherlock
 
     #[test]
     fn max_matches_multi_line2() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?(Holmeses|clearly)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
         let mut printer = StandardBuilder::new()
             .max_matches(Some(1))
             .build(NoColor::new(vec![]));
@@ -2726,9 +2677,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn only_matching_multi_line1() {
-        let matcher = RegexMatcher::new(
-            r"(?s:.{0})(Doctor Watsons|Sherlock)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s:.{0})(Doctor Watsons|Sherlock)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .column(true)
@@ -2755,9 +2705,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn only_matching_multi_line2() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?(Holmeses|clearly)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .column(true)
@@ -2844,9 +2793,8 @@ Holmeses, success in the province of detective work must always
         // can match across multiple lines without actually doing so. This is
         // so we can test multi-line handling in the case of a match on only
         // one line.
-        let matcher = RegexMatcher::new(
-            r"(?s:.{0})(Doctor Watsons|Sherlock)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s:.{0})(Doctor Watsons|Sherlock)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .max_columns(Some(10))
@@ -2878,9 +2826,8 @@ Holmeses, success in the province of detective work must always
         // can match across multiple lines without actually doing so. This is
         // so we can test multi-line handling in the case of a match on only
         // one line.
-        let matcher = RegexMatcher::new(
-            r"(?s:.{0})(Doctor Watsons|Sherlock)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s:.{0})(Doctor Watsons|Sherlock)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .max_columns(Some(10))
@@ -2909,9 +2856,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn only_matching_max_columns_multi_line2() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?(Holmeses|clearly)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .max_columns(Some(50))
@@ -2940,9 +2886,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn only_matching_max_columns_preview_multi_line2() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?(Holmeses|clearly)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
         let mut printer = StandardBuilder::new()
             .only_matching(true)
             .max_columns(Some(50))
@@ -2998,9 +2943,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn per_match_multi_line1() {
-        let matcher = RegexMatcher::new(
-            r"(?s:.{0})(Doctor Watsons|Sherlock)"
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s:.{0})(Doctor Watsons|Sherlock)").unwrap();
         let mut printer = StandardBuilder::new()
             .per_match(true)
             .column(true)
@@ -3027,9 +2971,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn per_match_multi_line2() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?(Holmeses|clearly)",
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
         let mut printer = StandardBuilder::new()
             .per_match(true)
             .column(true)
@@ -3057,9 +3000,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn per_match_multi_line3() {
-        let matcher = RegexMatcher::new(
-            r"(?s)Watson.+?Holmeses|always.+?be",
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?Holmeses|always.+?be").unwrap();
         let mut printer = StandardBuilder::new()
             .per_match(true)
             .column(true)
@@ -3194,9 +3136,8 @@ Holmeses, success in the province of detective work must always
 
     #[test]
     fn replacement_max_columns_preview2() {
-        let matcher = RegexMatcher::new(
-            "exhibited|dusted|has to have it",
-        ).unwrap();
+        let matcher =
+            RegexMatcher::new("exhibited|dusted|has to have it").unwrap();
         let mut printer = StandardBuilder::new()
             .max_columns(Some(43))
             .max_columns_preview(true)
@@ -3277,8 +3218,7 @@ and xxx clearly, with a label attached.
     #[test]
     fn invert() {
         let matcher = RegexMatcher::new(r"Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(true)
             .invert_match(true)
@@ -3303,8 +3243,7 @@ and xxx clearly, with a label attached.
     #[test]
     fn invert_multi_line() {
         let matcher = RegexMatcher::new(r"(?s:.{0})Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .multi_line(true)
             .line_number(true)
@@ -3330,8 +3269,7 @@ and xxx clearly, with a label attached.
     #[test]
     fn invert_context() {
         let matcher = RegexMatcher::new(r"Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .line_number(true)
             .invert_match(true)
@@ -3360,8 +3298,7 @@ and xxx clearly, with a label attached.
     #[test]
     fn invert_context_multi_line() {
         let matcher = RegexMatcher::new(r"(?s:.{0})Sherlock").unwrap();
-        let mut printer = StandardBuilder::new()
-            .build(NoColor::new(vec![]));
+        let mut printer = StandardBuilder::new().build(NoColor::new(vec![]));
         SearcherBuilder::new()
             .multi_line(true)
             .line_number(true)

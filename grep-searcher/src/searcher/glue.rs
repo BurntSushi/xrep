@@ -2,12 +2,12 @@ use std::cmp;
 use std::io;
 
 use grep_matcher::Matcher;
+use line_buffer::{LineBufferReader, DEFAULT_BUFFER_CAPACITY};
 use lines::{self, LineStep};
-use line_buffer::{DEFAULT_BUFFER_CAPACITY, LineBufferReader};
 use sink::{Sink, SinkError};
 
-use searcher::{Config, Range, Searcher};
 use searcher::core::Core;
+use searcher::{Config, Range, Searcher};
 
 #[derive(Debug)]
 pub struct ReadByLine<'s, M: 's, R, S> {
@@ -17,9 +17,10 @@ pub struct ReadByLine<'s, M: 's, R, S> {
 }
 
 impl<'s, M, R, S> ReadByLine<'s, M, R, S>
-where M: Matcher,
-      R: io::Read,
-      S: Sink
+where
+    M: Matcher,
+    R: io::Read,
+    S: Sink,
 {
     pub fn new(
         searcher: &'s Searcher,
@@ -38,9 +39,8 @@ where M: Matcher,
 
     pub fn run(mut self) -> Result<(), S::Error> {
         if self.core.begin()? {
-            while
-                self.fill()? && self.core.match_by_line(self.rdr.buffer())?
-            {}
+            while self.fill()? && self.core.match_by_line(self.rdr.buffer())? {
+            }
         }
         self.core.finish(
             self.rdr.absolute_byte_offset(),
@@ -82,7 +82,7 @@ where M: Matcher,
 
     fn should_binary_quit(&self) -> bool {
         self.rdr.binary_byte_offset().is_some()
-        && self.config.binary.quit_byte().is_some()
+            && self.config.binary.quit_byte().is_some()
     }
 }
 
@@ -111,14 +111,11 @@ impl<'s, M: Matcher, S: Sink> SliceByLine<'s, M, S> {
 
     pub fn run(mut self) -> Result<(), S::Error> {
         if self.core.begin()? {
-            let binary_upto = cmp::min(
-                self.slice.len(),
-                DEFAULT_BUFFER_CAPACITY,
-            );
+            let binary_upto =
+                cmp::min(self.slice.len(), DEFAULT_BUFFER_CAPACITY);
             let binary_range = Range::new(0, binary_upto);
             if !self.core.detect_binary(self.slice, &binary_range)? {
-                while
-                    !self.slice[self.core.pos()..].is_empty()
+                while !self.slice[self.core.pos()..].is_empty()
                     && self.core.match_by_line(self.slice)?
                 {}
             }
@@ -163,10 +160,8 @@ impl<'s, M: Matcher, S: Sink> MultiLine<'s, M, S> {
 
     pub fn run(mut self) -> Result<(), S::Error> {
         if self.core.begin()? {
-            let binary_upto = cmp::min(
-                self.slice.len(),
-                DEFAULT_BUFFER_CAPACITY,
-            );
+            let binary_upto =
+                cmp::min(self.slice.len(), DEFAULT_BUFFER_CAPACITY);
             let binary_range = Range::new(0, binary_upto);
             if !self.core.detect_binary(self.slice, &binary_range)? {
                 let mut keepgoing = true;
@@ -218,11 +213,8 @@ impl<'s, M: Matcher, S: Sink> MultiLine<'s, M, S> {
         };
         self.advance(&mat);
 
-        let line = lines::locate(
-            self.slice,
-            self.config.line_term.as_byte(),
-            mat,
-        );
+        let line =
+            lines::locate(self.slice, self.config.line_term.as_byte(), mat);
         // We delay sinking the match to make sure we group adjacent matches
         // together in a single sink. Adjacent matches are distinct matches
         // that start and end on the same line, respectively. This guarantees
@@ -502,7 +494,8 @@ byte count:366
         let byte_count = haystack.len();
         let exp = format!(
             "4:abc\n8:defxxxabc\n18:defxxx\n\nbyte count:{}\n",
-            byte_count);
+            byte_count
+        );
 
         SearcherTester::new(haystack, "abc\ndef")
             .by_line(false)
@@ -517,7 +510,8 @@ byte count:366
         let byte_count = haystack.len();
         let exp = format!(
             "4:abc\n8:defabc\n15:defxxx\n\nbyte count:{}\n",
-            byte_count);
+            byte_count
+        );
 
         SearcherTester::new(haystack, "abc\ndef")
             .by_line(false)
@@ -571,9 +565,8 @@ d
 ";
         let byte_count = haystack.len();
         let exp = format!("4:\n7:\n8:\n\nbyte count:{}\n", byte_count);
-        let exp_line = format!(
-            "3:4:\n5:7:\n6:8:\n\nbyte count:{}\n",
-            byte_count);
+        let exp_line =
+            format!("3:4:\n5:7:\n6:8:\n\nbyte count:{}\n", byte_count);
 
         SearcherTester::new(haystack, r"^$")
             .expected_no_line_number(&exp)
@@ -595,9 +588,8 @@ c
 d";
         let byte_count = haystack.len();
         let exp = format!("4:\n7:\n8:\n\nbyte count:{}\n", byte_count);
-        let exp_line = format!(
-            "3:4:\n5:7:\n6:8:\n\nbyte count:{}\n",
-            byte_count);
+        let exp_line =
+            format!("3:4:\n5:7:\n6:8:\n\nbyte count:{}\n", byte_count);
 
         SearcherTester::new(haystack, r"^$")
             .expected_no_line_number(&exp)
@@ -620,12 +612,9 @@ d
 
 ";
         let byte_count = haystack.len();
-        let exp = format!(
-            "4:\n7:\n8:\n11:\n\nbyte count:{}\n",
-            byte_count);
-        let exp_line = format!(
-            "3:4:\n5:7:\n6:8:\n8:11:\n\nbyte count:{}\n",
-            byte_count);
+        let exp = format!("4:\n7:\n8:\n11:\n\nbyte count:{}\n", byte_count);
+        let exp_line =
+            format!("3:4:\n5:7:\n6:8:\n8:11:\n\nbyte count:{}\n", byte_count);
 
         SearcherTester::new(haystack, r"^$")
             .expected_no_line_number(&exp)
@@ -667,11 +656,8 @@ d
         let mut searcher = SearcherBuilder::new()
             .heap_limit(Some(3)) // max line length is 4, one byte short
             .build();
-        let result = searcher.search_reader(
-            &matcher,
-            haystack.as_bytes(),
-            &mut sink,
-        );
+        let result =
+            searcher.search_reader(&matcher, haystack.as_bytes(), &mut sink);
         assert!(result.is_err());
     }
 
@@ -691,11 +677,8 @@ d
             .multi_line(true)
             .heap_limit(Some(haystack.len())) // actually need one more byte
             .build();
-        let result = searcher.search_reader(
-            &matcher,
-            haystack.as_bytes(),
-            &mut sink,
-        );
+        let result =
+            searcher.search_reader(&matcher, haystack.as_bytes(), &mut sink);
         assert!(result.is_err());
     }
 
@@ -1508,12 +1491,16 @@ and exhibited clearly, with a label attached.\
 
         let haystack = SHERLOCK;
         let matcher = RegexMatcher::new("Sherlock");
-        let mut searcher = SearcherBuilder::new()
-            .line_number(true)
-            .build();
-        searcher.search_reader(&matcher, haystack, sinks::Lossy(|n, line| {
-            print!("{}:{}", n, line);
-            Ok(true)
-        })).unwrap();
+        let mut searcher = SearcherBuilder::new().line_number(true).build();
+        searcher
+            .search_reader(
+                &matcher,
+                haystack,
+                sinks::Lossy(|n, line| {
+                    print!("{}:{}", n, line);
+                    Ok(true)
+                }),
+            )
+            .unwrap();
     }
 }

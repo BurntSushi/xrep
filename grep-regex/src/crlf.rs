@@ -76,9 +76,8 @@ impl Matcher for CRLFMatcher {
         caps: &mut RegexCaptures,
     ) -> Result<bool, NoError> {
         caps.strip_crlf(false);
-        let r = self.regex.captures_read_at(
-            caps.locations_mut(), haystack, at,
-        );
+        let r =
+            self.regex.captures_read_at(caps.locations_mut(), haystack, at);
         if !r.is_some() {
             return Ok(false);
         }
@@ -163,8 +162,8 @@ pub fn crlfify(expr: Hir) -> Hir {
 
 #[cfg(test)]
 mod tests {
-    use regex_syntax::Parser;
     use super::crlfify;
+    use regex_syntax::Parser;
 
     fn roundtrip(pattern: &str) -> String {
         let expr1 = Parser::new().parse(pattern).unwrap();

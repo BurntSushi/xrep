@@ -5,8 +5,8 @@ the regex engine doesn't look for inner literals. Since we're doing line based
 searching, we can use them, so we need to do it ourselves.
 */
 
-use regex_syntax::hir::{self, Hir, HirKind};
 use regex_syntax::hir::literal::{Literal, Literals};
+use regex_syntax::hir::{self, Hir, HirKind};
 
 use util;
 
@@ -159,10 +159,8 @@ impl LiteralSets {
             };
 
             debug!("prefix/suffix literals found: {:?}", lits);
-            let alts: Vec<String> = lits
-                .into_iter()
-                .map(|x| util::bytes_to_regex(x))
-                .collect();
+            let alts: Vec<String> =
+                lits.into_iter().map(|x| util::bytes_to_regex(x)).collect();
             // We're matching raw bytes, so disable Unicode mode.
             Some(format!("(?-u:{})", alts.join("|")))
         } else {
@@ -194,24 +192,28 @@ fn union_required(expr: &Hir, lits: &mut Literals) {
         HirKind::Group(hir::Group { ref hir, .. }) => {
             union_required(&**hir, lits);
         }
-        HirKind::Repetition(ref x) => {
-            match x.kind {
-                hir::RepetitionKind::ZeroOrOne => lits.cut(),
-                hir::RepetitionKind::ZeroOrMore => lits.cut(),
-                hir::RepetitionKind::OneOrMore => {
-                    union_required(&x.hir, lits);
-                }
-                hir::RepetitionKind::Range(ref rng) => {
-                    let (min, max) = match *rng {
-                        hir::RepetitionRange::Exactly(m) => (m, Some(m)),
-                        hir::RepetitionRange::AtLeast(m) => (m, None),
-                        hir::RepetitionRange::Bounded(m, n) => (m, Some(n)),
-                    };
-                    repeat_range_literals(
-                        &x.hir, min, max, x.greedy, lits, union_required);
-                }
+        HirKind::Repetition(ref x) => match x.kind {
+            hir::RepetitionKind::ZeroOrOne => lits.cut(),
+            hir::RepetitionKind::ZeroOrMore => lits.cut(),
+            hir::RepetitionKind::OneOrMore => {
+                union_required(&x.hir, lits);
             }
-        }
+            hir::RepetitionKind::Range(ref rng) => {
+                let (min, max) = match *rng {
+                    hir::RepetitionRange::Exactly(m) => (m, Some(m)),
+                    hir::RepetitionRange::AtLeast(m) => (m, None),
+                    hir::RepetitionRange::Bounded(m, n) => (m, Some(n)),
+                };
+                repeat_range_literals(
+                    &x.hir,
+                    min,
+                    max,
+                    x.greedy,
+                    lits,
+                    union_required,
+                );
+            }
+        },
         HirKind::Concat(ref es) if es.is_empty() => {}
         HirKind::Concat(ref es) if es.len() == 1 => {
             union_required(&es[0], lits)
@@ -310,9 +312,9 @@ fn is_simple(expr: &Hir) -> bool {
         | HirKind::Repetition(_)
         | HirKind::Concat(_)
         | HirKind::Alternation(_) => true,
-        HirKind::Anchor(_)
-        | HirKind::WordBoundary(_)
-        | HirKind::Group(_) => false,
+        HirKind::Anchor(_) | HirKind::WordBoundary(_) | HirKind::Group(_) => {
+            false
+        }
     }
 }
 
@@ -328,8 +330,8 @@ fn count_byte_class(cls: &hir::ClassBytes) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use regex_syntax::Parser;
     use super::LiteralSets;
+    use regex_syntax::Parser;
 
     fn sets(pattern: &str) -> LiteralSets {
         let hir = Parser::new().parse(pattern).unwrap();
@@ -380,8 +382,10 @@ mod tests {
     fn regression_1319() {
         // Regression from:
         // https://github.com/BurntSushi/ripgrep/issues/1319
-        assert_eq!(one_regex(r"TTGAGTCCAGGAG[ATCG]{2}C"),
+        assert_eq!(
+            one_regex(r"TTGAGTCCAGGAG[ATCG]{2}C"),
             pat("TTGAGTCCAGGAGA|TTGAGTCCAGGAGC|\
-                 TTGAGTCCAGGAGG|TTGAGTCCAGGAGT"));
+                 TTGAGTCCAGGAGG|TTGAGTCCAGGAGT")
+        );
     }
 }

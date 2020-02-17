@@ -17,11 +17,8 @@ use grep::pcre2::{
     RegexMatcherBuilder as PCRE2RegexMatcherBuilder,
 };
 use grep::printer::{
-    ColorSpecs, Stats,
-    JSON, JSONBuilder,
-    Standard, StandardBuilder,
-    Summary, SummaryBuilder, SummaryKind,
-    default_color_specs,
+    default_color_specs, ColorSpecs, JSONBuilder, Standard, StandardBuilder,
+    Stats, Summary, SummaryBuilder, SummaryKind, JSON,
 };
 use grep::regex::{
     RegexMatcher as RustRegexMatcher,
@@ -36,15 +33,12 @@ use ignore::{Walk, WalkBuilder, WalkParallel};
 use log;
 use num_cpus;
 use regex;
-use termcolor::{
-    WriteColor,
-    BufferWriter, ColorChoice,
-};
+use termcolor::{BufferWriter, ColorChoice, WriteColor};
 
 use crate::app;
 use crate::config;
 use crate::logger::Logger;
-use crate::messages::{set_messages, set_ignore_messages};
+use crate::messages::{set_ignore_messages, set_messages};
 use crate::path_printer::{PathPrinter, PathPrinterBuilder};
 use crate::search::{
     PatternMatcher, Printer, SearchWorker, SearchWorkerBuilder,
@@ -84,11 +78,9 @@ impl Command {
 
         match *self {
             Search | SearchParallel => true,
-            | SearchNever
-            | Files
-            | FilesParallel
-            | Types
-            | PCRE2Version => false,
+            SearchNever | Files | FilesParallel | Types | PCRE2Version => {
+                false
+            }
         }
     }
 }
@@ -210,15 +202,12 @@ impl Args {
                     .printer_standard(self.paths(), wtr, separator_search)
                     .map(Printer::Standard)
             }
-            OutputKind::Summary => {
-                self.matches()
-                    .printer_summary(self.paths(), wtr)
-                    .map(Printer::Summary)
-            }
+            OutputKind::Summary => self
+                .matches()
+                .printer_summary(self.paths(), wtr)
+                .map(Printer::Summary),
             OutputKind::JSON => {
-                self.matches()
-                    .printer_json(wtr)
-                    .map(Printer::JSON)
+                self.matches().printer_json(wtr).map(Printer::JSON)
             }
         }
     }
@@ -452,29 +441,23 @@ impl SortBy {
             }
             SortByKind::LastModified => {
                 builder.sort_by_file_path(move |a, b| {
-                    sort_by_metadata_time(
-                        a, b,
-                        self.reverse,
-                        |md| md.modified(),
-                    )
+                    sort_by_metadata_time(a, b, self.reverse, |md| {
+                        md.modified()
+                    })
                 });
             }
             SortByKind::LastAccessed => {
                 builder.sort_by_file_path(move |a, b| {
-                    sort_by_metadata_time(
-                        a, b,
-                        self.reverse,
-                        |md| md.accessed(),
-                    )
+                    sort_by_metadata_time(a, b, self.reverse, |md| {
+                        md.accessed()
+                    })
                 });
             }
             SortByKind::Created => {
                 builder.sort_by_file_path(move |a, b| {
-                    sort_by_metadata_time(
-                        a, b,
-                        self.reverse,
-                        |md| md.created(),
-                    )
+                    sort_by_metadata_time(a, b, self.reverse, |md| {
+                        md.created()
+                    })
                 });
             }
         }
@@ -520,7 +503,7 @@ impl EncodingMode {
     fn has_explicit_encoding(&self) -> bool {
         match self {
             EncodingMode::Some(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -568,13 +551,12 @@ impl ArgMatches {
         let patterns = self.patterns()?;
         let matcher = self.matcher(&patterns)?;
         let mut paths = self.paths();
-        let using_default_path =
-            if paths.is_empty() {
-                paths.push(self.path_default());
-                true
-            } else {
-                false
-            };
+        let using_default_path = if paths.is_empty() {
+            paths.push(self.path_default());
+            true
+        } else {
+            false
+        };
         Ok(Args(Arc::new(ArgsImp {
             matches: self,
             patterns: patterns,
@@ -605,7 +587,8 @@ impl ArgMatches {
                 Err(err) => err,
             };
             log::debug!(
-                "error building Rust regex in hybrid mode:\n{}", rust_err,
+                "error building Rust regex in hybrid mode:\n{}",
+                rust_err,
             );
             let pcre_err = match self.matcher_pcre2(patterns) {
                 Ok(matcher) => return Ok(PatternMatcher::PCRE2(matcher)),
@@ -616,7 +599,10 @@ impl ArgMatches {
                  engine or with PCRE2.\n\n\
                  default regex engine error:\n{}\n{}\n{}\n\n\
                  PCRE2 regex engine error:\n{}",
-                 "~".repeat(79), rust_err, "~".repeat(79), pcre_err,
+                "~".repeat(79),
+                rust_err,
+                "~".repeat(79),
+                pcre_err,
             )))
         } else {
             let matcher = match self.matcher_rust(patterns) {
@@ -660,14 +646,10 @@ impl ArgMatches {
         if self.is_present("multiline") {
             builder.dot_matches_new_line(self.is_present("multiline-dotall"));
             if self.is_present("crlf") {
-                builder
-                    .crlf(true)
-                    .line_terminator(None);
+                builder.crlf(true).line_terminator(None);
             }
         } else {
-            builder
-                .line_terminator(Some(b'\n'))
-                .dot_matches_new_line(false);
+            builder.line_terminator(Some(b'\n')).dot_matches_new_line(false);
             if self.is_present("crlf") {
                 builder.crlf(true);
             }
@@ -686,12 +668,11 @@ impl ArgMatches {
         if let Some(limit) = self.dfa_size_limit()? {
             builder.dfa_size_limit(limit);
         }
-        let res =
-            if self.is_present("fixed-strings") {
-                builder.build_literals(patterns)
-            } else {
-                builder.build(&patterns.join("|"))
-            };
+        let res = if self.is_present("fixed-strings") {
+            builder.build_literals(patterns)
+        } else {
+            builder.build(&patterns.join("|"))
+        };
         match res {
             Ok(m) => Ok(m),
             Err(err) => Err(From::from(suggest_multiline(err.to_string()))),
@@ -718,7 +699,7 @@ impl ArgMatches {
                 // The PCRE2 docs say that 32KB is the default, and that 1MB
                 // should be big enough for anything. But let's crank it to
                 // 10MB.
-                .max_jit_stack_size(Some(10 * (1<<20)));
+                .max_jit_stack_size(Some(10 * (1 << 20)));
         }
         if self.unicode() {
             builder.utf(true).ucp(true);
@@ -822,14 +803,13 @@ impl ArgMatches {
     /// Build a searcher from the command line parameters.
     fn searcher(&self, paths: &[PathBuf]) -> Result<Searcher> {
         let (ctx_before, ctx_after) = self.contexts()?;
-        let line_term =
-            if self.is_present("crlf") {
-                LineTerminator::crlf()
-            } else if self.is_present("null-data") {
-                LineTerminator::byte(b'\x00')
-            } else {
-                LineTerminator::byte(b'\n')
-            };
+        let line_term = if self.is_present("crlf") {
+            LineTerminator::crlf()
+        } else if self.is_present("null-data") {
+            LineTerminator::byte(b'\x00')
+        } else {
+            LineTerminator::byte(b'\n')
+        };
         let mut builder = SearcherBuilder::new();
         builder
             .line_terminator(line_term)
@@ -902,12 +882,9 @@ impl ArgMatches {
     /// Returns the form of binary detection to perform on files that are
     /// implicitly searched via recursive directory traversal.
     fn binary_detection_implicit(&self) -> BinaryDetection {
-        let none =
-            self.is_present("text")
-            || self.is_present("null-data");
+        let none = self.is_present("text") || self.is_present("null-data");
         let convert =
-            self.is_present("binary")
-            || self.unrestricted_count() >= 3;
+            self.is_present("binary") || self.unrestricted_count() >= 3;
         if none {
             BinaryDetection::none()
         } else if convert {
@@ -925,9 +902,7 @@ impl ArgMatches {
     /// as a filter (but quitting immediately once a NUL byte is seen), and we
     /// should never filter out files that the user wants to explicitly search.
     fn binary_detection_explicit(&self) -> BinaryDetection {
-        let none =
-            self.is_present("text")
-            || self.is_present("null-data");
+        let none = self.is_present("text") || self.is_present("null-data");
         if none {
             BinaryDetection::none()
         } else {
@@ -955,8 +930,8 @@ impl ArgMatches {
     /// case is disabled.
     fn case_smart(&self) -> bool {
         self.is_present("smart-case")
-        && !self.is_present("ignore-case")
-        && !self.is_present("case-sensitive")
+            && !self.is_present("ignore-case")
+            && !self.is_present("case-sensitive")
     }
 
     /// Returns the user's color choice based on command line parameters and
@@ -1012,11 +987,7 @@ impl ArgMatches {
         let after = self.usize_of("after-context")?.unwrap_or(0);
         let before = self.usize_of("before-context")?.unwrap_or(0);
         let both = self.usize_of("context")?.unwrap_or(0);
-        Ok(if both > 0 {
-            (both, both)
-        } else {
-            (before, after)
-        })
+        Ok(if both > 0 { (both, both) } else { (before, after) })
     }
 
     /// Returns the unescaped context separator in UTF-8 bytes.
@@ -1111,8 +1082,8 @@ impl ArgMatches {
             false
         } else {
             cli::is_tty_stdout()
-            || self.is_present("heading")
-            || self.is_present("pretty")
+                || self.is_present("heading")
+                || self.is_present("pretty")
         }
     }
 
@@ -1168,10 +1139,10 @@ impl ArgMatches {
         // tty for human consumption, except for one interesting case: when
         // we're only searching stdin. This makes pipelines work as expected.
         (cli::is_tty_stdout() && !self.is_only_stdin(paths))
-        || self.is_present("line-number")
-        || self.is_present("column")
-        || self.is_present("pretty")
-        || self.is_present("vimgrep")
+            || self.is_present("line-number")
+            || self.is_present("column")
+            || self.is_present("pretty")
+            || self.is_present("vimgrep")
     }
 
     /// The maximum number of columns allowed on each line.
@@ -1264,8 +1235,7 @@ impl ArgMatches {
         }
 
         let (count, count_matches) = self.counts();
-        let summary =
-            count
+        let summary = count
             || count_matches
             || self.is_present("files-with-matches")
             || self.is_present("files-without-match");
@@ -1325,10 +1295,10 @@ impl ArgMatches {
     /// be used when ripgrep is not otherwise given at least one file path
     /// as a positional argument.
     fn path_default(&self) -> PathBuf {
-        let file_is_stdin = self.values_of_os("file")
+        let file_is_stdin = self
+            .values_of_os("file")
             .map_or(false, |mut files| files.any(|f| f == "-"));
-        let search_cwd =
-            !cli::is_readable_stdin()
+        let search_cwd = !cli::is_readable_stdin()
             || (self.is_present("file") && file_is_stdin)
             || self.is_present("files")
             || self.is_present("type-list")
@@ -1357,8 +1327,8 @@ impl ArgMatches {
                  the given separator is {} bytes: {}\n\
                  In some shells on Windows '/' is automatically \
                  expanded. Use '//' instead.",
-                 sep.len(),
-                 cli::escape(&sep),
+                sep.len(),
+                cli::escape(&sep),
             )))
         } else {
             Ok(Some(sep[0]))
@@ -1408,14 +1378,16 @@ impl ArgMatches {
         if let Some(paths) = self.values_of_os("file") {
             for path in paths {
                 if path == "-" {
-                    pats.extend(cli::patterns_from_stdin()?
-                        .into_iter()
-                        .map(|p| self.pattern_from_string(p))
+                    pats.extend(
+                        cli::patterns_from_stdin()?
+                            .into_iter()
+                            .map(|p| self.pattern_from_string(p)),
                     );
                 } else {
-                    pats.extend(cli::patterns_from_path(path)?
-                        .into_iter()
-                        .map(|p| self.pattern_from_string(p))
+                    pats.extend(
+                        cli::patterns_from_path(path)?
+                            .into_iter()
+                            .map(|p| self.pattern_from_string(p)),
                     );
                 }
             }
@@ -1528,7 +1500,7 @@ impl ArgMatches {
             None => match self.value_of_lossy("sortr") {
                 None => return Ok(SortBy::none()),
                 Some(choice) => SortBy::desc(SortByKind::new(&choice)),
-            }
+            },
             Some(choice) => SortBy::asc(SortByKind::new(&choice)),
         };
         Ok(sortby)
@@ -1571,11 +1543,7 @@ impl ArgMatches {
             return Ok(1);
         }
         let threads = self.usize_of("threads")?.unwrap_or(0);
-        Ok(if threads == 0 {
-            cmp::min(12, num_cpus::get())
-        } else {
-            threads
-        })
+        Ok(if threads == 0 { cmp::min(12, num_cpus::get()) } else { threads })
     }
 
     /// Builds a file type matcher from the command line flags.
@@ -1623,9 +1591,11 @@ impl ArgMatches {
         } else {
             let path_stdin = Path::new("-");
             self.is_present("with-filename")
-            || self.is_present("vimgrep")
-            || paths.len() > 1
-            || paths.get(0).map_or(false, |p| p != path_stdin && p.is_dir())
+                || self.is_present("vimgrep")
+                || paths.len() > 1
+                || paths
+                    .get(0)
+                    .map_or(false, |p| p != path_stdin && p.is_dir())
         }
     }
 }
@@ -1648,11 +1618,7 @@ impl ArgMatches {
             None => return Ok(None),
             Some(n) => n,
         };
-        Ok(if n == 0 {
-            None
-        } else {
-            Some(n)
-        })
+        Ok(if n == 0 { None } else { Some(n) })
     }
 
     /// Safely reads an arg value with the given name, and if it's present,
@@ -1718,19 +1684,25 @@ fn suggest_pcre2(msg: String) -> String {
     if !msg.contains("backreferences") && !msg.contains("look-around") {
         msg
     } else {
-        format!("{}
+        format!(
+            "{}
 
 Consider enabling PCRE2 with the --pcre2 flag, which can handle backreferences
-and look-around.", msg)
+and look-around.",
+            msg
+        )
     }
 }
 
 fn suggest_multiline(msg: String) -> String {
     if msg.contains("the literal") && msg.contains("not allowed") {
-        format!("{}
+        format!(
+            "{}
 
 Consider enabling multiline mode with the --multiline flag (or -U for short).
-When multiline mode is enabled, new line characters can be matched.", msg)
+When multiline mode is enabled, new line characters can be matched.",
+            msg
+        )
     } else {
         msg
     }
@@ -1738,10 +1710,7 @@ When multiline mode is enabled, new line characters can be matched.", msg)
 
 /// Convert the result of parsing a human readable file size to a `usize`,
 /// failing if the type does not fit.
-fn u64_to_usize(
-    arg_name: &str,
-    value: Option<u64>,
-) -> Result<Option<usize>> {
+fn u64_to_usize(arg_name: &str, value: Option<u64>) -> Result<Option<usize>> {
     use std::usize;
 
     let value = match value {
@@ -1766,7 +1735,8 @@ fn sort_by_metadata_time<G>(
     reverse: bool,
     get_time: G,
 ) -> cmp::Ordering
-where G: Fn(&fs::Metadata) -> io::Result<SystemTime>
+where
+    G: Fn(&fs::Metadata) -> io::Result<SystemTime>,
 {
     let t1 = match p1.metadata().and_then(|md| get_time(&md)) {
         Ok(t) => t,
@@ -1789,11 +1759,10 @@ where G: Fn(&fs::Metadata) -> io::Result<SystemTime>
 /// corresponds to a `--help` or `--version` request. In which case, the
 /// corresponding output is printed and the current process is exited
 /// successfully.
-fn clap_matches<I, T>(
-    args: I,
-) -> Result<clap::ArgMatches<'static>>
-where I: IntoIterator<Item=T>,
-      T: Into<OsString> + Clone
+fn clap_matches<I, T>(args: I) -> Result<clap::ArgMatches<'static>>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
 {
     let err = match app::app().get_matches_from_safe(args) {
         Ok(matches) => return Ok(matches),
@@ -1831,5 +1800,6 @@ fn current_dir() -> Result<PathBuf> {
         "failed to get current working directory: {} \
          --- did your CWD get deleted?",
         err,
-    ).into())
+    )
+    .into())
 }

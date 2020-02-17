@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use grep_matcher::{
-    Captures, LineMatchKind, LineTerminator, Match, Matcher, NoError, ByteSet,
+    ByteSet, Captures, LineMatchKind, LineTerminator, Match, Matcher, NoError,
 };
 use regex::bytes::{CaptureLocations, Regex};
 
@@ -34,9 +34,7 @@ impl Default for RegexMatcherBuilder {
 impl RegexMatcherBuilder {
     /// Create a new builder for configuring a regex matcher.
     pub fn new() -> RegexMatcherBuilder {
-        RegexMatcherBuilder {
-            config: Config::default(),
-        }
+        RegexMatcherBuilder { config: Config::default() }
     }
 
     /// Build a new matcher using the current configuration for the provided
@@ -382,9 +380,7 @@ impl RegexMatcher {
     /// given pattern contains a literal `\n`. Other uses of `\n` (such as in
     /// `\s`) are removed transparently.
     pub fn new_line_matcher(pattern: &str) -> Result<RegexMatcher, Error> {
-        RegexMatcherBuilder::new()
-            .line_terminator(Some(b'\n'))
-            .build(pattern)
+        RegexMatcherBuilder::new().line_terminator(Some(b'\n')).build(pattern)
     }
 }
 
@@ -499,12 +495,9 @@ impl Matcher for RegexMatcher {
         }
     }
 
-    fn find_iter<F>(
-        &self,
-        haystack: &[u8],
-        matched: F,
-    ) -> Result<(), NoError>
-    where F: FnMut(Match) -> bool
+    fn find_iter<F>(&self, haystack: &[u8], matched: F) -> Result<(), NoError>
+    where
+        F: FnMut(Match) -> bool,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -520,7 +513,8 @@ impl Matcher for RegexMatcher {
         haystack: &[u8],
         matched: F,
     ) -> Result<Result<(), E>, NoError>
-    where F: FnMut(Match) -> Result<bool, E>
+    where
+        F: FnMut(Match) -> Result<bool, E>,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -551,7 +545,8 @@ impl Matcher for RegexMatcher {
         caps: &mut RegexCaptures,
         matched: F,
     ) -> Result<(), NoError>
-    where F: FnMut(&RegexCaptures) -> bool
+    where
+        F: FnMut(&RegexCaptures) -> bool,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -568,7 +563,8 @@ impl Matcher for RegexMatcher {
         caps: &mut RegexCaptures,
         matched: F,
     ) -> Result<Result<(), E>, NoError>
-    where F: FnMut(&RegexCaptures) -> Result<bool, E>
+    where
+        F: FnMut(&RegexCaptures) -> Result<bool, E>,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -602,7 +598,8 @@ impl Matcher for RegexMatcher {
         dst: &mut Vec<u8>,
         append: F,
     ) -> Result<(), NoError>
-    where F: FnMut(Match, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(Match, &mut Vec<u8>) -> bool,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -620,7 +617,8 @@ impl Matcher for RegexMatcher {
         dst: &mut Vec<u8>,
         append: F,
     ) -> Result<(), NoError>
-    where F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool,
     {
         use self::RegexMatcherImpl::*;
         match self.matcher {
@@ -745,7 +743,8 @@ impl Matcher for StandardMatcher {
         haystack: &[u8],
         at: usize,
     ) -> Result<Option<Match>, NoError> {
-        Ok(self.regex
+        Ok(self
+            .regex
             .find_at(haystack, at)
             .map(|m| Match::new(m.start(), m.end())))
     }
@@ -767,7 +766,8 @@ impl Matcher for StandardMatcher {
         haystack: &[u8],
         mut matched: F,
     ) -> Result<Result<(), E>, NoError>
-    where F: FnMut(Match) -> Result<bool, E>
+    where
+        F: FnMut(Match) -> Result<bool, E>,
     {
         for m in self.regex.find_iter(haystack) {
             match matched(Match::new(m.start(), m.end())) {
@@ -785,9 +785,10 @@ impl Matcher for StandardMatcher {
         at: usize,
         caps: &mut RegexCaptures,
     ) -> Result<bool, NoError> {
-        Ok(self.regex.captures_read_at(
-                &mut caps.locations_mut(), haystack, at,
-        ).is_some())
+        Ok(self
+            .regex
+            .captures_read_at(&mut caps.locations_mut(), haystack, at)
+            .is_some())
     }
 
     fn shortest_match_at(
@@ -901,7 +902,9 @@ impl RegexCaptures {
         offset: usize,
     ) -> RegexCaptures {
         RegexCaptures(RegexCapturesImp::Regex {
-            locs, offset, strip_crlf: false,
+            locs,
+            offset,
+            strip_crlf: false,
         })
     }
 
@@ -910,9 +913,7 @@ impl RegexCaptures {
             RegexCapturesImp::AhoCorasick { .. } => {
                 panic!("getting locations for simple captures is invalid")
             }
-            RegexCapturesImp::Regex { ref locs, .. } => {
-                locs
-            }
+            RegexCapturesImp::Regex { ref locs, .. } => locs,
         }
     }
 
@@ -921,9 +922,7 @@ impl RegexCaptures {
             RegexCapturesImp::AhoCorasick { .. } => {
                 panic!("getting locations for simple captures is invalid")
             }
-            RegexCapturesImp::Regex { ref mut locs, .. } => {
-                locs
-            }
+            RegexCapturesImp::Regex { ref mut locs, .. } => locs,
         }
     }
 
@@ -952,23 +951,19 @@ impl RegexCaptures {
 
 #[cfg(test)]
 mod tests {
-    use grep_matcher::{LineMatchKind, Matcher};
     use super::*;
+    use grep_matcher::{LineMatchKind, Matcher};
 
     // Test that enabling word matches does the right thing and demonstrate
     // the difference between it and surrounding the regex in `\b`.
     #[test]
     fn word() {
-        let matcher = RegexMatcherBuilder::new()
-            .word(true)
-            .build(r"-2")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().word(true).build(r"-2").unwrap();
         assert!(matcher.is_match(b"abc -2 foo").unwrap());
 
-        let matcher = RegexMatcherBuilder::new()
-            .word(false)
-            .build(r"\b-2\b")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().word(false).build(r"\b-2\b").unwrap();
         assert!(!matcher.is_match(b"abc -2 foo").unwrap());
     }
 
@@ -977,9 +972,7 @@ mod tests {
     #[test]
     fn line_terminator() {
         // This works, because there's no line terminator specified.
-        let matcher = RegexMatcherBuilder::new()
-            .build(r"abc\sxyz")
-            .unwrap();
+        let matcher = RegexMatcherBuilder::new().build(r"abc\sxyz").unwrap();
         assert!(matcher.is_match(b"abc\nxyz").unwrap());
 
         // This doesn't.
@@ -1029,16 +1022,12 @@ mod tests {
     // Test that smart case works.
     #[test]
     fn case_smart() {
-        let matcher = RegexMatcherBuilder::new()
-            .case_smart(true)
-            .build(r"abc")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().case_smart(true).build(r"abc").unwrap();
         assert!(matcher.is_match(b"ABC").unwrap());
 
-        let matcher = RegexMatcherBuilder::new()
-            .case_smart(true)
-            .build(r"aBc")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().case_smart(true).build(r"aBc").unwrap();
         assert!(!matcher.is_match(b"ABC").unwrap());
     }
 
@@ -1060,9 +1049,7 @@ mod tests {
 
         // With no line terminator set, we can't employ any optimizations,
         // so we get a confirmed match.
-        let matcher = RegexMatcherBuilder::new()
-            .build(r"\wfoo\s")
-            .unwrap();
+        let matcher = RegexMatcherBuilder::new().build(r"\wfoo\s").unwrap();
         let m = matcher.find_candidate_line(b"afoo ").unwrap().unwrap();
         assert!(is_confirmed(m));
 

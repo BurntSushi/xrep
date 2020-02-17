@@ -62,42 +62,32 @@ impl ColorError {
 impl fmt::Display for ColorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ColorError::UnrecognizedOutType(ref name) => {
-                write!(
-                    f,
-                    "unrecognized output type '{}'. Choose from: \
+            ColorError::UnrecognizedOutType(ref name) => write!(
+                f,
+                "unrecognized output type '{}'. Choose from: \
                      path, line, column, match.",
-                    name,
-                )
-            }
-            ColorError::UnrecognizedSpecType(ref name) => {
-                write!(
-                    f,
-                    "unrecognized spec type '{}'. Choose from: \
+                name,
+            ),
+            ColorError::UnrecognizedSpecType(ref name) => write!(
+                f,
+                "unrecognized spec type '{}'. Choose from: \
                      fg, bg, style, none.",
-                    name,
-                )
-            }
-            ColorError::UnrecognizedColor(_, ref msg) => {
-                write!(f, "{}", msg)
-            }
-            ColorError::UnrecognizedStyle(ref name) => {
-                write!(
-                    f,
-                    "unrecognized style attribute '{}'. Choose from: \
+                name,
+            ),
+            ColorError::UnrecognizedColor(_, ref msg) => write!(f, "{}", msg),
+            ColorError::UnrecognizedStyle(ref name) => write!(
+                f,
+                "unrecognized style attribute '{}'. Choose from: \
                      nobold, bold, nointense, intense, nounderline, \
                      underline.",
-                    name,
-                )
-            }
-            ColorError::InvalidFormat(ref original) => {
-                write!(
-                    f,
-                    "invalid color spec format: '{}'. Valid format \
+                name,
+            ),
+            ColorError::InvalidFormat(ref original) => write!(
+                f,
+                "invalid color spec format: '{}'. Valid format \
                      is '(path|line|column|match):(fg|bg|style):(value)'.",
-                    original,
-                )
-            }
+                original,
+            ),
         }
     }
 }
@@ -227,7 +217,7 @@ enum Style {
     Intense,
     NoIntense,
     Underline,
-    NoUnderline
+    NoUnderline,
 }
 
 impl ColorSpecs {
@@ -288,18 +278,32 @@ impl SpecValue {
     fn merge_into(&self, cspec: &mut ColorSpec) {
         match *self {
             SpecValue::None => cspec.clear(),
-            SpecValue::Fg(ref color) => { cspec.set_fg(Some(color.clone())); }
-            SpecValue::Bg(ref color) => { cspec.set_bg(Some(color.clone())); }
-            SpecValue::Style(ref style) => {
-                match *style {
-                    Style::Bold => { cspec.set_bold(true); }
-                    Style::NoBold => { cspec.set_bold(false); }
-                    Style::Intense => { cspec.set_intense(true); }
-                    Style::NoIntense => { cspec.set_intense(false); }
-                    Style::Underline => { cspec.set_underline(true); }
-                    Style::NoUnderline => { cspec.set_underline(false); }
-                }
+            SpecValue::Fg(ref color) => {
+                cspec.set_fg(Some(color.clone()));
             }
+            SpecValue::Bg(ref color) => {
+                cspec.set_bg(Some(color.clone()));
+            }
+            SpecValue::Style(ref style) => match *style {
+                Style::Bold => {
+                    cspec.set_bold(true);
+                }
+                Style::NoBold => {
+                    cspec.set_bold(false);
+                }
+                Style::Intense => {
+                    cspec.set_intense(true);
+                }
+                Style::NoIntense => {
+                    cspec.set_intense(false);
+                }
+                Style::Underline => {
+                    cspec.set_underline(true);
+                }
+                Style::NoUnderline => {
+                    cspec.set_underline(false);
+                }
+            },
         }
     }
 }
@@ -315,10 +319,7 @@ impl FromStr for UserColorSpec {
         let otype: OutType = pieces[0].parse()?;
         match pieces[1].parse()? {
             SpecType::None => {
-                Ok(UserColorSpec {
-                    ty: otype,
-                    value: SpecValue::None,
-                })
+                Ok(UserColorSpec { ty: otype, value: SpecValue::None })
             }
             SpecType::Style => {
                 if pieces.len() < 3 {
@@ -331,18 +332,16 @@ impl FromStr for UserColorSpec {
                 if pieces.len() < 3 {
                     return Err(ColorError::InvalidFormat(s.to_string()));
                 }
-                let color: Color = pieces[2]
-                    .parse()
-                    .map_err(ColorError::from_parse_error)?;
+                let color: Color =
+                    pieces[2].parse().map_err(ColorError::from_parse_error)?;
                 Ok(UserColorSpec { ty: otype, value: SpecValue::Fg(color) })
             }
             SpecType::Bg => {
                 if pieces.len() < 3 {
                     return Err(ColorError::InvalidFormat(s.to_string()));
                 }
-                let color: Color = pieces[2]
-                    .parse()
-                    .map_err(ColorError::from_parse_error)?;
+                let color: Color =
+                    pieces[2].parse().map_err(ColorError::from_parse_error)?;
                 Ok(UserColorSpec { ty: otype, value: SpecValue::Bg(color) })
             }
         }

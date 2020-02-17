@@ -80,7 +80,9 @@ pub struct SubMatch<'a> {
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 enum Data<'a> {
-    Text { text: Cow<'a, str> },
+    Text {
+        text: Cow<'a, str>,
+    },
     Bytes {
         #[serde(serialize_with = "to_base64")]
         bytes: &'a [u8],
@@ -116,32 +118,26 @@ impl<'a> Data<'a> {
     }
 }
 
-fn to_base64<T, S>(
-    bytes: T,
-    ser: S,
-) -> Result<S::Ok, S::Error>
-where T: AsRef<[u8]>,
-      S: Serializer
+fn to_base64<T, S>(bytes: T, ser: S) -> Result<S::Ok, S::Error>
+where
+    T: AsRef<[u8]>,
+    S: Serializer,
 {
     ser.serialize_str(&base64::encode(&bytes))
 }
 
-fn ser_bytes<T, S>(
-    bytes: T,
-    ser: S,
-) -> Result<S::Ok, S::Error>
-where T: AsRef<[u8]>,
-      S: Serializer
+fn ser_bytes<T, S>(bytes: T, ser: S) -> Result<S::Ok, S::Error>
+where
+    T: AsRef<[u8]>,
+    S: Serializer,
 {
     Data::from_bytes(bytes.as_ref()).serialize(ser)
 }
 
-fn ser_path<P, S>(
-    path: &Option<P>,
-    ser: S,
-) -> Result<S::Ok, S::Error>
-where P: AsRef<Path>,
-      S: Serializer
+fn ser_path<P, S>(path: &Option<P>, ser: S) -> Result<S::Ok, S::Error>
+where
+    P: AsRef<Path>,
+    S: Serializer,
 {
     path.as_ref().map(|p| Data::from_path(p.as_ref())).serialize(ser)
 }

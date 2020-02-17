@@ -18,10 +18,7 @@ impl RegexMatcher {
                 names.insert(name.to_string(), i);
             }
         }
-        RegexMatcher {
-            re: re,
-            names: names,
-        }
+        RegexMatcher { re: re, names: names }
     }
 }
 
@@ -31,12 +28,9 @@ impl Matcher for RegexMatcher {
     type Captures = RegexCaptures;
     type Error = NoError;
 
-    fn find_at(
-        &self,
-        haystack: &[u8],
-        at: usize,
-    ) -> Result<Option<Match>> {
-        Ok(self.re
+    fn find_at(&self, haystack: &[u8], at: usize) -> Result<Option<Match>> {
+        Ok(self
+            .re
             .find_at(haystack, at)
             .map(|m| Match::new(m.start(), m.end())))
     }
@@ -75,12 +69,9 @@ impl Matcher for RegexMatcherNoCaps {
     type Captures = NoCaptures;
     type Error = NoError;
 
-    fn find_at(
-        &self,
-        haystack: &[u8],
-        at: usize,
-    ) -> Result<Option<Match>> {
-        Ok(self.0
+    fn find_at(&self, haystack: &[u8], at: usize) -> Result<Option<Match>> {
+        Ok(self
+            .0
             .find_at(haystack, at)
             .map(|m| Match::new(m.start(), m.end())))
     }

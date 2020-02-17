@@ -1,5 +1,5 @@
 use crate::hay::SHERLOCK;
-use crate::util::{Dir, TestCommand, sort_lines};
+use crate::util::{sort_lines, Dir, TestCommand};
 
 // See: https://github.com/BurntSushi/ripgrep/issues/16
 rgtest!(r16, |dir: Dir, mut cmd: TestCommand| {
@@ -346,7 +346,10 @@ rgtest!(r391, |dir: Dir, mut cmd: TestCommand| {
     dir.create(".git/description", "");
 
     cmd.args(&[
-        "--no-ignore", "--hidden", "--follow", "--files",
+        "--no-ignore",
+        "--hidden",
+        "--follow",
+        "--files",
         "--glob",
         "!{.git,node_modules,plugged}/**",
         "--glob",
@@ -371,14 +374,18 @@ rgtest!(r405, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(r428_color_context_path, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", "foo\nbar");
     cmd.args(&[
-        "-A1", "-H", "--no-heading", "-N",
-        "--colors=match:none", "--color=always",
+        "-A1",
+        "-H",
+        "--no-heading",
+        "-N",
+        "--colors=match:none",
+        "--color=always",
         "foo",
     ]);
 
     let expected = format!(
         "{colored_path}:foo\n{colored_path}-bar\n",
-        colored_path=
+        colored_path =
             "\x1b\x5b\x30\x6d\x1b\x5b\x33\x35\x6dsherlock\x1b\x5b\x30\x6d"
     );
     eqnice!(expected, cmd.stdout());
@@ -414,9 +421,7 @@ rgtest!(r451_only_matching_as_in_issue, |dir: Dir, mut cmd: TestCommand| {
 // See: https://github.com/BurntSushi/ripgrep/issues/451
 rgtest!(r451_only_matching, |dir: Dir, mut cmd: TestCommand| {
     dir.create("digits.txt", "1 2 3\n123\n");
-    cmd.args(&[
-        "--only-matching", "--column", r"[0-9]", "digits.txt",
-    ]);
+    cmd.args(&["--only-matching", "--column", r"[0-9]", "digits.txt"]);
 
     let expected = "\
 1:1:1
@@ -517,11 +522,16 @@ rgtest!(r568_leading_hyphen_option_args, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(r599, |dir: Dir, mut cmd: TestCommand| {
     dir.create("input.txt", "\n\ntest\n");
     cmd.args(&[
-        "--color", "ansi",
-        "--colors", "path:none",
-        "--colors", "line:none",
-        "--colors", "match:fg:red",
-        "--colors", "match:style:nobold",
+        "--color",
+        "ansi",
+        "--colors",
+        "path:none",
+        "--colors",
+        "line:none",
+        "--colors",
+        "match:fg:red",
+        "--colors",
+        "match:style:nobold",
         "--line-number",
         r"^$",
         "input.txt",
@@ -707,16 +717,19 @@ rgtest!(r1203_reverse_suffix_literal, |dir: Dir, _: TestCommand| {
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1223
-rgtest!(r1223_no_dir_check_for_default_path, |dir: Dir, mut cmd: TestCommand| {
-    dir.create_dir("-");
-    dir.create("a.json", "{}");
-    dir.create("a.txt", "some text");
+rgtest!(
+    r1223_no_dir_check_for_default_path,
+    |dir: Dir, mut cmd: TestCommand| {
+        dir.create_dir("-");
+        dir.create("a.json", "{}");
+        dir.create("a.txt", "some text");
 
-    eqnice!(
-        "a.json\na.txt\n",
-        sort_lines(&cmd.arg("a").pipe(b"a.json\na.txt"))
-    );
-});
+        eqnice!(
+            "a.json\na.txt\n",
+            sort_lines(&cmd.arg("a").pipe(b"a.json\na.txt"))
+        );
+    }
+);
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1259
 rgtest!(r1259_drop_last_byte_nonl, |dir: Dir, mut cmd: TestCommand| {
@@ -734,7 +747,8 @@ rgtest!(r1319, |dir: Dir, mut cmd: TestCommand| {
     dir.create("input", "CCAGCTACTCGGGAGGCTGAGGCTGGAGGATCGCTTGAGTCCAGGAGTTC");
     eqnice!(
         "input:CCAGCTACTCGGGAGGCTGAGGCTGGAGGATCGCTTGAGTCCAGGAGTTC\n",
-        cmd.arg("TTGAGTCCAGGAG[ATCG]{2}C").stdout());
+        cmd.arg("TTGAGTCCAGGAG[ATCG]{2}C").stdout()
+    );
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1334
@@ -753,27 +767,27 @@ rgtest!(r1389_bad_symlinks_no_biscuit, |dir: Dir, mut cmd: TestCommand| {
     dir.create("mydir/file.txt", "test");
     dir.link_dir("mydir", "mylink");
 
-    let stdout = cmd.args(&[
-        "test",
-        "--no-ignore",
-        "--sort", "path",
-        "mylink",
-    ]).stdout();
+    let stdout = cmd
+        .args(&["test", "--no-ignore", "--sort", "path", "mylink"])
+        .stdout();
     eqnice!("mylink/file.txt:test\n", stdout);
 });
 
 // See: https://github.com/BurntSushi/ripgrep/pull/1446
-rgtest!(r1446_respect_excludes_in_worktree, |dir: Dir, mut cmd: TestCommand| {
-    dir.create_dir("repo/.git/info");
-    dir.create("repo/.git/info/exclude", "ignored");
-    dir.create_dir("repo/.git/worktrees/repotree");
-    dir.create("repo/.git/worktrees/repotree/commondir", "../..");
+rgtest!(
+    r1446_respect_excludes_in_worktree,
+    |dir: Dir, mut cmd: TestCommand| {
+        dir.create_dir("repo/.git/info");
+        dir.create("repo/.git/info/exclude", "ignored");
+        dir.create_dir("repo/.git/worktrees/repotree");
+        dir.create("repo/.git/worktrees/repotree/commondir", "../..");
 
-    dir.create_dir("repotree");
-    dir.create("repotree/.git", "gitdir: repo/.git/worktrees/repotree");
-    dir.create("repotree/ignored", "");
-    dir.create("repotree/not-ignored", "");
+        dir.create_dir("repotree");
+        dir.create("repotree/.git", "gitdir: repo/.git/worktrees/repotree");
+        dir.create("repotree/ignored", "");
+        dir.create("repotree/not-ignored", "");
 
-    cmd.arg("--sort").arg("path").arg("--files").arg("repotree");
-    eqnice!("repotree/not-ignored\n", cmd.stdout());
-});
+        cmd.arg("--sort").arg("path").arg("--files").arg("repotree");
+        eqnice!("repotree/not-ignored\n", cmd.stdout());
+    }
+);

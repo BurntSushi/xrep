@@ -33,13 +33,12 @@ impl RegexMatcherBuilder {
         if self.case_smart && !has_uppercase_literal(pattern) {
             builder.caseless(true);
         }
-        let res =
-            if self.word {
-                let pattern = format!(r"(?<!\w)(?:{})(?!\w)", pattern);
-                builder.build(&pattern)
-            } else {
-                builder.build(pattern)
-            };
+        let res = if self.word {
+            let pattern = format!(r"(?<!\w)(?:{})(?!\w)", pattern);
+            builder.build(&pattern)
+        } else {
+            builder.build(pattern)
+        };
         res.map_err(Error::regex).map(|regex| {
             let mut names = HashMap::new();
             for (i, name) in regex.capture_names().iter().enumerate() {
@@ -274,7 +273,8 @@ impl Matcher for RegexMatcher {
         haystack: &[u8],
         at: usize,
     ) -> Result<Option<Match>, Error> {
-        Ok(self.regex
+        Ok(self
+            .regex
             .find_at(haystack, at)
             .map_err(Error::regex)?
             .map(|m| Match::new(m.start(), m.end())))
@@ -297,7 +297,8 @@ impl Matcher for RegexMatcher {
         haystack: &[u8],
         mut matched: F,
     ) -> Result<Result<(), E>, Error>
-    where F: FnMut(Match) -> Result<bool, E>
+    where
+        F: FnMut(Match) -> Result<bool, E>,
     {
         for result in self.regex.find_iter(haystack) {
             let m = result.map_err(Error::regex)?;
@@ -316,10 +317,11 @@ impl Matcher for RegexMatcher {
         at: usize,
         caps: &mut RegexCaptures,
     ) -> Result<bool, Error> {
-        Ok(self.regex
-           .captures_read_at(&mut caps.locs, haystack, at)
-           .map_err(Error::regex)?
-           .is_some())
+        Ok(self
+            .regex
+            .captures_read_at(&mut caps.locs, haystack, at)
+            .map_err(Error::regex)?
+            .is_some())
     }
 }
 
@@ -383,23 +385,19 @@ fn has_uppercase_literal(pattern: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use grep_matcher::{LineMatchKind, Matcher};
     use super::*;
+    use grep_matcher::{LineMatchKind, Matcher};
 
     // Test that enabling word matches does the right thing and demonstrate
     // the difference between it and surrounding the regex in `\b`.
     #[test]
     fn word() {
-        let matcher = RegexMatcherBuilder::new()
-            .word(true)
-            .build(r"-2")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().word(true).build(r"-2").unwrap();
         assert!(matcher.is_match(b"abc -2 foo").unwrap());
 
-        let matcher = RegexMatcherBuilder::new()
-            .word(false)
-            .build(r"\b-2\b")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().word(false).build(r"\b-2\b").unwrap();
         assert!(!matcher.is_match(b"abc -2 foo").unwrap());
     }
 
@@ -432,16 +430,12 @@ mod tests {
     // Test that smart case works.
     #[test]
     fn case_smart() {
-        let matcher = RegexMatcherBuilder::new()
-            .case_smart(true)
-            .build(r"abc")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().case_smart(true).build(r"abc").unwrap();
         assert!(matcher.is_match(b"ABC").unwrap());
 
-        let matcher = RegexMatcherBuilder::new()
-            .case_smart(true)
-            .build(r"aBc")
-            .unwrap();
+        let matcher =
+            RegexMatcherBuilder::new().case_smart(true).build(r"aBc").unwrap();
         assert!(!matcher.is_match(b"ABC").unwrap());
     }
 
@@ -455,9 +449,7 @@ mod tests {
             }
         }
 
-        let matcher = RegexMatcherBuilder::new()
-            .build(r"\wfoo\s")
-            .unwrap();
+        let matcher = RegexMatcherBuilder::new().build(r"\wfoo\s").unwrap();
         let m = matcher.find_candidate_line(b"afoo ").unwrap().unwrap();
         assert!(is_confirmed(m));
     }

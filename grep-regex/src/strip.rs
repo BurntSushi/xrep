@@ -33,10 +33,7 @@ pub fn strip_from_match(
 
 /// The implementation of strip_from_match. The given byte must be ASCII. This
 /// function panics otherwise.
-fn strip_from_match_ascii(
-    expr: Hir,
-    byte: u8,
-) -> Result<Hir, Error> {
+fn strip_from_match_ascii(expr: Hir, byte: u8) -> Result<Hir, Error> {
     assert!(byte <= 0x7F);
     let chr = byte as char;
     assert_eq!(chr.len_utf8(), 1);
@@ -88,13 +85,15 @@ fn strip_from_match_ascii(
             Hir::group(x)
         }
         HirKind::Concat(xs) => {
-            let xs = xs.into_iter()
+            let xs = xs
+                .into_iter()
                 .map(|e| strip_from_match_ascii(e, byte))
                 .collect::<Result<Vec<Hir>, Error>>()?;
             Hir::concat(xs)
         }
         HirKind::Alternation(xs) => {
-            let xs = xs.into_iter()
+            let xs = xs
+                .into_iter()
                 .map(|e| strip_from_match_ascii(e, byte))
                 .collect::<Result<Vec<Hir>, Error>>()?;
             Hir::alternation(xs)
@@ -106,8 +105,8 @@ fn strip_from_match_ascii(
 mod tests {
     use regex_syntax::Parser;
 
+    use super::{strip_from_match, LineTerminator};
     use error::Error;
-    use super::{LineTerminator, strip_from_match};
 
     fn roundtrip(pattern: &str, byte: u8) -> String {
         roundtrip_line_term(pattern, LineTerminator::byte(byte)).unwrap()

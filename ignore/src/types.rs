@@ -93,242 +93,9 @@ use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use regex::Regex;
 use thread_local::ThreadLocal;
 
+use default_types::DEFAULT_TYPES;
 use pathutil::file_name;
 use {Error, Match};
-
-const DEFAULT_TYPES: &'static [(&'static str, &'static [&'static str])] = &[
-    ("agda", &["*.agda", "*.lagda"]),
-    ("ats", &["*.ats", "*.dats", "*.sats", "*.hats"]),
-    ("aidl", &["*.aidl"]),
-    ("amake", &["*.mk", "*.bp"]),
-    ("asciidoc", &["*.adoc", "*.asc", "*.asciidoc"]),
-    ("asm", &["*.asm", "*.s", "*.S"]),
-    ("asp", &["*.aspx", "*.aspx.cs", "*.aspx.cs", "*.ascx", "*.ascx.cs", "*.ascx.vb"]),
-    ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
-    ("awk", &["*.awk"]),
-    ("bazel", &["*.bzl", "WORKSPACE", "BUILD", "BUILD.bazel"]),
-    ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
-    ("brotli", &["*.br"]),
-    ("buildstream", &["*.bst"]),
-    ("bzip2", &["*.bz2", "*.tbz2"]),
-    ("c", &["*.[chH]", "*.[chH].in", "*.cats"]),
-    ("cabal", &["*.cabal"]),
-    ("cbor", &["*.cbor"]),
-    ("ceylon", &["*.ceylon"]),
-    ("clojure", &["*.clj", "*.cljc", "*.cljs", "*.cljx"]),
-    ("cmake", &["*.cmake", "CMakeLists.txt"]),
-    ("coffeescript", &["*.coffee"]),
-    ("creole", &["*.creole"]),
-    ("config", &["*.cfg", "*.conf", "*.config", "*.ini"]),
-    ("cpp", &[
-        "*.[ChH]", "*.cc", "*.[ch]pp", "*.[ch]xx", "*.hh",  "*.inl",
-        "*.[ChH].in", "*.cc.in", "*.[ch]pp.in", "*.[ch]xx.in", "*.hh.in",
-    ]),
-    ("crystal", &["Projectfile", "*.cr"]),
-    ("cs", &["*.cs"]),
-    ("csharp", &["*.cs"]),
-    ("cshtml", &["*.cshtml"]),
-    ("css", &["*.css", "*.scss"]),
-    ("csv", &["*.csv"]),
-    ("cython", &["*.pyx", "*.pxi", "*.pxd"]),
-    ("dart", &["*.dart"]),
-    ("d", &["*.d"]),
-    ("dhall", &["*.dhall"]),
-    ("diff", &["*.patch", "*.diff"]),
-    ("docker", &["*Dockerfile*"]),
-    ("edn", &["*.edn"]),
-    ("elisp", &["*.el"]),
-    ("elixir", &["*.ex", "*.eex", "*.exs"]),
-    ("elm", &["*.elm"]),
-    ("erb", &["*.erb"]),
-    ("erlang", &["*.erl", "*.hrl"]),
-    ("fidl", &["*.fidl"]),
-    ("fish", &["*.fish"]),
-    ("fortran", &[
-        "*.f", "*.F", "*.f77", "*.F77", "*.pfo",
-        "*.f90", "*.F90", "*.f95", "*.F95",
-    ]),
-    ("fsharp", &["*.fs", "*.fsx", "*.fsi"]),
-    ("gap", &["*.g", "*.gap", "*.gi", "*.gd", "*.tst"]),
-    ("gn", &["*.gn", "*.gni"]),
-    ("go", &["*.go"]),
-    ("gzip", &["*.gz", "*.tgz"]),
-    ("groovy", &["*.groovy", "*.gradle"]),
-    ("gradle", &["*.gradle"]),
-    ("h", &["*.h", "*.hpp"]),
-    ("hbs", &["*.hbs"]),
-    ("haskell", &["*.hs", "*.lhs", "*.cpphs", "*.c2hs", "*.hsc"]),
-    ("haml", &["*.haml"]),
-    ("hs", &["*.hs", "*.lhs"]),
-    ("html", &["*.htm", "*.html", "*.ejs"]),
-    ("idris", &["*.idr", "*.lidr"]),
-    ("java", &["*.java", "*.jsp", "*.jspx", "*.properties"]),
-    ("jinja", &["*.j2", "*.jinja", "*.jinja2"]),
-    ("js", &[
-        "*.js", "*.jsx", "*.vue",
-    ]),
-    ("json", &["*.json", "composer.lock"]),
-    ("jsonl", &["*.jsonl"]),
-    ("julia", &["*.jl"]),
-    ("jupyter", &["*.ipynb", "*.jpynb"]),
-    ("jl", &["*.jl"]),
-    ("kotlin", &["*.kt", "*.kts"]),
-    ("less", &["*.less"]),
-    ("license", &[
-        // General
-        "COPYING", "COPYING[.-]*",
-        "COPYRIGHT", "COPYRIGHT[.-]*",
-        "EULA", "EULA[.-]*",
-        "licen[cs]e", "licen[cs]e.*",
-        "LICEN[CS]E", "LICEN[CS]E[.-]*", "*[.-]LICEN[CS]E*",
-        "NOTICE", "NOTICE[.-]*",
-        "PATENTS", "PATENTS[.-]*",
-        "UNLICEN[CS]E", "UNLICEN[CS]E[.-]*",
-        // GPL (gpl.txt, etc.)
-        "agpl[.-]*",
-        "gpl[.-]*",
-        "lgpl[.-]*",
-        // Other license-specific (APACHE-2.0.txt, etc.)
-        "AGPL-*[0-9]*",
-        "APACHE-*[0-9]*",
-        "BSD-*[0-9]*",
-        "CC-BY-*",
-        "GFDL-*[0-9]*",
-        "GNU-*[0-9]*",
-        "GPL-*[0-9]*",
-        "LGPL-*[0-9]*",
-        "MIT-*[0-9]*",
-        "MPL-*[0-9]*",
-        "OFL-*[0-9]*",
-    ]),
-    ("lisp", &["*.el", "*.jl", "*.lisp", "*.lsp", "*.sc", "*.scm"]),
-    ("lock", &["*.lock", "package-lock.json"]),
-    ("log", &["*.log"]),
-    ("lua", &["*.lua"]),
-    ("lzma", &["*.lzma"]),
-    ("lz4", &["*.lz4"]),
-    ("m4", &["*.ac", "*.m4"]),
-    ("make", &[
-        "[Gg][Nn][Uu]makefile", "[Mm]akefile",
-        "[Gg][Nn][Uu]makefile.am", "[Mm]akefile.am",
-        "[Gg][Nn][Uu]makefile.in", "[Mm]akefile.in",
-        "*.mk", "*.mak"
-    ]),
-    ("mako", &["*.mako", "*.mao"]),
-    ("markdown", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
-    ("md", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
-    ("man", &["*.[0-9lnpx]", "*.[0-9][cEFMmpSx]"]),
-    ("matlab", &["*.m"]),
-    ("mk", &["mkfile"]),
-    ("ml", &["*.ml"]),
-    ("msbuild", &[
-        "*.csproj", "*.fsproj", "*.vcxproj", "*.proj", "*.props", "*.targets"
-    ]),
-    ("nim", &["*.nim", "*.nimf", "*.nimble", "*.nims"]),
-    ("nix", &["*.nix"]),
-    ("objc", &["*.h", "*.m"]),
-    ("objcpp", &["*.h", "*.mm"]),
-    ("ocaml", &["*.ml", "*.mli", "*.mll", "*.mly"]),
-    ("org", &["*.org", "*.org_archive"]),
-    ("pascal", &["*.pas", "*.dpr", "*.lpr", "*.pp", "*.inc"]),
-    ("perl", &["*.perl", "*.pl", "*.PL", "*.plh", "*.plx", "*.pm", "*.t"]),
-    ("pdf", &["*.pdf"]),
-    ("php", &["*.php", "*.php3", "*.php4", "*.php5", "*.phtml"]),
-    ("pod", &["*.pod"]),
-    ("postscript", &["*.eps", "*.ps"]),
-    ("protobuf", &["*.proto"]),
-    ("ps", &["*.cdxml", "*.ps1", "*.ps1xml", "*.psd1", "*.psm1"]),
-    ("puppet", &["*.erb", "*.pp", "*.rb"]),
-    ("purs", &["*.purs"]),
-    ("py", &["*.py"]),
-    ("qmake", &["*.pro", "*.pri", "*.prf"]),
-    ("qml", &["*.qml"]),
-    ("readme", &["README*", "*README"]),
-    ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
-    ("rdoc", &["*.rdoc"]),
-    ("robot", &["*.robot"]),
-    ("rst", &["*.rst"]),
-    ("ruby", &["Gemfile", "*.gemspec", ".irbrc", "Rakefile", "*.rb"]),
-    ("rust", &["*.rs"]),
-    ("sass", &["*.sass", "*.scss"]),
-    ("scala", &["*.scala", "*.sbt"]),
-    ("sh", &[
-        // Portable/misc. init files
-        ".login", ".logout", ".profile", "profile",
-        // bash-specific init files
-        ".bash_login", "bash_login",
-        ".bash_logout", "bash_logout",
-        ".bash_profile", "bash_profile",
-        ".bashrc", "bashrc", "*.bashrc",
-        // csh-specific init files
-        ".cshrc", "*.cshrc",
-        // ksh-specific init files
-        ".kshrc", "*.kshrc",
-        // tcsh-specific init files
-        ".tcshrc",
-        // zsh-specific init files
-        ".zshenv", "zshenv",
-        ".zlogin", "zlogin",
-        ".zlogout", "zlogout",
-        ".zprofile", "zprofile",
-        ".zshrc", "zshrc",
-        // Extensions
-        "*.bash", "*.csh", "*.ksh", "*.sh", "*.tcsh", "*.zsh",
-    ]),
-    ("slim", &["*.skim", "*.slim", "*.slime"]),
-    ("smarty", &["*.tpl"]),
-    ("sml", &["*.sml", "*.sig"]),
-    ("soy", &["*.soy"]),
-    ("spark", &["*.spark"]),
-    ("spec", &["*.spec"]),
-    ("sql", &["*.sql", "*.psql"]),
-    ("stylus", &["*.styl"]),
-    ("sv", &["*.v", "*.vg", "*.sv", "*.svh", "*.h"]),
-    ("svg", &["*.svg"]),
-    ("swift", &["*.swift"]),
-    ("swig", &["*.def", "*.i"]),
-    ("systemd", &[
-        "*.automount", "*.conf", "*.device", "*.link", "*.mount", "*.path",
-        "*.scope", "*.service", "*.slice", "*.socket", "*.swap", "*.target",
-        "*.timer",
-    ]),
-    ("taskpaper", &["*.taskpaper"]),
-    ("tcl", &["*.tcl"]),
-    ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib", "*.dtx", "*.ins"]),
-    ("textile", &["*.textile"]),
-    ("thrift", &["*.thrift"]),
-    ("tf", &["*.tf"]),
-    ("ts", &["*.ts", "*.tsx"]),
-    ("txt", &["*.txt"]),
-    ("toml", &["*.toml", "Cargo.lock"]),
-    ("twig", &["*.twig"]),
-    ("typoscript", &["*.typoscript", "*.ts"]),
-    ("vala", &["*.vala"]),
-    ("vb", &["*.vb"]),
-    ("verilog", &["*.v", "*.vh", "*.sv", "*.svh"]),
-    ("vhdl", &["*.vhd", "*.vhdl"]),
-    ("vim", &["*.vim"]),
-    ("vimscript", &["*.vim"]),
-    ("wiki", &["*.mediawiki", "*.wiki"]),
-    ("webidl", &["*.idl", "*.webidl", "*.widl"]),
-    ("xml", &[
-        "*.xml", "*.xml.dist", "*.dtd", "*.xsl", "*.xslt", "*.xsd", "*.xjb",
-        "*.rng", "*.sch", "*.xhtml",
-    ]),
-    ("xz", &["*.xz", "*.txz"]),
-    ("yacc", &["*.y"]),
-    ("yaml", &["*.yaml", "*.yml"]),
-    ("zig", &["*.zig"]),
-    ("zsh", &[
-        ".zshenv", "zshenv",
-        ".zlogin", "zlogin",
-        ".zlogout", "zlogout",
-        ".zprofile", "zprofile",
-        ".zshrc", "zshrc",
-        "*.zsh",
-    ]),
-    ("zstd", &["*.zst", "*.zstd"]),
-];
 
 /// Glob represents a single glob in a set of file type definitions.
 ///
@@ -359,7 +126,7 @@ enum GlobInner<'a> {
         which: usize,
         /// Whether the selection was negated or not.
         negated: bool,
-    }
+    },
 }
 
 impl<'a> Glob<'a> {
@@ -373,9 +140,7 @@ impl<'a> Glob<'a> {
     pub fn file_type_def(&self) -> Option<&FileTypeDef> {
         match self {
             Glob(GlobInner::UnmatchedIgnore) => None,
-            Glob(GlobInner::Matched { def, .. }) => {
-                Some(def)
-            },
+            Glob(GlobInner::Matched { def, .. }) => Some(def),
         }
     }
 }
@@ -561,10 +326,7 @@ impl TypesBuilder {
     /// of default type definitions can be added with `add_defaults`, and
     /// additional type definitions can be added with `select` and `negate`.
     pub fn new() -> TypesBuilder {
-        TypesBuilder {
-            types: HashMap::new(),
-            selections: vec![],
-        }
+        TypesBuilder { types: HashMap::new(), selections: vec![] }
     }
 
     /// Build the current set of file type definitions *and* selections into
@@ -589,19 +351,18 @@ impl TypesBuilder {
                     GlobBuilder::new(glob)
                         .literal_separator(true)
                         .build()
-                        .map_err(|err| {
-                            Error::Glob {
-                                glob: Some(glob.to_string()),
-                                err: err.kind().to_string(),
-                            }
-                        })?);
+                        .map_err(|err| Error::Glob {
+                            glob: Some(glob.to_string()),
+                            err: err.kind().to_string(),
+                        })?,
+                );
                 glob_to_selection.push((isel, iglob));
             }
             selections.push(selection.clone().map(move |_| def));
         }
-        let set = build_set.build().map_err(|err| {
-            Error::Glob { glob: None, err: err.to_string() }
-        })?;
+        let set = build_set
+            .build()
+            .map_err(|err| Error::Glob { glob: None, err: err.to_string() })?;
         Ok(Types {
             defs: defs,
             selections: selections,
@@ -673,9 +434,14 @@ impl TypesBuilder {
             return Err(Error::InvalidDefinition);
         }
         let (key, glob) = (name.to_string(), glob.to_string());
-        self.types.entry(key).or_insert_with(|| {
-            FileTypeDef { name: name.to_string(), globs: vec![] }
-        }).globs.push(glob);
+        self.types
+            .entry(key)
+            .or_insert_with(|| FileTypeDef {
+                name: name.to_string(),
+                globs: vec![],
+            })
+            .globs
+            .push(glob);
         Ok(())
     }
 
@@ -702,7 +468,10 @@ impl TypesBuilder {
             3 => {
                 let name = parts[0];
                 let types_string = parts[2];
-                if name.is_empty() || parts[1] != "include" || types_string.is_empty() {
+                if name.is_empty()
+                    || parts[1] != "include"
+                    || types_string.is_empty()
+                {
                     return Err(Error::InvalidDefinition);
                 }
                 let types = types_string.split(',');
@@ -712,14 +481,15 @@ impl TypesBuilder {
                     return Err(Error::InvalidDefinition);
                 }
                 for type_name in types {
-                    let globs = self.types.get(type_name).unwrap().globs.clone();
+                    let globs =
+                        self.types.get(type_name).unwrap().globs.clone();
                     for glob in globs {
                         self.add(name, &glob)?;
                     }
                 }
                 Ok(())
             }
-            _ => Err(Error::InvalidDefinition)
+            _ => Err(Error::InvalidDefinition),
         }
     }
 
@@ -776,7 +546,7 @@ mod tests {
             "rust:*.rs",
             "js:*.js",
             "foo:*.{rs,foo}",
-            "combo:include:html,rust"
+            "combo:include:html,rust",
         ]
     }
 
@@ -810,7 +580,7 @@ mod tests {
             "combo:include:html,python",
             // Bad format
             "combo:foobar:html,rust",
-            ""
+            "",
         ];
         for def in bad_defs {
             assert!(btypes.add_def(def).is_err());

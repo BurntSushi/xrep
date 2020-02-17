@@ -72,19 +72,13 @@ impl Dir {
             .parent()
             .expect("executable's directory")
             .to_path_buf();
-        let dir = env::temp_dir()
-            .join(TEST_DIR)
-            .join(name)
-            .join(&format!("{}", id));
+        let dir =
+            env::temp_dir().join(TEST_DIR).join(name).join(&format!("{}", id));
         if dir.exists() {
             nice_err(&dir, fs::remove_dir_all(&dir));
         }
         nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
-        Dir {
-            root: root,
-            dir: dir,
-            pcre2: false,
-        }
+        Dir { root: root, dir: dir, pcre2: false }
     }
 
     /// Use PCRE2 for this test.
@@ -262,12 +256,10 @@ impl TestCommand {
     }
 
     /// Add any number of arguments to the command.
-    pub fn args<I, A>(
-        &mut self,
-        args: I,
-    ) -> &mut TestCommand
-    where I: IntoIterator<Item=A>,
-          A: AsRef<OsStr>
+    pub fn args<I, A>(&mut self, args: I) -> &mut TestCommand
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
     {
         self.cmd.args(args);
         self
@@ -292,8 +284,7 @@ impl TestCommand {
             Err(err) => {
                 panic!(
                     "could not convert from string: {:?}\n\n{}",
-                    err,
-                    stdout
+                    err, stdout
                 );
             }
         }
@@ -311,9 +302,7 @@ impl TestCommand {
         // risk of deadlock between parent and child process.
         let mut stdin = child.stdin.take().expect("expected standard input");
         let input = input.to_owned();
-        let worker = thread::spawn(move || {
-            stdin.write_all(&input)
-        });
+        let worker = thread::spawn(move || stdin.write_all(&input));
 
         let output = self.expect_success(child.wait_with_output().unwrap());
         worker.join().unwrap().unwrap();
@@ -324,8 +313,7 @@ impl TestCommand {
             Err(err) => {
                 panic!(
                     "could not convert from string: {:?}\n\n{}",
-                    err,
-                    stdout
+                    err, stdout
                 );
             }
         }
@@ -368,9 +356,7 @@ impl TestCommand {
              \n\nexpected: {}\
              \n\nfound: {}\
              \n\n=====\n",
-            self.cmd,
-            expected_code,
-            code
+            self.cmd, expected_code, code
         );
     }
 
@@ -396,14 +382,14 @@ impl TestCommand {
 
     fn expect_success(&self, o: process::Output) -> process::Output {
         if !o.status.success() {
-            let suggest =
-                if o.stderr.is_empty() {
-                    "\n\nDid your search end up with no results?".to_string()
-                } else {
-                    "".to_string()
-                };
+            let suggest = if o.stderr.is_empty() {
+                "\n\nDid your search end up with no results?".to_string()
+            } else {
+                "".to_string()
+            };
 
-            panic!("\n\n==========\n\
+            panic!(
+                "\n\n==========\n\
                     command failed but expected success!\
                     {}\
                     \n\ncommand: {:?}\
@@ -412,18 +398,19 @@ impl TestCommand {
                     \n\nstdout: {}\
                     \n\nstderr: {}\
                     \n\n==========\n",
-                   suggest, self.cmd, self.dir.dir.display(), o.status,
-                   String::from_utf8_lossy(&o.stdout),
-                   String::from_utf8_lossy(&o.stderr));
+                suggest,
+                self.cmd,
+                self.dir.dir.display(),
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
         }
         o
     }
 }
 
-fn nice_err<T, E: error::Error>(
-    path: &Path,
-    res: Result<T, E>,
-) -> T {
+fn nice_err<T, E: error::Error>(path: &Path, res: Result<T, E>) -> T {
     match res {
         Ok(t) => t,
         Err(err) => panic!("{}: {:?}", path.display(), err),

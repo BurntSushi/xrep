@@ -332,13 +332,10 @@ impl GitignoreBuilder {
     pub fn build(&self) -> Result<Gitignore, Error> {
         let nignore = self.globs.iter().filter(|g| !g.is_whitelist()).count();
         let nwhite = self.globs.iter().filter(|g| g.is_whitelist()).count();
-        let set =
-            self.builder.build().map_err(|err| {
-                Error::Glob {
-                    glob: None,
-                    err: err.to_string(),
-                }
-            })?;
+        let set = self
+            .builder
+            .build()
+            .map_err(|err| Error::Glob { glob: None, err: err.to_string() })?;
         Ok(Gitignore {
             set: set,
             root: self.root.clone(),
@@ -499,18 +496,15 @@ impl GitignoreBuilder {
         if glob.actual.ends_with("/**") {
             glob.actual = format!("{}/*", glob.actual);
         }
-        let parsed =
-            GlobBuilder::new(&glob.actual)
-                .literal_separator(true)
-                .case_insensitive(self.case_insensitive)
-                .backslash_escape(true)
-                .build()
-                .map_err(|err| {
-                    Error::Glob {
-                        glob: Some(glob.original.clone()),
-                        err: err.kind().to_string(),
-                    }
-                })?;
+        let parsed = GlobBuilder::new(&glob.actual)
+            .literal_separator(true)
+            .case_insensitive(self.case_insensitive)
+            .backslash_escape(true)
+            .build()
+            .map_err(|err| Error::Glob {
+                glob: Some(glob.original.clone()),
+                err: err.kind().to_string(),
+            })?;
         self.builder.add(parsed);
         self.globs.push(glob);
         Ok(self)
@@ -599,9 +593,8 @@ fn parse_excludes_file(data: &[u8]) -> Option<PathBuf> {
     // probably works in more circumstances. I guess we would ideally have
     // a full INI parser. Yuck.
     lazy_static! {
-        static ref RE: Regex = Regex::new(
-            r"(?im)^\s*excludesfile\s*=\s*(.+)\s*$"
-        ).unwrap();
+        static ref RE: Regex =
+            Regex::new(r"(?im)^\s*excludesfile\s*=\s*(.+)\s*$").unwrap();
     };
     let caps = match RE.captures(data) {
         None => return None,
@@ -630,8 +623,8 @@ fn home_dir() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use super::{Gitignore, GitignoreBuilder};
+    use std::path::Path;
 
     fn gi_from_str<P: AsRef<Path>>(root: P, s: &str) -> Gitignore {
         let mut builder = GitignoreBuilder::new(root);
@@ -726,8 +719,11 @@ mod tests {
     not_ignored!(ignot12, ROOT, "\n\n\n", "foo");
     not_ignored!(ignot13, ROOT, "foo/**", "foo", true);
     not_ignored!(
-        ignot14, "./third_party/protobuf", "m4/ltoptions.m4",
-        "./third_party/protobuf/csharp/src/packages/repositories.config");
+        ignot14,
+        "./third_party/protobuf",
+        "m4/ltoptions.m4",
+        "./third_party/protobuf/csharp/src/packages/repositories.config"
+    );
     not_ignored!(ignot15, ROOT, "!/bar", "foo/bar");
     not_ignored!(ignot16, ROOT, "*\n!**/", "foo", true);
     not_ignored!(ignot17, ROOT, "src/*.rs", "src/grep/src/main.rs");
@@ -771,9 +767,12 @@ mod tests {
     #[test]
     fn case_insensitive() {
         let gi = GitignoreBuilder::new(ROOT)
-            .case_insensitive(true).unwrap()
-            .add_str(None, "*.html").unwrap()
-            .build().unwrap();
+            .case_insensitive(true)
+            .unwrap()
+            .add_str(None, "*.html")
+            .unwrap()
+            .build()
+            .unwrap();
         assert!(gi.matched("foo.html", false).is_ignore());
         assert!(gi.matched("foo.HTML", false).is_ignore());
         assert!(!gi.matched("foo.htm", false).is_ignore());

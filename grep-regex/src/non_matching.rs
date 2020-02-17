@@ -11,14 +11,9 @@ pub fn non_matching_bytes(expr: &Hir) -> ByteSet {
 
 /// Remove any bytes from the given set that can occur in a matched produced by
 /// the given expression.
-fn remove_matching_bytes(
-    expr: &Hir,
-    set: &mut ByteSet,
-) {
+fn remove_matching_bytes(expr: &Hir, set: &mut ByteSet) {
     match *expr.kind() {
-        HirKind::Empty
-        | HirKind::Anchor(_)
-        | HirKind::WordBoundary(_) => {}
+        HirKind::Empty | HirKind::Anchor(_) | HirKind::WordBoundary(_) => {}
         HirKind::Literal(hir::Literal::Unicode(c)) => {
             for &b in c.encode_utf8(&mut [0; 4]).as_bytes() {
                 set.remove(b);
@@ -105,15 +100,20 @@ mod tests {
 
     #[test]
     fn dot() {
-        assert_eq!(sparse(&extract(".")), vec![
-            b'\n',
-            192, 193, 245, 246, 247, 248, 249,
-            250, 251, 252, 253, 254, 255,
-        ]);
-        assert_eq!(sparse(&extract("(?s).")), vec![
-            192, 193, 245, 246, 247, 248, 249,
-            250, 251, 252, 253, 254, 255,
-        ]);
+        assert_eq!(
+            sparse(&extract(".")),
+            vec![
+                b'\n', 192, 193, 245, 246, 247, 248, 249, 250, 251, 252, 253,
+                254, 255,
+            ]
+        );
+        assert_eq!(
+            sparse(&extract("(?s).")),
+            vec![
+                192, 193, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+                255,
+            ]
+        );
         assert_eq!(sparse(&extract("(?-u).")), vec![b'\n']);
         assert_eq!(sparse(&extract("(?s-u).")), vec![]);
     }

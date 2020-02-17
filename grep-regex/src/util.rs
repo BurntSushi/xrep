@@ -1,8 +1,8 @@
 /// Converts an arbitrary sequence of bytes to a literal suitable for building
 /// a regular expression.
 pub fn bytes_to_regex(bs: &[u8]) -> String {
-    use std::fmt::Write;
     use regex_syntax::is_meta_character;
+    use std::fmt::Write;
 
     let mut s = String::with_capacity(bs.len());
     for &b in bs {

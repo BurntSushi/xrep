@@ -7,8 +7,7 @@ use std::time;
 use bstr::{ByteSlice, ByteVec};
 use grep_matcher::{Captures, LineTerminator, Match, Matcher};
 use grep_searcher::{
-    LineIter,
-    SinkError, SinkContext, SinkContextKind, SinkMatch,
+    LineIter, SinkContext, SinkContextKind, SinkError, SinkMatch,
 };
 #[cfg(feature = "serde1")]
 use serde::{Serialize, Serializer};
@@ -58,19 +57,13 @@ impl<M: Matcher> Replacer<M> {
         replacement: &[u8],
     ) -> io::Result<()> {
         {
-            let &mut Space {
-                ref mut dst,
-                ref mut caps,
-                ref mut matches,
-            } = self.allocate(matcher)?;
+            let &mut Space { ref mut dst, ref mut caps, ref mut matches } =
+                self.allocate(matcher)?;
             dst.clear();
             matches.clear();
 
-            matcher.replace_with_captures(
-                subject,
-                caps,
-                dst,
-                |caps, dst| {
+            matcher
+                .replace_with_captures(subject, caps, dst, |caps, dst| {
                     let start = dst.len();
                     caps.interpolate(
                         |name| matcher.capture_index(name),
@@ -81,8 +74,8 @@ impl<M: Matcher> Replacer<M> {
                     let end = dst.len();
                     matches.push(Match::new(start, end));
                     true
-                },
-            ).map_err(io::Error::error_message)?;
+                })
+                .map_err(io::Error::error_message)?;
         }
         Ok(())
     }
@@ -122,14 +115,10 @@ impl<M: Matcher> Replacer<M> {
     /// matcher fails.
     fn allocate(&mut self, matcher: &M) -> io::Result<&mut Space<M>> {
         if self.space.is_none() {
-            let caps = matcher
-                .new_captures()
-                .map_err(io::Error::error_message)?;
-            self.space = Some(Space {
-                caps: caps,
-                dst: vec![],
-                matches: vec![],
-            });
+            let caps =
+                matcher.new_captures().map_err(io::Error::error_message)?;
+            self.space =
+                Some(Space { caps: caps, dst: vec![], matches: vec![] });
         }
         Ok(self.space.as_mut().unwrap())
     }
@@ -176,9 +165,8 @@ impl<'a> Sunk<'a> {
         original_matches: &'a [Match],
         replacement: Option<(&'a [u8], &'a [Match])>,
     ) -> Sunk<'a> {
-        let (bytes, matches) = replacement.unwrap_or_else(|| {
-            (sunk.bytes(), original_matches)
-        });
+        let (bytes, matches) =
+            replacement.unwrap_or_else(|| (sunk.bytes(), original_matches));
         Sunk {
             bytes: bytes,
             absolute_byte_offset: sunk.absolute_byte_offset(),
@@ -195,9 +183,8 @@ impl<'a> Sunk<'a> {
         original_matches: &'a [Match],
         replacement: Option<(&'a [u8], &'a [Match])>,
     ) -> Sunk<'a> {
-        let (bytes, matches) = replacement.unwrap_or_else(|| {
-            (sunk.bytes(), original_matches)
-        });
+        let (bytes, matches) =
+            replacement.unwrap_or_else(|| (sunk.bytes(), original_matches));
         Sunk {
             bytes: bytes,
             absolute_byte_offset: sunk.absolute_byte_offset(),
@@ -289,13 +276,17 @@ impl<'a> PrinterPath<'a> {
     /// path separators that are both replaced by `new_sep`. In all other
     /// environments, only `/` is treated as a path separator.
     fn replace_separator(&mut self, new_sep: u8) {
-        let transformed_path: Vec<u8> = self.0.bytes().map(|b| {
-            if b == b'/' || (cfg!(windows) && b == b'\\') {
-                new_sep
-            } else {
-                b
-            }
-        }).collect();
+        let transformed_path: Vec<u8> = self
+            .0
+            .bytes()
+            .map(|b| {
+                if b == b'/' || (cfg!(windows) && b == b'\\') {
+                    new_sep
+                } else {
+                    b
+                }
+            })
+            .collect();
         self.0 = Cow::Owned(transformed_path);
     }
 

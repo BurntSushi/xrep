@@ -200,10 +200,7 @@ pub trait Sink {
     /// `finish` is not called and the error is bubbled back up to the caller
     /// of the searcher.
     #[inline]
-    fn begin(
-        &mut self,
-        _searcher: &Searcher,
-    ) -> Result<bool, Self::Error> {
+    fn begin(&mut self, _searcher: &Searcher) -> Result<bool, Self::Error> {
         Ok(true)
     }
 
@@ -261,10 +258,7 @@ impl<'a, S: Sink> Sink for &'a mut S {
     }
 
     #[inline]
-    fn begin(
-        &mut self,
-        searcher: &Searcher,
-    ) -> Result<bool, S::Error> {
+    fn begin(&mut self, searcher: &Searcher) -> Result<bool, S::Error> {
         (**self).begin(searcher)
     }
 
@@ -317,10 +311,7 @@ impl<S: Sink + ?Sized> Sink for Box<S> {
     }
 
     #[inline]
-    fn begin(
-        &mut self,
-        searcher: &Searcher,
-    ) -> Result<bool, S::Error> {
+    fn begin(&mut self, searcher: &Searcher) -> Result<bool, S::Error> {
         (**self).begin(searcher)
     }
 
@@ -508,8 +499,8 @@ pub mod sinks {
     use std::io;
     use std::str;
 
-    use searcher::Searcher;
     use super::{Sink, SinkError, SinkMatch};
+    use searcher::Searcher;
 
     /// A sink that provides line numbers and matches as strings while ignoring
     /// everything else.
@@ -528,10 +519,12 @@ pub mod sinks {
     /// number of the first line in the match.
     #[derive(Clone, Debug)]
     pub struct UTF8<F>(pub F)
-        where F: FnMut(u64, &str) -> Result<bool, io::Error>;
+    where
+        F: FnMut(u64, &str) -> Result<bool, io::Error>;
 
     impl<F> Sink for UTF8<F>
-    where F: FnMut(u64, &str) -> Result<bool, io::Error>
+    where
+        F: FnMut(u64, &str) -> Result<bool, io::Error>,
     {
         type Error = io::Error;
 
@@ -574,10 +567,12 @@ pub mod sinks {
     /// number of the first line in the match.
     #[derive(Clone, Debug)]
     pub struct Lossy<F>(pub F)
-        where F: FnMut(u64, &str) -> Result<bool, io::Error>;
+    where
+        F: FnMut(u64, &str) -> Result<bool, io::Error>;
 
     impl<F> Sink for Lossy<F>
-    where F: FnMut(u64, &str) -> Result<bool, io::Error>
+    where
+        F: FnMut(u64, &str) -> Result<bool, io::Error>,
     {
         type Error = io::Error;
 
@@ -622,10 +617,12 @@ pub mod sinks {
     /// number of the first line in the match.
     #[derive(Clone, Debug)]
     pub struct Bytes<F>(pub F)
-        where F: FnMut(u64, &[u8]) -> Result<bool, io::Error>;
+    where
+        F: FnMut(u64, &[u8]) -> Result<bool, io::Error>;
 
     impl<F> Sink for Bytes<F>
-    where F: FnMut(u64, &[u8]) -> Result<bool, io::Error>
+    where
+        F: FnMut(u64, &[u8]) -> Result<bool, io::Error>,
     {
         type Error = io::Error;
 

@@ -2,13 +2,13 @@ use std::fmt;
 use std::hash;
 use std::iter;
 use std::ops::{Deref, DerefMut};
-use std::path::{Path, is_separator};
+use std::path::{is_separator, Path};
 use std::str;
 
 use regex;
 use regex::bytes::Regex;
 
-use {Candidate, Error, ErrorKind, new_regex};
+use {new_regex, Candidate, Error, ErrorKind};
 
 /// Describes a matching strategy for a particular pattern.
 ///
@@ -85,16 +85,16 @@ pub struct Glob {
 }
 
 impl PartialEq for Glob {
-  fn eq(&self, other: &Glob) -> bool {
-    self.glob == other.glob && self.opts == other.opts
-  }
+    fn eq(&self, other: &Glob) -> bool {
+        self.glob == other.glob && self.opts == other.opts
+    }
 }
 
 impl hash::Hash for Glob {
-  fn hash<H: hash::Hasher>(&self, state: &mut H) {
-    self.glob.hash(state);
-    self.opts.hash(state);
-  }
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.glob.hash(state);
+        self.opts.hash(state);
+    }
 }
 
 impl fmt::Display for Glob {
@@ -227,11 +227,15 @@ struct Tokens(Vec<Token>);
 
 impl Deref for Tokens {
     type Target = Vec<Token>;
-    fn deref(&self) -> &Vec<Token> { &self.0 }
+    fn deref(&self) -> &Vec<Token> {
+        &self.0
+    }
 }
 
 impl DerefMut for Tokens {
-    fn deref_mut(&mut self) -> &mut Vec<Token> { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Vec<Token> {
+        &mut self.0
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -242,10 +246,7 @@ enum Token {
     RecursivePrefix,
     RecursiveSuffix,
     RecursiveZeroOrMore,
-    Class {
-        negated: bool,
-        ranges: Vec<(char, char)>,
-    },
+    Class { negated: bool, ranges: Vec<(char, char)> },
     Alternates(Vec<Tokens>),
 }
 
@@ -257,12 +258,9 @@ impl Glob {
 
     /// Returns a matcher for this pattern.
     pub fn compile_matcher(&self) -> GlobMatcher {
-        let re = new_regex(&self.re)
-            .expect("regex compilation shouldn't fail");
-        GlobMatcher {
-            pat: self.clone(),
-            re: re,
-        }
+        let re =
+            new_regex(&self.re).expect("regex compilation shouldn't fail");
+        GlobMatcher { pat: self.clone(), re: re }
     }
 
     /// Returns a strategic matcher.
@@ -273,13 +271,9 @@ impl Glob {
     #[cfg(test)]
     fn compile_strategic_matcher(&self) -> GlobStrategic {
         let strategy = MatchStrategy::new(self);
-        let re = new_regex(&self.re)
-            .expect("regex compilation shouldn't fail");
-        GlobStrategic {
-            strategy: strategy,
-            pat: self.clone(),
-            re: re,
-        }
+        let re =
+            new_regex(&self.re).expect("regex compilation shouldn't fail");
+        GlobStrategic { strategy: strategy, pat: self.clone(), re: re }
     }
 
     /// Returns the original glob pattern used to build this pattern.
@@ -537,7 +531,7 @@ impl Glob {
                 | Token::RecursiveZeroOrMore => {
                     return None;
                 }
-                Token::Class{..} | Token::Alternates(..) => {
+                Token::Class { .. } | Token::Alternates(..) => {
                     // We *could* be a little smarter here, but either one
                     // of these is going to prevent our literal optimizations
                     // anyway, so give up.
@@ -574,10 +568,7 @@ impl<'a> GlobBuilder<'a> {
     ///
     /// The pattern is not compiled until `build` is called.
     pub fn new(glob: &'a str) -> GlobBuilder<'a> {
-        GlobBuilder {
-            glob: glob,
-            opts: GlobOptions::default(),
-        }
+        GlobBuilder { glob: glob, opts: GlobOptions::default() }
     }
 
     /// Parses and builds the pattern.
@@ -875,25 +866,22 @@ impl<'a> Parser<'a> {
                 return Ok(());
             }
         }
-        let is_suffix =
-            match self.peek() {
-                None => {
-                    assert!(self.bump().is_none());
-                    true
-                }
-                Some(',') | Some('}') if self.stack.len() >= 2 => {
-                    true
-                }
-                Some(c) if is_separator(c) => {
-                    assert!(self.bump().map(is_separator).unwrap_or(false));
-                    false
-                }
-                _ => {
-                    self.push_token(Token::ZeroOrMore)?;
-                    self.push_token(Token::ZeroOrMore)?;
-                    return Ok(());
-                }
-            };
+        let is_suffix = match self.peek() {
+            None => {
+                assert!(self.bump().is_none());
+                true
+            }
+            Some(',') | Some('}') if self.stack.len() >= 2 => true,
+            Some(c) if is_separator(c) => {
+                assert!(self.bump().map(is_separator).unwrap_or(false));
+                false
+            }
+            _ => {
+                self.push_token(Token::ZeroOrMore)?;
+                self.push_token(Token::ZeroOrMore)?;
+                return Ok(());
+            }
+        };
         match self.pop_token()? {
             Token::RecursivePrefix => {
                 self.push_token(Token::RecursivePrefix)?;
@@ -973,7 +961,10 @@ impl<'a> Parser<'a> {
                         // invariant: in_range is only set when there is
                         // already at least one character seen.
                         add_to_last_range(
-                            &self.glob, ranges.last_mut().unwrap(), c)?;
+                            &self.glob,
+                            ranges.last_mut().unwrap(),
+                            c,
+                        )?;
                     } else {
                         ranges.push((c, c));
                     }
@@ -987,10 +978,7 @@ impl<'a> Parser<'a> {
             // it as a literal.
             ranges.push(('-', '-'));
         }
-        self.push_token(Token::Class {
-            negated: negated,
-            ranges: ranges,
-        })
+        self.push_token(Token::Class { negated: negated, ranges: ranges })
     }
 
     fn bump(&mut self) -> Option<char> {
@@ -1019,9 +1007,9 @@ fn ends_with(needle: &[u8], haystack: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use {GlobSetBuilder, ErrorKind};
-    use super::{Glob, GlobBuilder, Token};
     use super::Token::*;
+    use super::{Glob, GlobBuilder, Token};
+    use {ErrorKind, GlobSetBuilder};
 
     #[derive(Clone, Copy, Debug, Default)]
     struct Options {
@@ -1037,7 +1025,7 @@ mod tests {
                 let pat = Glob::new($pat).unwrap();
                 assert_eq!($tokens, pat.tokens.0);
             }
-        }
+        };
     }
 
     macro_rules! syntaxerr {
@@ -1047,7 +1035,7 @@ mod tests {
                 let err = Glob::new($pat).unwrap_err();
                 assert_eq!(&$err, err.kind());
             }
-        }
+        };
     }
 
     macro_rules! toregex {
@@ -1129,7 +1117,9 @@ mod tests {
         };
     }
 
-    fn s(string: &str) -> String { string.to_string() }
+    fn s(string: &str) -> String {
+        string.to_string()
+    }
 
     fn class(s: char, e: char) -> Token {
         Class { negated: false, ranges: vec![(s, e)] }
@@ -1153,16 +1143,20 @@ mod tests {
     syntax!(any2, "a?b", vec![Literal('a'), Any, Literal('b')]);
     syntax!(seq1, "*", vec![ZeroOrMore]);
     syntax!(seq2, "a*b", vec![Literal('a'), ZeroOrMore, Literal('b')]);
-    syntax!(seq3, "*a*b*", vec![
-        ZeroOrMore, Literal('a'), ZeroOrMore, Literal('b'), ZeroOrMore,
-    ]);
+    syntax!(
+        seq3,
+        "*a*b*",
+        vec![ZeroOrMore, Literal('a'), ZeroOrMore, Literal('b'), ZeroOrMore,]
+    );
     syntax!(rseq1, "**", vec![RecursivePrefix]);
     syntax!(rseq2, "**/", vec![RecursivePrefix]);
     syntax!(rseq3, "/**", vec![RecursiveSuffix]);
     syntax!(rseq4, "/**/", vec![RecursiveZeroOrMore]);
-    syntax!(rseq5, "a/**/b", vec![
-        Literal('a'), RecursiveZeroOrMore, Literal('b'),
-    ]);
+    syntax!(
+        rseq5,
+        "a/**/b",
+        vec![Literal('a'), RecursiveZeroOrMore, Literal('b'),]
+    );
     syntax!(cls1, "[a]", vec![class('a', 'a')]);
     syntax!(cls2, "[!a]", vec![classn('a', 'a')]);
     syntax!(cls3, "[a-z]", vec![class('a', 'z')]);
@@ -1174,9 +1168,11 @@ mod tests {
     syntax!(cls9, "[a-]", vec![rclass(&[('a', 'a'), ('-', '-')])]);
     syntax!(cls10, "[-a-z]", vec![rclass(&[('-', '-'), ('a', 'z')])]);
     syntax!(cls11, "[a-z-]", vec![rclass(&[('a', 'z'), ('-', '-')])]);
-    syntax!(cls12, "[-a-z-]", vec![
-        rclass(&[('-', '-'), ('a', 'z'), ('-', '-')]),
-    ]);
+    syntax!(
+        cls12,
+        "[-a-z-]",
+        vec![rclass(&[('-', '-'), ('a', 'z'), ('-', '-')]),]
+    );
     syntax!(cls13, "[]-z]", vec![class(']', 'z')]);
     syntax!(cls14, "[--z]", vec![class('-', 'z')]);
     syntax!(cls15, "[ --]", vec![class(' ', '-')]);
@@ -1194,26 +1190,14 @@ mod tests {
     syntaxerr!(err_range1, "[z-a]", ErrorKind::InvalidRange('z', 'a'));
     syntaxerr!(err_range2, "[z--]", ErrorKind::InvalidRange('z', '-'));
 
-    const CASEI: Options = Options {
-        casei: Some(true),
-        litsep: None,
-        bsesc: None,
-    };
-    const SLASHLIT: Options = Options {
-        casei: None,
-        litsep: Some(true),
-        bsesc: None,
-    };
-    const NOBSESC: Options = Options {
-        casei: None,
-        litsep: None,
-        bsesc: Some(false),
-    };
-    const BSESC: Options = Options {
-        casei: None,
-        litsep: None,
-        bsesc: Some(true),
-    };
+    const CASEI: Options =
+        Options { casei: Some(true), litsep: None, bsesc: None };
+    const SLASHLIT: Options =
+        Options { casei: None, litsep: Some(true), bsesc: None };
+    const NOBSESC: Options =
+        Options { casei: None, litsep: None, bsesc: Some(false) };
+    const BSESC: Options =
+        Options { casei: None, litsep: None, bsesc: Some(true) };
 
     toregex!(re_casei, "a", "(?i)^a$", &CASEI);
 
@@ -1311,8 +1295,11 @@ mod tests {
     matches!(matchpat4, "*hello.txt", "some\\path\\to\\hello.txt");
     matches!(matchpat5, "*hello.txt", "/an/absolute/path/to/hello.txt");
     matches!(matchpat6, "*some/path/to/hello.txt", "some/path/to/hello.txt");
-    matches!(matchpat7, "*some/path/to/hello.txt",
-             "a/bigger/some/path/to/hello.txt");
+    matches!(
+        matchpat7,
+        "*some/path/to/hello.txt",
+        "a/bigger/some/path/to/hello.txt"
+    );
 
     matches!(matchescape, "_[[]_[]]_[?]_[*]_!_", "_[_]_?_*_!_");
 
@@ -1375,28 +1362,44 @@ mod tests {
     nmatches!(matchnot15, "[!-]", "-");
     nmatches!(matchnot16, "*hello.txt", "hello.txt-and-then-some");
     nmatches!(matchnot17, "*hello.txt", "goodbye.txt");
-    nmatches!(matchnot18, "*some/path/to/hello.txt",
-              "some/path/to/hello.txt-and-then-some");
-    nmatches!(matchnot19, "*some/path/to/hello.txt",
-              "some/other/path/to/hello.txt");
+    nmatches!(
+        matchnot18,
+        "*some/path/to/hello.txt",
+        "some/path/to/hello.txt-and-then-some"
+    );
+    nmatches!(
+        matchnot19,
+        "*some/path/to/hello.txt",
+        "some/other/path/to/hello.txt"
+    );
     nmatches!(matchnot20, "a", "foo/a");
     nmatches!(matchnot21, "./foo", "foo");
     nmatches!(matchnot22, "**/foo", "foofoo");
     nmatches!(matchnot23, "**/foo/bar", "foofoo/bar");
     nmatches!(matchnot24, "/*.c", "mozilla-sha1/sha1.c");
     nmatches!(matchnot25, "*.c", "mozilla-sha1/sha1.c", SLASHLIT);
-    nmatches!(matchnot26, "**/m4/ltoptions.m4",
-              "csharp/src/packages/repositories.config", SLASHLIT);
+    nmatches!(
+        matchnot26,
+        "**/m4/ltoptions.m4",
+        "csharp/src/packages/repositories.config",
+        SLASHLIT
+    );
     nmatches!(matchnot27, "a[^0-9]b", "a0b");
     nmatches!(matchnot28, "a[^0-9]b", "a9b");
     nmatches!(matchnot29, "[^-]", "-");
     nmatches!(matchnot30, "some/*/needle.txt", "some/needle.txt");
     nmatches!(
         matchrec31,
-        "some/*/needle.txt", "some/one/two/needle.txt", SLASHLIT);
+        "some/*/needle.txt",
+        "some/one/two/needle.txt",
+        SLASHLIT
+    );
     nmatches!(
         matchrec32,
-        "some/*/needle.txt", "some/one/two/three/needle.txt", SLASHLIT);
+        "some/*/needle.txt",
+        "some/one/two/three/needle.txt",
+        SLASHLIT
+    );
 
     macro_rules! extract {
         ($which:ident, $name:ident, $pat:expr, $expect:expr) => {
@@ -1458,19 +1461,27 @@ mod tests {
     literal!(extract_lit7, "foo/bar", Some(s("foo/bar")));
     literal!(extract_lit8, "**/foo/bar", None);
 
-    basetokens!(extract_basetoks1, "**/foo", Some(&*vec![
-        Literal('f'), Literal('o'), Literal('o'),
-    ]));
+    basetokens!(
+        extract_basetoks1,
+        "**/foo",
+        Some(&*vec![Literal('f'), Literal('o'), Literal('o'),])
+    );
     basetokens!(extract_basetoks2, "**/foo", None, CASEI);
-    basetokens!(extract_basetoks3, "**/foo", Some(&*vec![
-        Literal('f'), Literal('o'), Literal('o'),
-    ]), SLASHLIT);
+    basetokens!(
+        extract_basetoks3,
+        "**/foo",
+        Some(&*vec![Literal('f'), Literal('o'), Literal('o'),]),
+        SLASHLIT
+    );
     basetokens!(extract_basetoks4, "*foo", None, SLASHLIT);
     basetokens!(extract_basetoks5, "*foo", None);
     basetokens!(extract_basetoks6, "**/fo*o", None);
-    basetokens!(extract_basetoks7, "**/fo*o", Some(&*vec![
-        Literal('f'), Literal('o'), ZeroOrMore, Literal('o'),
-    ]), SLASHLIT);
+    basetokens!(
+        extract_basetoks7,
+        "**/fo*o",
+        Some(&*vec![Literal('f'), Literal('o'), ZeroOrMore, Literal('o'),]),
+        SLASHLIT
+    );
 
     ext!(extract_ext1, "**/*.rs", Some(s(".rs")));
     ext!(extract_ext2, "**/*.rs.bak", None);

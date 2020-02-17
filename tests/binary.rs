@@ -36,9 +36,7 @@ const HAY: &'static [u8] = include_bytes!("./data/sherlock-nul.txt");
 // that matches our file.
 rgtest!(after_match1_implicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "Project Gutenberg EBook", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "Project Gutenberg EBook", "-g", "hay"]);
 
     let expected = "\
 hay:1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
@@ -51,9 +49,7 @@ WARNING: stopped searching binary file hay after match (found \"\\u{0}\" byte ar
 // explicitly. This results in identical behavior, but a different message.
 rgtest!(after_match1_explicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "Project Gutenberg EBook", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "Project Gutenberg EBook", "hay"]);
 
     let expected = "\
 1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
@@ -64,9 +60,7 @@ Binary file matches (found \"\\u{0}\" byte around offset 9741)
 
 // Like after_match1_explicit, except we feed our content on stdin.
 rgtest!(after_match1_stdin, |_: Dir, mut cmd: TestCommand| {
-    cmd.args(&[
-        "--no-mmap", "-n", "Project Gutenberg EBook",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "Project Gutenberg EBook"]);
 
     let expected = "\
 1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
@@ -81,7 +75,12 @@ Binary file matches (found \"\\u{0}\" byte around offset 9741)
 rgtest!(after_match1_implicit_binary, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
     cmd.args(&[
-        "--no-mmap", "-n", "--binary", "Project Gutenberg EBook", "-g", "hay",
+        "--no-mmap",
+        "-n",
+        "--binary",
+        "Project Gutenberg EBook",
+        "-g",
+        "hay",
     ]);
 
     let expected = "\
@@ -96,7 +95,12 @@ Binary file hay matches (found \"\\u{0}\" byte around offset 9741)
 rgtest!(after_match1_implicit_text, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
     cmd.args(&[
-        "--no-mmap", "-n", "--text", "Project Gutenberg EBook", "-g", "hay",
+        "--no-mmap",
+        "-n",
+        "--text",
+        "Project Gutenberg EBook",
+        "-g",
+        "hay",
     ]);
 
     let expected = "\
@@ -109,9 +113,7 @@ hay:1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
 // detection should be performed.
 rgtest!(after_match1_explicit_text, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "--text", "Project Gutenberg EBook", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "--text", "Project Gutenberg EBook", "hay"]);
 
     let expected = "\
 1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
@@ -134,9 +136,7 @@ rgtest!(after_match1_explicit_text, |dir: Dir, mut cmd: TestCommand| {
 // --quiet flag is set. See the next test.)
 rgtest!(after_match1_implicit_path, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-l", "Project Gutenberg EBook", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-l", "Project Gutenberg EBook", "-g", "hay"]);
     eqnice!("hay\n", cmd.stdout());
 });
 
@@ -145,9 +145,7 @@ rgtest!(after_match1_implicit_path, |dir: Dir, mut cmd: TestCommand| {
 // manifest as an exit code with no output.)
 rgtest!(after_match1_implicit_quiet, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-q", "Project Gutenberg EBook", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-q", "Project Gutenberg EBook", "-g", "hay"]);
     eqnice!("", cmd.stdout());
 });
 
@@ -157,32 +155,34 @@ rgtest!(after_match1_implicit_quiet, |dir: Dir, mut cmd: TestCommand| {
 // detects the binary data and suppresses output.
 rgtest!(after_match1_implicit_count, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-c", "Project Gutenberg EBook", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-c", "Project Gutenberg EBook", "-g", "hay"]);
     cmd.assert_err();
 });
 
 // Like after_match1_implicit_count, except the --binary flag is provided,
 // which makes ripgrep disable binary data filtering even for implicit files.
-rgtest!(after_match1_implicit_count_binary, |dir: Dir, mut cmd: TestCommand| {
-    dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-c", "--binary",
-        "Project Gutenberg EBook",
-        "-g", "hay",
-    ]);
-    eqnice!("hay:1\n", cmd.stdout());
-});
+rgtest!(
+    after_match1_implicit_count_binary,
+    |dir: Dir, mut cmd: TestCommand| {
+        dir.create_bytes("hay", HAY);
+        cmd.args(&[
+            "--no-mmap",
+            "-c",
+            "--binary",
+            "Project Gutenberg EBook",
+            "-g",
+            "hay",
+        ]);
+        eqnice!("hay:1\n", cmd.stdout());
+    }
+);
 
 // Like after_match1_implicit_count, except the file path is provided
 // explicitly, so binary filtering is disabled and a count is correctly
 // reported.
 rgtest!(after_match1_explicit_count, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-c", "Project Gutenberg EBook", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-c", "Project Gutenberg EBook", "hay"]);
     eqnice!("1\n", cmd.stdout());
 });
 
@@ -191,9 +191,11 @@ rgtest!(after_match1_explicit_count, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(after_match2_implicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
     cmd.args(&[
-        "--no-mmap", "-n",
+        "--no-mmap",
+        "-n",
         "Project Gutenberg EBook|a medical student",
-        "-g", "hay",
+        "-g",
+        "hay",
     ]);
 
     let expected = "\
@@ -208,9 +210,12 @@ WARNING: stopped searching binary file hay after match (found \"\\u{0}\" byte ar
 rgtest!(after_match2_implicit_text, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
     cmd.args(&[
-        "--no-mmap", "-n", "--text",
+        "--no-mmap",
+        "-n",
+        "--text",
         "Project Gutenberg EBook|a medical student",
-        "-g", "hay",
+        "-g",
+        "hay",
     ]);
 
     let expected = "\
@@ -224,9 +229,7 @@ hay:236:\"And yet you say he is not a medical student?\"
 // after a NUL byte.
 rgtest!(before_match1_implicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "Heaven", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "Heaven", "-g", "hay"]);
     cmd.assert_err();
 });
 
@@ -234,9 +237,7 @@ rgtest!(before_match1_implicit, |dir: Dir, mut cmd: TestCommand| {
 // occurs after a NUL byte when a file is explicitly searched.
 rgtest!(before_match1_explicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "Heaven", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "Heaven", "hay"]);
 
     let expected = "\
 Binary file matches (found \"\\u{0}\" byte around offset 9741)
@@ -249,9 +250,7 @@ Binary file matches (found \"\\u{0}\" byte around offset 9741)
 // the file were given explicitly.
 rgtest!(before_match1_implicit_binary, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "--binary", "Heaven", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "--binary", "Heaven", "-g", "hay"]);
 
     let expected = "\
 Binary file hay matches (found \"\\u{0}\" byte around offset 9741)
@@ -263,9 +262,7 @@ Binary file hay matches (found \"\\u{0}\" byte around offset 9741)
 // detection should be performed.
 rgtest!(before_match1_implicit_text, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "--text", "Heaven", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "--text", "Heaven", "-g", "hay"]);
 
     let expected = "\
 hay:238:\"No. Heaven knows what the objects of his studies are. But here we
@@ -277,9 +274,7 @@ hay:238:\"No. Heaven knows what the objects of his studies are. But here we
 // before a NUL byte, but within the same buffer as the NUL byte.
 rgtest!(before_match2_implicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "a medical student", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "a medical student", "-g", "hay"]);
     cmd.assert_err();
 });
 
@@ -290,9 +285,7 @@ rgtest!(before_match2_implicit, |dir: Dir, mut cmd: TestCommand| {
 // the behavior of GNU grep.)
 rgtest!(before_match2_explicit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "a medical student", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "a medical student", "hay"]);
 
     let expected = "\
 Binary file matches (found \"\\u{0}\" byte around offset 9741)
@@ -304,9 +297,7 @@ Binary file matches (found \"\\u{0}\" byte around offset 9741)
 // detection should be performed.
 rgtest!(before_match2_implicit_text, |dir: Dir, mut cmd: TestCommand| {
     dir.create_bytes("hay", HAY);
-    cmd.args(&[
-        "--no-mmap", "-n", "--text", "a medical student", "-g", "hay",
-    ]);
+    cmd.args(&["--no-mmap", "-n", "--text", "a medical student", "-g", "hay"]);
 
     let expected = "\
 hay:236:\"And yet you say he is not a medical student?\"

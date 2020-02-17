@@ -278,7 +278,7 @@ impl LineTerminator {
     }
 }
 
-impl Default for  LineTerminator {
+impl Default for LineTerminator {
     #[inline]
     fn default() -> LineTerminator {
         LineTerminator::byte(b'\n')
@@ -439,7 +439,8 @@ pub trait Captures {
         haystack: &[u8],
         replacement: &[u8],
         dst: &mut Vec<u8>,
-    ) where F: FnMut(&str) -> Option<usize>
+    ) where
+        F: FnMut(&str) -> Option<usize>,
     {
         interpolate(
             replacement,
@@ -463,12 +464,18 @@ pub struct NoCaptures(());
 
 impl NoCaptures {
     /// Create an empty set of capturing groups.
-    pub fn new() -> NoCaptures { NoCaptures(()) }
+    pub fn new() -> NoCaptures {
+        NoCaptures(())
+    }
 }
 
 impl Captures for NoCaptures {
-    fn len(&self) -> usize { 0 }
-    fn get(&self, _: usize) -> Option<Match> { None }
+    fn len(&self) -> usize {
+        0
+    }
+    fn get(&self, _: usize) -> Option<Match> {
+        None
+    }
 }
 
 /// NoError provides an error type for matchers that never produce errors.
@@ -481,7 +488,9 @@ impl Captures for NoCaptures {
 pub struct NoError(());
 
 impl ::std::error::Error for NoError {
-    fn description(&self) -> &str { "no error" }
+    fn description(&self) -> &str {
+        "no error"
+    }
 }
 
 impl fmt::Display for NoError {
@@ -599,10 +608,7 @@ pub trait Matcher {
     ///
     /// The text encoding of `haystack` is not strictly specified. Matchers are
     /// advised to assume UTF-8, or at worst, some ASCII compatible encoding.
-    fn find(
-        &self,
-        haystack: &[u8],
-    ) -> Result<Option<Match>, Self::Error> {
+    fn find(&self, haystack: &[u8]) -> Result<Option<Match>, Self::Error> {
         self.find_at(haystack, 0)
     }
 
@@ -614,7 +620,8 @@ pub trait Matcher {
         haystack: &[u8],
         mut matched: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(Match) -> bool
+    where
+        F: FnMut(Match) -> bool,
     {
         self.try_find_iter(haystack, |m| Ok(matched(m)))
             .map(|r: Result<(), ()>| r.unwrap())
@@ -632,7 +639,8 @@ pub trait Matcher {
         haystack: &[u8],
         mut matched: F,
     ) -> Result<Result<(), E>, Self::Error>
-    where F: FnMut(Match) -> Result<bool, E>
+    where
+        F: FnMut(Match) -> Result<bool, E>,
     {
         let mut last_end = 0;
         let mut last_match = None;
@@ -690,7 +698,8 @@ pub trait Matcher {
         caps: &mut Self::Captures,
         mut matched: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(&Self::Captures) -> bool
+    where
+        F: FnMut(&Self::Captures) -> bool,
     {
         self.try_captures_iter(haystack, caps, |caps| Ok(matched(caps)))
             .map(|r: Result<(), ()>| r.unwrap())
@@ -709,7 +718,8 @@ pub trait Matcher {
         caps: &mut Self::Captures,
         mut matched: F,
     ) -> Result<Result<(), E>, Self::Error>
-    where F: FnMut(&Self::Captures) -> Result<bool, E>
+    where
+        F: FnMut(&Self::Captures) -> Result<bool, E>,
     {
         let mut last_end = 0;
         let mut last_match = None;
@@ -787,7 +797,8 @@ pub trait Matcher {
         dst: &mut Vec<u8>,
         mut append: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(Match, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(Match, &mut Vec<u8>) -> bool,
     {
         let mut last_match = 0;
         self.find_iter(haystack, |m| {
@@ -810,7 +821,8 @@ pub trait Matcher {
         dst: &mut Vec<u8>,
         mut append: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool,
     {
         let mut last_match = 0;
         self.captures_iter(haystack, caps, |caps| {
@@ -1012,10 +1024,7 @@ impl<'a, M: Matcher> Matcher for &'a M {
         (*self).capture_count()
     }
 
-    fn find(
-        &self,
-        haystack: &[u8]
-    ) -> Result<Option<Match>, Self::Error> {
+    fn find(&self, haystack: &[u8]) -> Result<Option<Match>, Self::Error> {
         (*self).find(haystack)
     }
 
@@ -1024,7 +1033,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         haystack: &[u8],
         matched: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(Match) -> bool
+    where
+        F: FnMut(Match) -> bool,
     {
         (*self).find_iter(haystack, matched)
     }
@@ -1034,7 +1044,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         haystack: &[u8],
         matched: F,
     ) -> Result<Result<(), E>, Self::Error>
-    where F: FnMut(Match) -> Result<bool, E>
+    where
+        F: FnMut(Match) -> Result<bool, E>,
     {
         (*self).try_find_iter(haystack, matched)
     }
@@ -1053,7 +1064,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         caps: &mut Self::Captures,
         matched: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(&Self::Captures) -> bool
+    where
+        F: FnMut(&Self::Captures) -> bool,
     {
         (*self).captures_iter(haystack, caps, matched)
     }
@@ -1064,7 +1076,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         caps: &mut Self::Captures,
         matched: F,
     ) -> Result<Result<(), E>, Self::Error>
-    where F: FnMut(&Self::Captures) -> Result<bool, E>
+    where
+        F: FnMut(&Self::Captures) -> Result<bool, E>,
     {
         (*self).try_captures_iter(haystack, caps, matched)
     }
@@ -1075,7 +1088,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         dst: &mut Vec<u8>,
         append: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(Match, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(Match, &mut Vec<u8>) -> bool,
     {
         (*self).replace(haystack, dst, append)
     }
@@ -1087,7 +1101,8 @@ impl<'a, M: Matcher> Matcher for &'a M {
         dst: &mut Vec<u8>,
         append: F,
     ) -> Result<(), Self::Error>
-    where F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool
+    where
+        F: FnMut(&Self::Captures, &mut Vec<u8>) -> bool,
     {
         (*self).replace_with_captures(haystack, caps, dst, append)
     }
@@ -1099,7 +1114,7 @@ impl<'a, M: Matcher> Matcher for &'a M {
     fn is_match_at(
         &self,
         haystack: &[u8],
-        at: usize
+        at: usize,
     ) -> Result<bool, Self::Error> {
         (*self).is_match_at(haystack, at)
     }

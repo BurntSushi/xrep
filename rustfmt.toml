@@ -1,1 +1,2 @@
-disable_all_formatting = true
+max_width = 79
+use_small_heuristics = "max"

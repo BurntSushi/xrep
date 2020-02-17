@@ -51,8 +51,8 @@ impl Default for Config {
             octal: false,
             // These size limits are much bigger than what's in the regex
             // crate.
-            size_limit: 100 * (1<<20),
-            dfa_size_limit: 1000 * (1<<20),
+            size_limit: 100 * (1 << 20),
+            dfa_size_limit: 1000 * (1 << 20),
             nest_limit: 250,
             line_terminator: None,
             crlf: false,
@@ -95,10 +95,7 @@ impl Config {
 
     /// Accounting for the `smart_case` config knob, return true if and only if
     /// this pattern should be matched case insensitively.
-    fn is_case_insensitive(
-        &self,
-        analysis: &AstAnalysis,
-    ) -> bool {
+    fn is_case_insensitive(&self, analysis: &AstAnalysis) -> bool {
         if self.case_insensitive {
             return true;
         }
@@ -116,9 +113,7 @@ impl Config {
     /// are enabled, since if multi-line can impact the match semantics of a
     /// regex, then it is by definition not a simple alternation of literals.
     pub fn can_plain_aho_corasick(&self) -> bool {
-        !self.word
-        && !self.case_insensitive
-        && !self.case_smart
+        !self.word && !self.case_insensitive && !self.case_smart
     }
 
     /// Perform analysis on the AST of this pattern.
@@ -203,8 +198,7 @@ impl ConfiguredHIR {
     pub fn with_pattern<F: FnMut(&str) -> String>(
         &self,
         mut f: F,
-    ) -> Result<ConfiguredHIR, Error>
-    {
+    ) -> Result<ConfiguredHIR, Error> {
         self.pattern_to_hir(&f(&self.expr.to_string()))
     }
 

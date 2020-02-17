@@ -40,13 +40,11 @@ fn search(pattern: &str, paths: &[OsString]) -> Result<(), Box<dyn Error>> {
         .build();
     let mut printer = StandardBuilder::new()
         .color_specs(ColorSpecs::default_with_color())
-        .build(cli::stdout(
-            if cli::is_tty_stdout() {
-                ColorChoice::Auto
-            } else {
-                ColorChoice::Never
-            }
-        ));
+        .build(cli::stdout(if cli::is_tty_stdout() {
+            ColorChoice::Auto
+        } else {
+            ColorChoice::Never
+        }));
 
     for path in paths {
         for result in WalkDir::new(path) {

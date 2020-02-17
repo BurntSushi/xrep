@@ -4,7 +4,7 @@ use std::io;
 use bstr::ByteSlice;
 
 /// The default buffer capacity that we use for the line buffer.
-pub(crate) const DEFAULT_BUFFER_CAPACITY: usize = 8 * (1<<10); // 8 KB
+pub(crate) const DEFAULT_BUFFER_CAPACITY: usize = 8 * (1 << 10); // 8 KB
 
 /// The behavior of a searcher in the face of long lines and big contexts.
 ///
@@ -442,16 +442,15 @@ impl LineBuffer {
                     }
                 }
                 BinaryDetection::Convert(byte) => {
-                    if let Some(i) = replace_bytes(
-                        newbytes,
-                        byte,
-                        self.config.lineterm,
-                    ) {
+                    if let Some(i) =
+                        replace_bytes(newbytes, byte, self.config.lineterm)
+                    {
                         // Record only the first binary offset.
                         if self.binary_byte_offset.is_none() {
-                            self.binary_byte_offset =
-                                Some(self.absolute_byte_offset
-                                     + (oldend + i) as u64);
+                            self.binary_byte_offset = Some(
+                                self.absolute_byte_offset
+                                    + (oldend + i) as u64,
+                            );
                         }
                     }
                 }
@@ -542,9 +541,9 @@ fn replace_bytes(bytes: &mut [u8], src: u8, replacement: u8) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-    use std::str;
-    use bstr::{ByteSlice, ByteVec};
     use super::*;
+    use bstr::{ByteSlice, ByteVec};
+    use std::str;
 
     const SHERLOCK: &'static str = "\
 For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -858,10 +857,13 @@ and exhibited clearly, with a label attached.\
         assert!(rdr.buffer().is_empty());
 
         assert!(rdr.fill().unwrap());
-        assert_eq!(rdr.bstr(), "\
+        assert_eq!(
+            rdr.bstr(),
+            "\
 For the Doctor Watsons of this world, as opposed to the Sherlock
 Holmeses, s\
-");
+"
+        );
         rdr.consume_all();
 
         assert!(!rdr.fill().unwrap());

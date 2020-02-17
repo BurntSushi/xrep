@@ -4,9 +4,9 @@
 
 use std::env;
 use std::error::Error;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use bstr::{io::BufReadExt, ByteSlice};
@@ -102,12 +102,13 @@ fn parse_reader<R: io::Read>(
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsString;
     use super::parse_reader;
+    use std::ffi::OsString;
 
     #[test]
     fn basic() {
-        let (args, errs) = parse_reader(&b"\
+        let (args, errs) = parse_reader(
+            &b"\
 # Test
 --context=0
    --smart-case
@@ -116,13 +117,13 @@ mod tests {
 
    # --bar
 --foo
-"[..]).unwrap();
+"[..],
+        )
+        .unwrap();
         assert!(errs.is_empty());
         let args: Vec<String> =
             args.into_iter().map(|s| s.into_string().unwrap()).collect();
-        assert_eq!(args, vec![
-            "--context=0", "--smart-case", "-u", "--foo",
-        ]);
+        assert_eq!(args, vec!["--context=0", "--smart-case", "-u", "--foo",]);
     }
 
     // We test that we can handle invalid UTF-8 on Unix-like systems.
@@ -131,32 +132,38 @@ mod tests {
     fn error() {
         use std::os::unix::ffi::OsStringExt;
 
-        let (args, errs) = parse_reader(&b"\
+        let (args, errs) = parse_reader(
+            &b"\
 quux
 foo\xFFbar
 baz
-"[..]).unwrap();
+"[..],
+        )
+        .unwrap();
         assert!(errs.is_empty());
-        assert_eq!(args, vec![
-            OsString::from("quux"),
-            OsString::from_vec(b"foo\xFFbar".to_vec()),
-            OsString::from("baz"),
-        ]);
+        assert_eq!(
+            args,
+            vec![
+                OsString::from("quux"),
+                OsString::from_vec(b"foo\xFFbar".to_vec()),
+                OsString::from("baz"),
+            ]
+        );
     }
 
     // ... but test that invalid UTF-8 fails on Windows.
     #[test]
     #[cfg(not(unix))]
     fn error() {
-        let (args, errs) = parse_reader(&b"\
+        let (args, errs) = parse_reader(
+            &b"\
 quux
 foo\xFFbar
 baz
-"[..]).unwrap();
+"[..],
+        )
+        .unwrap();
         assert_eq!(errs.len(), 1);
-        assert_eq!(args, vec![
-            OsString::from("quux"),
-            OsString::from("baz"),
-        ]);
+        assert_eq!(args, vec![OsString::from("quux"), OsString::from("baz"),]);
     }
 }

@@ -11,9 +11,7 @@ struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config {
-            strip_dot_prefix: false,
-        }
+        Config { strip_dot_prefix: false }
     }
 }
 
@@ -78,9 +76,9 @@ impl SubjectBuilder {
             log::debug!(
                 "ignoring {}: failed to pass subject filter: \
                  file type: {:?}, metadata: {:?}",
-                 subj.dent.path().display(),
-                 subj.dent.file_type(),
-                 subj.dent.metadata()
+                subj.dent.path().display(),
+                subj.dent.file_type(),
+                subj.dent.metadata()
             );
         }
         None

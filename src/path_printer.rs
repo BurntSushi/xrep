@@ -37,10 +37,7 @@ impl PathPrinterBuilder {
     /// Create a new path printer with the current configuration that writes
     /// paths to the given writer.
     pub fn build<W: WriteColor>(&self, wtr: W) -> PathPrinter<W> {
-        PathPrinter {
-            config: self.config.clone(),
-            wtr: wtr,
-        }
+        PathPrinter { config: self.config.clone(), wtr: wtr }
     }
 
     /// Set the color specification for this printer.
