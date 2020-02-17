@@ -47,6 +47,12 @@ main() {
 
     # Run tests for ripgrep and all sub-crates.
     "$CARGO" test --target "$TARGET" --verbose --all --features 'pcre2'
+
+    # Check formatting.
+    if [ "$TRAVIS_RUST_VERSION" = "1.41.0" ]; then
+      rustup component add rustfmt
+      "$CARGO" fmt --all -- --check
+    fi
 }
 
 main
