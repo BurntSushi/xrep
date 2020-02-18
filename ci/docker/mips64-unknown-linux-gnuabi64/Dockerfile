@@ -1,4 +1,4 @@
-FROM rustembedded/cross:x86_64-unknown-linux-musl
+FROM rustembedded/cross:mips64-unknown-linux-gnuabi64
 
 COPY stage/ubuntu-install-packages /
 RUN /ubuntu-install-packages

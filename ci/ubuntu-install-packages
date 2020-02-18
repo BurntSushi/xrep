@@ -1,0 +1,6 @@
+#!/bin/sh
+
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+  libxslt1-dev asciidoc docbook-xsl xsltproc libxml2-utils \
+  zsh xz-utils liblz4-tool musl-tools

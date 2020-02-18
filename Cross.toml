@@ -1,2 +1,11 @@
 [target.x86_64-unknown-linux-musl]
 image = "burntsushi/cross:x86_64-unknown-linux-musl"
+
+[target.i686-unknown-linux-gnu]
+image = "burntsushi/cross:i686-unknown-linux-gnu"
+
+[target.mips64-unknown-linux-gnuabi64]
+image = "burntsushi/cross:mips64-unknown-linux-gnuabi64"
+
+[target.arm-unknown-linux-gnueabihf]
+image = "burntsushi/cross:arm-unknown-linux-gnueabihf"

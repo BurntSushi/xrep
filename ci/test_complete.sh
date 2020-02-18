@@ -18,7 +18,7 @@ get_comp_args() {
 
 main() {
     local diff
-    local  rg="${0:a:h}/../target/${TARGET:-}/release/rg"
+    local  rg="${0:a:h}/../${TARGET_DIR:-target}/release/rg"
     local _rg="${0:a:h}/../complete/_rg"
     local -a help_args comp_args
 
