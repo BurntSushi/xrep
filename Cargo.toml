@@ -75,6 +75,7 @@ features = ["suggestions"]
 [dev-dependencies]
 serde = "1.0.77"
 serde_derive = "1.0.77"
+walkdir = "2"
 
 [features]
 simd-accel = ["grep/simd-accel"]

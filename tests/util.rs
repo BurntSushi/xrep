@@ -337,11 +337,13 @@ impl TestCommand {
                 "\n\n===== {:?} =====\n\
                  command succeeded but expected failure!\
                  \n\ncwd: {}\
+                 \n\ndir list: {:?}\
                  \n\nstatus: {}\
                  \n\nstdout: {}\n\nstderr: {}\
                  \n\n=====\n",
                 self.cmd,
                 self.dir.dir.display(),
+                dir_list(&self.dir.dir),
                 o.status,
                 String::from_utf8_lossy(&o.stdout),
                 String::from_utf8_lossy(&o.stderr)
@@ -354,13 +356,20 @@ impl TestCommand {
     pub fn assert_exit_code(&mut self, expected_code: i32) {
         let code = self.cmd.output().unwrap().status.code().unwrap();
         assert_eq!(
-            expected_code, code,
+            expected_code,
+            code,
             "\n\n===== {:?} =====\n\
              expected exit code did not match\
+             \n\ncwd: {}\
+             \n\ndir list: {:?}\
              \n\nexpected: {}\
              \n\nfound: {}\
              \n\n=====\n",
-            self.cmd, expected_code, code
+            self.cmd,
+            self.dir.dir.display(),
+            dir_list(&self.dir.dir),
+            expected_code,
+            code
         );
     }
 
@@ -372,11 +381,13 @@ impl TestCommand {
                 "\n\n===== {:?} =====\n\
                  command succeeded but expected failure!\
                  \n\ncwd: {}\
+                 \n\ndir list: {:?}\
                  \n\nstatus: {}\
                  \n\nstdout: {}\n\nstderr: {}\
                  \n\n=====\n",
                 self.cmd,
                 self.dir.dir.display(),
+                dir_list(&self.dir.dir),
                 o.status,
                 String::from_utf8_lossy(&o.stdout),
                 String::from_utf8_lossy(&o.stderr)
@@ -397,7 +408,8 @@ impl TestCommand {
                     command failed but expected success!\
                     {}\
                     \n\ncommand: {:?}\
-                    \ncwd: {}\
+                    \n\ncwd: {}\
+                    \n\ndir list: {:?}\
                     \n\nstatus: {}\
                     \n\nstdout: {}\
                     \n\nstderr: {}\
@@ -405,6 +417,7 @@ impl TestCommand {
                 suggest,
                 self.cmd,
                 self.dir.dir.display(),
+                dir_list(&self.dir.dir),
                 o.status,
                 String::from_utf8_lossy(&o.stdout),
                 String::from_utf8_lossy(&o.stderr)
@@ -432,6 +445,17 @@ fn repeat<F: FnMut() -> io::Result<()>>(mut f: F) -> io::Result<()> {
         }
     }
     Err(last_err.unwrap())
+}
+
+/// Return a recursive listing of all files and directories in the given
+/// directory. This is useful for debugging transient and odd failures in
+/// integration tests.
+fn dir_list<P: AsRef<Path>>(dir: P) -> Vec<String> {
+    walkdir::WalkDir::new(dir)
+        .follow_links(true)
+        .into_iter()
+        .map(|result| result.unwrap().path().to_string_lossy().into_owned())
+        .collect()
 }
 
 /// When running tests with cross, we need to be a bit smarter about how we
