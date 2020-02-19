@@ -160,7 +160,7 @@ impl Dir {
     ///   on all systems. Tests that need to check `--path-separator` itself
     ///   can simply pass it again to override it.
     pub fn command(&self) -> TestCommand {
-        let mut cmd = process::Command::new(&self.bin());
+        let mut cmd = self.bin();
         cmd.env_remove("RIPGREP_CONFIG_PATH");
         cmd.current_dir(&self.dir);
         cmd.arg("--path-separator").arg("/");
@@ -171,11 +171,19 @@ impl Dir {
     }
 
     /// Returns the path to the ripgrep executable.
-    pub fn bin(&self) -> PathBuf {
-        if cfg!(windows) {
+    pub fn bin(&self) -> process::Command {
+        let rg = if cfg!(windows) {
             self.root.join("../rg.exe")
         } else {
             self.root.join("../rg")
+        };
+        match cross_runner() {
+            None => process::Command::new(rg),
+            Some(runner) => {
+                let mut cmd = process::Command::new(runner);
+                cmd.arg(rg);
+                cmd
+            }
         }
     }
 
@@ -428,4 +436,27 @@ fn repeat<F: FnMut() -> io::Result<()>>(mut f: F) -> io::Result<()> {
         }
     }
     Err(last_err.unwrap())
+}
+
+/// When running tests with cross, we need to be a bit smarter about how we
+/// run our `rg` binary. We can't just run it directly since it might be
+/// compiled for a totally different target. Instead, it's likely that `cross`
+/// will have setup qemu to run it. While this is integrated into the Rust
+/// testing by default, we need to handle it ourselves for integration tests.
+///
+/// Thankfully, cross sets an environment variable that points to the proper
+/// qemu binary that we want to run. So we just search for that env var and
+/// return its value if we could find it.
+fn cross_runner() -> Option<String> {
+    for (k, v) in std::env::vars_os() {
+        let (k, v) = (k.to_string_lossy(), v.to_string_lossy());
+        if !k.starts_with("CARGO_TARGET_") && !k.ends_with("_RUNNER") {
+            continue;
+        }
+        if !v.starts_with("qemu-") {
+            continue;
+        }
+        return Some(v.into_owned());
+    }
+    None
 }
