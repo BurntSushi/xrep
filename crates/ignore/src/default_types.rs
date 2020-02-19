@@ -85,6 +85,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("jsonl", &["*.jsonl"]),
     ("julia", &["*.jl"]),
     ("jupyter", &["*.ipynb", "*.jpynb"]),
+    ("k", &["*.k"]),
     ("kotlin", &["*.kt", "*.kts"]),
     ("less", &["*.less"]),
     ("license", &[
