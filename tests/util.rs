@@ -172,11 +172,7 @@ impl Dir {
 
     /// Returns the path to the ripgrep executable.
     pub fn bin(&self) -> process::Command {
-        let rg = if cfg!(windows) {
-            self.root.join("../rg.exe")
-        } else {
-            self.root.join("../rg")
-        };
+        let rg = self.root.join(format!("../rg{}", env::consts::EXE_SUFFIX));
         match cross_runner() {
             None => process::Command::new(rg),
             Some(runner) => {
