@@ -29,6 +29,10 @@ and this to your crate root:
 extern crate globset;
 ```
 
+### Features
+
+* `serde1`: Enables implementing Serde traits on the `Glob` type.
+
 ### Example: one glob
 
 This example shows how to match a single glob against a single file path.

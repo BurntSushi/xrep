@@ -24,10 +24,13 @@ bstr = { version = "0.2.0", default-features = false, features = ["std"] }
 fnv = "1.0.6"
 log = "0.4.5"
 regex = "1.1.5"
+serde = { version = "1.0.104", optional = true }
 
 [dev-dependencies]
 glob = "0.3.0"
 lazy_static = "1"
+serde_json = "1.0.45"
 
 [features]
 simd-accel = []
+serde1 = ["serde"]

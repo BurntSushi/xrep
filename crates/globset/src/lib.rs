@@ -110,6 +110,9 @@ extern crate fnv;
 extern crate log;
 extern crate regex;
 
+#[cfg(feature = "serde1")]
+extern crate serde;
+
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
@@ -128,6 +131,9 @@ use pathutil::{file_name, file_name_ext, normalize_path};
 
 mod glob;
 mod pathutil;
+
+#[cfg(feature = "serde1")]
+mod serde_impl;
 
 /// Represents an error that can occur when parsing a glob pattern.
 #[derive(Clone, Debug, Eq, PartialEq)]
