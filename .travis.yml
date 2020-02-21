@@ -63,13 +63,13 @@ matrix:
     # Minimum Rust supported channel. We enable these to make sure ripgrep
     # continues to work on the advertised minimum Rust version.
     - os: linux
-      rust: 1.34.0
+      rust: 1.41.0
       env: TARGET=x86_64-unknown-linux-gnu
     - os: linux
-      rust: 1.34.0
+      rust: 1.41.0
       env: TARGET=x86_64-unknown-linux-musl
     - os: linux
-      rust: 1.34.0
+      rust: 1.41.0
       env: TARGET=arm-unknown-linux-gnueabihf GCC_VERSION=4.8
       addons:
         apt:

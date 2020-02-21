@@ -9,7 +9,7 @@ use clap::Shell;
 use app::{RGArg, RGArgKind};
 
 #[allow(dead_code)]
-#[path = "src/app.rs"]
+#[path = "crates/core/app.rs"]
 mod app;
 
 fn main() {
@@ -21,7 +21,8 @@ fn main() {
             eprintln!(
                 "OUT_DIR environment variable not defined. \
                  Please file a bug: \
-                 https://github.com/BurntSushi/ripgrep/issues/new");
+                 https://github.com/BurntSushi/ripgrep/issues/new"
+            );
             process::exit(1);
         }
     };
@@ -90,8 +91,10 @@ fn generate_man_page<P: AsRef<Path>>(outdir: P) -> io::Result<()> {
     File::create(&txt_path)?.write_all(tpl.as_bytes())?;
     let result = process::Command::new("a2x")
         .arg("--no-xmllint")
-        .arg("--doctype").arg("manpage")
-        .arg("--format").arg("manpage")
+        .arg("--doctype")
+        .arg("manpage")
+        .arg("--format")
+        .arg("manpage")
         .arg(&txt_path)
         .spawn()?
         .wait()?;
@@ -114,7 +117,7 @@ fn formatted_options() -> io::Result<String> {
         // ripgrep only has two positional arguments, and probably will only
         // ever have two positional arguments, so we just hardcode them into
         // the template.
-        if let app::RGArgKind::Positional{..} = arg.kind {
+        if let app::RGArgKind::Positional { .. } = arg.kind {
             continue;
         }
         formatted.push(formatted_arg(&arg)?);
@@ -124,7 +127,9 @@ fn formatted_options() -> io::Result<String> {
 
 fn formatted_arg(arg: &RGArg) -> io::Result<String> {
     match arg.kind {
-        RGArgKind::Positional{..} => panic!("unexpected positional argument"),
+        RGArgKind::Positional { .. } => {
+            panic!("unexpected positional argument")
+        }
         RGArgKind::Switch { long, short, multiple } => {
             let mut out = vec![];
 
@@ -163,7 +168,8 @@ fn formatted_arg(arg: &RGArg) -> io::Result<String> {
 }
 
 fn formatted_doc_txt(arg: &RGArg) -> io::Result<String> {
-    let paragraphs: Vec<String> = arg.doc_long
+    let paragraphs: Vec<String> = arg
+        .doc_long
         .replace("{", "&#123;")
         .replace("}", r"&#125;")
         .split("\n\n")

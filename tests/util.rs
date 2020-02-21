@@ -72,16 +72,13 @@ impl Dir {
             .parent()
             .expect("executable's directory")
             .to_path_buf();
-        let dir = env::temp_dir()
-            .join(TEST_DIR)
-            .join(name)
-            .join(&format!("{}", id));
-        nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
-        Dir {
-            root: root,
-            dir: dir,
-            pcre2: false,
+        let dir =
+            env::temp_dir().join(TEST_DIR).join(name).join(&format!("{}", id));
+        if dir.exists() {
+            nice_err(&dir, fs::remove_dir_all(&dir));
         }
+        nice_err(&dir, repeat(|| fs::create_dir_all(&dir)));
+        Dir { root: root, dir: dir, pcre2: false }
     }
 
     /// Use PCRE2 for this test.
@@ -163,7 +160,7 @@ impl Dir {
     ///   on all systems. Tests that need to check `--path-separator` itself
     ///   can simply pass it again to override it.
     pub fn command(&self) -> TestCommand {
-        let mut cmd = process::Command::new(&self.bin());
+        let mut cmd = self.bin();
         cmd.env_remove("RIPGREP_CONFIG_PATH");
         cmd.current_dir(&self.dir);
         cmd.arg("--path-separator").arg("/");
@@ -174,11 +171,15 @@ impl Dir {
     }
 
     /// Returns the path to the ripgrep executable.
-    pub fn bin(&self) -> PathBuf {
-        if cfg!(windows) {
-            self.root.join("../rg.exe")
-        } else {
-            self.root.join("../rg")
+    pub fn bin(&self) -> process::Command {
+        let rg = self.root.join(format!("../rg{}", env::consts::EXE_SUFFIX));
+        match cross_runner() {
+            None => process::Command::new(rg),
+            Some(runner) => {
+                let mut cmd = process::Command::new(runner);
+                cmd.arg(rg);
+                cmd
+            }
         }
     }
 
@@ -259,12 +260,10 @@ impl TestCommand {
     }
 
     /// Add any number of arguments to the command.
-    pub fn args<I, A>(
-        &mut self,
-        args: I,
-    ) -> &mut TestCommand
-    where I: IntoIterator<Item=A>,
-          A: AsRef<OsStr>
+    pub fn args<I, A>(&mut self, args: I) -> &mut TestCommand
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
     {
         self.cmd.args(args);
         self
@@ -289,8 +288,7 @@ impl TestCommand {
             Err(err) => {
                 panic!(
                     "could not convert from string: {:?}\n\n{}",
-                    err,
-                    stdout
+                    err, stdout
                 );
             }
         }
@@ -308,9 +306,7 @@ impl TestCommand {
         // risk of deadlock between parent and child process.
         let mut stdin = child.stdin.take().expect("expected standard input");
         let input = input.to_owned();
-        let worker = thread::spawn(move || {
-            stdin.write_all(&input)
-        });
+        let worker = thread::spawn(move || stdin.write_all(&input));
 
         let output = self.expect_success(child.wait_with_output().unwrap());
         worker.join().unwrap().unwrap();
@@ -321,8 +317,7 @@ impl TestCommand {
             Err(err) => {
                 panic!(
                     "could not convert from string: {:?}\n\n{}",
-                    err,
-                    stdout
+                    err, stdout
                 );
             }
         }
@@ -342,11 +337,13 @@ impl TestCommand {
                 "\n\n===== {:?} =====\n\
                  command succeeded but expected failure!\
                  \n\ncwd: {}\
+                 \n\ndir list: {:?}\
                  \n\nstatus: {}\
                  \n\nstdout: {}\n\nstderr: {}\
                  \n\n=====\n",
                 self.cmd,
                 self.dir.dir.display(),
+                dir_list(&self.dir.dir),
                 o.status,
                 String::from_utf8_lossy(&o.stdout),
                 String::from_utf8_lossy(&o.stderr)
@@ -359,13 +356,18 @@ impl TestCommand {
     pub fn assert_exit_code(&mut self, expected_code: i32) {
         let code = self.cmd.output().unwrap().status.code().unwrap();
         assert_eq!(
-            expected_code, code,
+            expected_code,
+            code,
             "\n\n===== {:?} =====\n\
              expected exit code did not match\
+             \n\ncwd: {}\
+             \n\ndir list: {:?}\
              \n\nexpected: {}\
              \n\nfound: {}\
              \n\n=====\n",
             self.cmd,
+            self.dir.dir.display(),
+            dir_list(&self.dir.dir),
             expected_code,
             code
         );
@@ -379,11 +381,13 @@ impl TestCommand {
                 "\n\n===== {:?} =====\n\
                  command succeeded but expected failure!\
                  \n\ncwd: {}\
+                 \n\ndir list: {:?}\
                  \n\nstatus: {}\
                  \n\nstdout: {}\n\nstderr: {}\
                  \n\n=====\n",
                 self.cmd,
                 self.dir.dir.display(),
+                dir_list(&self.dir.dir),
                 o.status,
                 String::from_utf8_lossy(&o.stdout),
                 String::from_utf8_lossy(&o.stderr)
@@ -393,34 +397,37 @@ impl TestCommand {
 
     fn expect_success(&self, o: process::Output) -> process::Output {
         if !o.status.success() {
-            let suggest =
-                if o.stderr.is_empty() {
-                    "\n\nDid your search end up with no results?".to_string()
-                } else {
-                    "".to_string()
-                };
+            let suggest = if o.stderr.is_empty() {
+                "\n\nDid your search end up with no results?".to_string()
+            } else {
+                "".to_string()
+            };
 
-            panic!("\n\n==========\n\
+            panic!(
+                "\n\n==========\n\
                     command failed but expected success!\
                     {}\
                     \n\ncommand: {:?}\
-                    \ncwd: {}\
+                    \n\ncwd: {}\
+                    \n\ndir list: {:?}\
                     \n\nstatus: {}\
                     \n\nstdout: {}\
                     \n\nstderr: {}\
                     \n\n==========\n",
-                   suggest, self.cmd, self.dir.dir.display(), o.status,
-                   String::from_utf8_lossy(&o.stdout),
-                   String::from_utf8_lossy(&o.stderr));
+                suggest,
+                self.cmd,
+                self.dir.dir.display(),
+                dir_list(&self.dir.dir),
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
         }
         o
     }
 }
 
-fn nice_err<T, E: error::Error>(
-    path: &Path,
-    res: Result<T, E>,
-) -> T {
+fn nice_err<T, E: error::Error>(path: &Path, res: Result<T, E>) -> T {
     match res {
         Ok(t) => t,
         Err(err) => panic!("{}: {:?}", path.display(), err),
@@ -438,4 +445,38 @@ fn repeat<F: FnMut() -> io::Result<()>>(mut f: F) -> io::Result<()> {
         }
     }
     Err(last_err.unwrap())
+}
+
+/// Return a recursive listing of all files and directories in the given
+/// directory. This is useful for debugging transient and odd failures in
+/// integration tests.
+fn dir_list<P: AsRef<Path>>(dir: P) -> Vec<String> {
+    walkdir::WalkDir::new(dir)
+        .follow_links(true)
+        .into_iter()
+        .map(|result| result.unwrap().path().to_string_lossy().into_owned())
+        .collect()
+}
+
+/// When running tests with cross, we need to be a bit smarter about how we
+/// run our `rg` binary. We can't just run it directly since it might be
+/// compiled for a totally different target. Instead, it's likely that `cross`
+/// will have setup qemu to run it. While this is integrated into the Rust
+/// testing by default, we need to handle it ourselves for integration tests.
+///
+/// Thankfully, cross sets an environment variable that points to the proper
+/// qemu binary that we want to run. So we just search for that env var and
+/// return its value if we could find it.
+fn cross_runner() -> Option<String> {
+    for (k, v) in std::env::vars_os() {
+        let (k, v) = (k.to_string_lossy(), v.to_string_lossy());
+        if !k.starts_with("CARGO_TARGET_") && !k.ends_with("_RUNNER") {
+            continue;
+        }
+        if !v.starts_with("qemu-") {
+            continue;
+        }
+        return Some(v.into_owned());
+    }
+    None
 }

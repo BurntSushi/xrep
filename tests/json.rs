@@ -108,8 +108,12 @@ enum Data {
 }
 
 impl Data {
-    fn text(s: &str) -> Data { Data::Text { text: s.to_string() } }
-    fn bytes(s: &str) -> Data { Data::Bytes { bytes: s.to_string() } }
+    fn text(s: &str) -> Data {
+        Data::Text { text: s.to_string() }
+    }
+    fn bytes(s: &str) -> Data {
+        Data::Bytes { bytes: s.to_string() }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
@@ -172,31 +176,17 @@ rgtest!(basic, |dir: Dir, mut cmd: TestCommand| {
             ),
             line_number: Some(3),
             absolute_offset: 129,
-            submatches: vec![
-                SubMatch {
-                    m: Data::text("Sherlock Holmes"),
-                    start: 48,
-                    end: 63,
-                },
-            ],
+            submatches: vec![SubMatch {
+                m: Data::text("Sherlock Holmes"),
+                start: 48,
+                end: 63,
+            },],
         }
     );
-    assert_eq!(
-        msgs[3].unwrap_end().path,
-        Some(Data::text("sherlock"))
-    );
-    assert_eq!(
-        msgs[3].unwrap_end().binary_offset,
-        None
-    );
-    assert_eq!(
-        msgs[4].unwrap_summary().stats.searches_with_match,
-        1
-    );
-    assert_eq!(
-        msgs[4].unwrap_summary().stats.bytes_printed,
-        494
-    );
+    assert_eq!(msgs[3].unwrap_end().path, Some(Data::text("sherlock")));
+    assert_eq!(msgs[3].unwrap_end().binary_offset, None);
+    assert_eq!(msgs[4].unwrap_summary().stats.searches_with_match, 1);
+    assert_eq!(msgs[4].unwrap_summary().stats.bytes_printed, 494);
 });
 
 #[cfg(unix)]
@@ -239,13 +229,11 @@ rgtest!(notutf8, |dir: Dir, mut cmd: TestCommand| {
             lines: Data::bytes("cXV1eP9iYXo="),
             line_number: Some(1),
             absolute_offset: 0,
-            submatches: vec![
-                SubMatch {
-                    m: Data::bytes("/w=="),
-                    start: 4,
-                    end: 5,
-                },
-            ],
+            submatches: vec![SubMatch {
+                m: Data::bytes("/w=="),
+                start: 4,
+                end: 5,
+            },],
         }
     );
 });
@@ -282,13 +270,11 @@ rgtest!(notutf8_file, |dir: Dir, mut cmd: TestCommand| {
             lines: Data::bytes("cXV1eP9iYXo="),
             line_number: Some(1),
             absolute_offset: 0,
-            submatches: vec![
-                SubMatch {
-                    m: Data::bytes("/w=="),
-                    start: 4,
-                    end: 5,
-                },
-            ],
+            submatches: vec![SubMatch {
+                m: Data::bytes("/w=="),
+                start: 4,
+                end: 5,
+            },],
         }
     );
 });
@@ -306,11 +292,7 @@ rgtest!(crlf, |dir: Dir, mut cmd: TestCommand| {
 
     assert_eq!(
         msgs[1].unwrap_match().submatches[0].clone(),
-        SubMatch {
-            m: Data::text("Sherlock"),
-            start: 56,
-            end: 64,
-        },
+        SubMatch { m: Data::text("Sherlock"), start: 56, end: 64 },
     );
 });
 

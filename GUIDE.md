@@ -411,6 +411,21 @@ alias rg="rg --type-add 'web:*.{html,css,js}'"
 or add `--type-add=web:*.{html,css,js}` to your ripgrep configuration file.
 ([Configuration files](#configuration-file) are covered in more detail later.)
 
+#### The special `all` file type
+
+A special option supported by the `--type` flag is `all`. `--type all` looks
+for a match in any of the supported file types listed by `--type-list`,
+including those added on the command line using `--type-add`. It's equivalent
+to the command `rg --type agda --type asciidoc --type asm ...`, where `...`
+stands for a list of `--type` flags for the rest of the types in `--type-list`.
+
+As an example, let's suppose you have a shell script in your current directory,
+`my-shell-script`, which includes a shell library, `my-shell-library.bash`.
+Both `rg --type sh` and `rg --type all` would only search for matches in
+`my-shell-library.bash`, not `my-shell-script`, because the globs matched
+by the `sh` file type don't include files without an extension. On the
+other hand, `rg --type-not all` would search `my-shell-script` but not
+`my-shell-library.bash`.
 
 ### Replacements
 
@@ -716,8 +731,8 @@ binary files:
    **only applies to files searched by ripgrep as a result of recursive
    directory traversal**, which is consistent with ripgrep's other automatic
    filtering. For example, `rg foo .file` will search `.file` even though it
-   is hidden. Similarly, `rg foo binary-file` search `binary-file` in "binary"
-   mode automatically.
+   is hidden. Similarly, `rg foo binary-file` will search `binary-file` in
+   "binary" mode automatically.
 2. Binary mode is similar to the default mode, except it will not always
    stop searching after it sees a `NUL` byte. Namely, in this mode, ripgrep
    will continue searching a file that is known to be binary until the first

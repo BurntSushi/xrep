@@ -72,6 +72,7 @@ _rg() {
     + '(count)' # Counting options
     {-c,--count}'[only show count of matching lines for each file]'
     '--count-matches[only show count of individual matches for each file]'
+    '--include-zero[include files with zero matches in summary]'
 
     + '(encoding)' # Encoding options
     {-E+,--encoding=}'[specify text encoding of files to search]: :_rg_encodings'
@@ -104,6 +105,10 @@ _rg() {
     '*'{-g+,--glob=}'[include/exclude files matching specified glob]:glob'
     '*--iglob=[include/exclude files matching specified case-insensitive glob]:glob'
 
+    + '(glob-case-insensitive)' # File-glob case sensitivity options
+    '--glob-case-insensitive[treat -g/--glob patterns case insensitively]'
+    $no'--no-glob-case-insensitive[treat -g/--glob patterns case sensitively]'
+
     + '(heading)' # Heading options
     '(pretty-vimgrep)--heading[show matches grouped by file name]'
     "(pretty-vimgrep)--no-heading[don't show matches grouped by file name]"
@@ -124,6 +129,10 @@ _rg() {
     '--ignore-file-case-insensitive[process ignore files case insensitively]'
     $no'--no-ignore-file-case-insensitive[process ignore files case sensitively]'
 
+    + '(ignore-exclude)' # Local exclude (ignore)-file options
+    "--no-ignore-exclude[don't respect local exclude (ignore) files]"
+    $no'--ignore-exclude[respect local exclude (ignore) files]'
+
     + '(ignore-global)' # Global ignore-file options
     "--no-ignore-global[don't respect global ignore files]"
     $no'--ignore-global[respect global ignore files]'
@@ -135,6 +144,10 @@ _rg() {
     + '(ignore-vcs)' # VCS ignore-file options
     "--no-ignore-vcs[don't respect version control ignore files]"
     $no'--ignore-vcs[respect version control ignore files]'
+
+    + '(require-git)' # git specific settings
+    "--no-require-git[don't require git repository to respect gitignore rules]"
+    $no'--require-git[require git repository to respect gitignore rules]'
 
     + '(ignore-dot)' # .ignore-file options
     "--no-ignore-dot[don't respect .ignore files]"
@@ -259,6 +272,10 @@ _rg() {
     {-w,--word-regexp}'[only show matches surrounded by word boundaries]'
     {-x,--line-regexp}'[only show matches surrounded by line boundaries]'
 
+    + '(unicode)' # Unicode options
+    $no'--unicode[enable Unicode mode]'
+    '--no-unicode[disable Unicode mode]'
+
     + '(zip)' # Compression options
     '(--pre)'{-z,--search-zip}'[search in compressed files]'
     $no"--no-search-zip[don't search in compressed files]"
@@ -273,7 +290,9 @@ _rg() {
     ))'
     '*--colors=[specify color and style settings]: :->colorspec'
     '--context-separator=[specify string used to separate non-continuous context lines in output]:separator'
+    $no"--no-context-separator[don't print context separators]"
     '--debug[show debug messages]'
+    '--trace[show more verbose debug messages]'
     '--dfa-size-limit=[specify upper size limit of generated DFA]:DFA size (bytes)'
     "(1 stats)--files[show each file that would be searched (but don't search)]"
     '*--ignore-file=[specify additional ignore file]:ignore file:_files'

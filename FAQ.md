@@ -25,6 +25,7 @@
 * [How is ripgrep licensed?](#license)
 * [Can ripgrep replace grep?](#posix4ever)
 * [What does the "rip" in ripgrep mean?](#intentcountsforsomething)
+* [How can I donate to ripgrep or its maintainers?](#donations)
 
 
 <h3 name="config">
@@ -934,7 +935,7 @@ Here are some cases where you might *not* want to use ripgrep. The same caveats
 for the previous section apply.
 
 * Are you writing portable shell scripts intended to work in a variety of
-  environments? Great, probably not a good idea to use ripgrep! ripgrep is has
+  environments? Great, probably not a good idea to use ripgrep! ripgrep has
   nowhere near the ubiquity of grep, so if you do use ripgrep, you might need
   to futz with the installation process more than you would with grep.
 * Do you care about POSIX compatibility? If so, then you can't use ripgrep
@@ -981,3 +982,21 @@ grep](#posix4ever),
 ripgrep is neither actually a "grep killer" nor was it ever intended to be. It
 certainly does eat into some of its use cases, but that's nothing that other
 tools like ack or The Silver Searcher weren't already doing.
+
+
+<h3 name="donations">
+How can I donate to ripgrep or its maintainers?
+</h3>
+
+As of now, you can't. While I believe the various efforts that are being
+undertaken to help fund FOSS are extremely important, they aren't a good fit
+for me. ripgrep is and I hope will remain a project of love that I develop in
+my free time. As such, involving money---even in the form of donations given
+without expectations---would severely change that dynamic for me personally.
+
+Instead, I'd recommend donating to something else that is doing work that you
+find meaningful. If you would like suggestions, then my favorites are:
+
+* [The Internet Archive](https://archive.org/donate/)
+* [Rails Girls](https://railsgirlssummerofcode.org/campaign/)
+* [Wikipedia](https://wikimediafoundation.org/support/)

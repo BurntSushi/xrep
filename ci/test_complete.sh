@@ -18,7 +18,7 @@ get_comp_args() {
 
 main() {
     local diff
-    local  rg="${0:a:h}/../target/${TARGET:-}/release/rg"
+    local  rg="${0:a:h}/../${TARGET_DIR:-target}/release/rg"
     local _rg="${0:a:h}/../complete/_rg"
     local -a help_args comp_args
 
@@ -44,7 +44,7 @@ main() {
     # Occasionally we may have to handle some manually, however
     help_args=( ${(f)"$(
         $rg --help |
-        $rg -i -- '^\s+--?[a-z0-9]|--[imnp]' |
+        $rg -i -- '^\s+--?[a-z0-9]|--[a-z]' |
         $rg -ior '$1' -- $'[\t /\"\'`.,](-[a-z0-9]|--[a-z0-9-]+)\\b' |
         $rg -v -- --print0 | # False positives
         sort -u

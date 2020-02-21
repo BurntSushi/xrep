@@ -20,9 +20,7 @@ rgtest!(overlap2, |dir: Dir, mut cmd: TestCommand| {
 // Tests that even in a multiline search, a '.' does not match a newline.
 rgtest!(dot_no_newline, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "-n", "-U", "of this world.+detective work", "sherlock",
-    ]);
+    cmd.args(&["-n", "-U", "of this world.+detective work", "sherlock"]);
     cmd.assert_err();
 });
 
@@ -30,8 +28,11 @@ rgtest!(dot_no_newline, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(dot_all, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-n", "-U", "--multiline-dotall",
-        "of this world.+detective work", "sherlock",
+        "-n",
+        "-U",
+        "--multiline-dotall",
+        "of this world.+detective work",
+        "sherlock",
     ]);
 
     let expected = "\
@@ -45,8 +46,11 @@ rgtest!(dot_all, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(only_matching, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-n", "-U", "--only-matching",
-        r"Watson|Sherlock\p{Any}+?Holmes", "sherlock",
+        "-n",
+        "-U",
+        "--only-matching",
+        r"Watson|Sherlock\p{Any}+?Holmes",
+        "sherlock",
     ]);
 
     let expected = "\
@@ -63,8 +67,11 @@ rgtest!(only_matching, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(vimgrep, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-n", "-U", "--vimgrep",
-        r"Watson|Sherlock\p{Any}+?Holmes", "sherlock",
+        "-n",
+        "-U",
+        "--vimgrep",
+        r"Watson|Sherlock\p{Any}+?Holmes",
+        "sherlock",
     ]);
 
     let expected = "\
@@ -81,9 +88,7 @@ sherlock:5:12:but Doctor Watson has to have it taken out for him and dusted,
 // important test because multiline search must read the entire contents of
 // what it is searching into memory before executing the search.
 rgtest!(stdin, |_: Dir, mut cmd: TestCommand| {
-    cmd.args(&[
-        "-n", "-U", r"of this world\p{Any}+?detective work",
-    ]);
+    cmd.args(&["-n", "-U", r"of this world\p{Any}+?detective work"]);
     let expected = "\
 1:For the Doctor Watsons of this world, as opposed to the Sherlock
 2:Holmeses, success in the province of detective work must always
@@ -95,8 +100,11 @@ rgtest!(stdin, |_: Dir, mut cmd: TestCommand| {
 rgtest!(context, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-n", "-U", "-C1",
-        r"detective work\p{Any}+?result of luck", "sherlock",
+        "-n",
+        "-U",
+        "-C1",
+        r"detective work\p{Any}+?result of luck",
+        "sherlock",
     ]);
 
     let expected = "\

@@ -1,0 +1,36 @@
+[package]
+name = "ignore"
+version = "0.4.11"  #:version
+authors = ["Andrew Gallant <jamslam@gmail.com>"]
+description = """
+A fast library for efficiently matching ignore files such as `.gitignore`
+against file paths.
+"""
+documentation = "https://docs.rs/ignore"
+homepage = "https://github.com/BurntSushi/ripgrep/tree/master/ignore"
+repository = "https://github.com/BurntSushi/ripgrep/tree/master/ignore"
+readme = "README.md"
+keywords = ["glob", "ignore", "gitignore", "pattern", "file"]
+license = "Unlicense/MIT"
+
+[lib]
+name = "ignore"
+bench = false
+
+[dependencies]
+crossbeam-channel = "0.4.0"
+crossbeam-utils = "0.7.0"
+globset = { version = "0.4.3", path = "../globset" }
+lazy_static = "1.1"
+log = "0.4.5"
+memchr = "2.1"
+regex = "1.1"
+same-file = "1.0.4"
+thread_local = "1"
+walkdir = "2.2.7"
+
+[target.'cfg(windows)'.dependencies.winapi-util]
+version = "0.1.2"
+
+[features]
+simd-accel = ["globset/simd-accel"]

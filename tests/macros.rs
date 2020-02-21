@@ -11,7 +11,7 @@ macro_rules! rgtest {
                 $fun(dir, cmd);
             }
         }
-    }
+    };
 }
 
 #[macro_export]

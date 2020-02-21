@@ -8,12 +8,11 @@ available for [every release](https://github.com/BurntSushi/ripgrep/releases).
 ripgrep is similar to other popular search tools like The Silver Searcher, ack
 and grep.
 
-[![Linux build status](https://travis-ci.org/BurntSushi/ripgrep.svg)](https://travis-ci.org/BurntSushi/ripgrep)
-[![Windows build status](https://ci.appveyor.com/api/projects/status/github/BurntSushi/ripgrep?svg=true)](https://ci.appveyor.com/project/BurntSushi/ripgrep)
+[![Build status](https://github.com/BurntSushi/ripgrep/workflows/ci/badge.svg)](https://github.com/BurntSushi/ripgrep/actions)
 [![Crates.io](https://img.shields.io/crates/v/ripgrep.svg)](https://crates.io/crates/ripgrep)
 [![Packaging status](https://repology.org/badge/tiny-repos/ripgrep.svg)](https://repology.org/project/ripgrep/badges)
 
-Dual-licensed under MIT or the [UNLICENSE](http://unlicense.org).
+Dual-licensed under MIT or the [UNLICENSE](https://unlicense.org).
 
 
 ### CHANGELOG
@@ -29,11 +28,12 @@ Please see the [CHANGELOG](CHANGELOG.md) for a release history.
 * [Configuration files](GUIDE.md#configuration-file)
 * [Shell completions](FAQ.md#complete)
 * [Building](#building)
+* [Translations](#translations)
 
 
 ### Screenshot of search results
 
-[![A screenshot of a sample search with ripgrep](http://burntsushi.net/stuff/ripgrep1.png)](http://burntsushi.net/stuff/ripgrep1.png)
+[![A screenshot of a sample search with ripgrep](https://burntsushi.net/stuff/ripgrep1.png)](https://burntsushi.net/stuff/ripgrep1.png)
 
 
 ### Quick examples comparing tools
@@ -44,7 +44,7 @@ words. Timings were collected on a system with an Intel i7-6900K 3.2 GHz, and
 ripgrep was compiled with SIMD enabled.
 
 Please remember that a single benchmark is never enough! See my
-[blog post on ripgrep](http://blog.burntsushi.net/ripgrep/)
+[blog post on ripgrep](https://blog.burntsushi.net/ripgrep/)
 for a very detailed comparison with more benchmarks and analysis.
 
 | Tool | Command | Line count | Time |
@@ -54,11 +54,11 @@ for a very detailed comparison with more benchmarks and analysis.
 | [The Silver Searcher](https://github.com/ggreer/the_silver_searcher) | `ag -w '[A-Z]+_SUSPEND'` | 450 | 0.589s |
 | [git grep (Unicode)](https://www.kernel.org/pub/software/scm/git/docs/git-grep.html) | `LC_ALL=en_US.UTF-8 git grep -E -n -w '[A-Z]+_SUSPEND'` | 450 | 2.266s |
 | [sift](https://github.com/svent/sift) | `sift --git -n -w '[A-Z]+_SUSPEND'` | 450 | 3.505s |
-| [ack](https://github.com/petdance/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 6.823s |
+| [ack](https://github.com/beyondgrep/ack2) | `ack -w '[A-Z]+_SUSPEND'` | 1878 | 6.823s |
 | [The Platinum Searcher](https://github.com/monochromegane/the_platinum_searcher) | `pt -w -e '[A-Z]+_SUSPEND'` | 450 | 14.208s |
 
-(Yes, `ack` [has](https://github.com/petdance/ack2/issues/445) a
-[bug](https://github.com/petdance/ack2/issues/14).)
+(Yes, `ack` [has](https://github.com/beyondgrep/ack2/issues/445) a
+[bug](https://github.com/beyondgrep/ack2/issues/14).)
 
 Here's another benchmark that disregards gitignore files and searches with a
 whitelist instead. The corpus is the same as in the previous benchmark, and the
@@ -92,11 +92,11 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   [the FAQ](FAQ.md#posix4ever) for more details on whether ripgrep can truly
   replace grep.)
 * Like other tools specialized to code search, ripgrep defaults to recursive
-  directory search and won't search files ignored by your `.gitignore` files.
-  It also ignores hidden and binary files by default. ripgrep also implements
-  full support for `.gitignore`, whereas there are many bugs related to that
-  functionality in other code search tools claiming to provide the same
-  functionality.
+  directory search and won't search files ignored by your
+  `.gitignore`/`.ignore`/`.rgignore` files. It also ignores hidden and binary
+  files by default. ripgrep also implements full support for `.gitignore`,
+  whereas there are many bugs related to that functionality in other code
+  search tools claiming to provide the same functionality.
 * ripgrep can search specific types of files. For example, `rg -tpy foo`
   limits your search to Python files and `rg -Tjs foo` excludes Javascript
   files from your search. ripgrep can be taught about new file types with
@@ -149,12 +149,12 @@ or more of the following:
 ### Is it really faster than everything else?
 
 Generally, yes. A large number of benchmarks with detailed analysis for each is
-[available on my blog](http://blog.burntsushi.net/ripgrep/).
+[available on my blog](https://blog.burntsushi.net/ripgrep/).
 
 Summarizing, ripgrep is fast because:
 
 * It is built on top of
-  [Rust's regex engine](https://github.com/rust-lang-nursery/regex).
+  [Rust's regex engine](https://github.com/rust-lang/regex).
   Rust's regex engine uses finite automata, SIMD and aggressive literal
   optimizations to make searching very fast. (PCRE2 support can be opted into
   with the `-P/--pcre2` flag.)
@@ -201,9 +201,8 @@ prefer MSVC over GNU, but you'll need to have the [Microsoft VC++ 2015
 redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
 installed.
 
-If you're a **macOS Homebrew** or a **Linuxbrew** user,
-then you can install ripgrep either
-from homebrew-core, (compiled with rust stable, no SIMD):
+If you're a **macOS Homebrew** or a **Linuxbrew** user, then you can install
+ripgrep from homebrew-core:
 
 ```
 $ brew install ripgrep
@@ -250,23 +249,14 @@ repositories.
 $ sudo dnf install ripgrep
 ```
 
-If you're an **openSUSE Leap 15.0** user, you can install ripgrep from the
-[utilities repo](https://build.opensuse.org/package/show/utilities/ripgrep):
-
-```
-$ sudo zypper ar https://download.opensuse.org/repositories/utilities/openSUSE_Leap_15.0/utilities.repo
-$ sudo zypper install ripgrep
-```
-
-
-If you're an **openSUSE Tumbleweed** user, you can install ripgrep from the
-[official repo](http://software.opensuse.org/package/ripgrep):
+If you're an **openSUSE** user, ripgrep is included in **openSUSE Tumbleweed**
+and **openSUSE Leap** since 15.1.
 
 ```
 $ sudo zypper install ripgrep
 ```
 
-If you're a **RHEL/CentOS 7** user, you can install ripgrep from
+If you're a **RHEL/CentOS 7/8** user, you can install ripgrep from
 [copr](https://copr.fedorainfracloud.org/coprs/carlwgeorge/ripgrep/):
 
 ```
@@ -287,11 +277,11 @@ then ripgrep can be installed using a binary `.deb` file provided in each
 [ripgrep release](https://github.com/BurntSushi/ripgrep/releases).
 
 ```
-$ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.1/ripgrep_11.0.1_amd64.deb
-$ sudo dpkg -i ripgrep_11.0.1_amd64.deb
+$ curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep_11.0.2_amd64.deb
+$ sudo dpkg -i ripgrep_11.0.2_amd64.deb
 ```
 
-If you run Debian Buster (currently Debian testing) or Debian sid, ripgrep is
+If you run Debian Buster (currently Debian stable) or Debian sid, ripgrep is
 [officially maintained by Debian](https://tracker.debian.org/pkg/rust-ripgrep).
 ```
 $ sudo apt-get install ripgrep
@@ -329,6 +319,20 @@ If you're a **NetBSD** user, then you can install ripgrep from
 
 ```
 # pkgin install ripgrep
+```
+
+If you're a **Haiku x86_64** user, then you can install ripgrep from the
+[official ports](https://github.com/haikuports/haikuports/tree/master/sys-apps/ripgrep):
+
+```
+$ pkgman install ripgrep
+```
+
+If you're a **Haiku x86_gcc2** user, then you can install ripgrep from the
+same port as Haiku x86_64 using the x86 secondary architecture build:
+
+```
+$ pkgman install ripgrep_x86
 ```
 
 If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
@@ -418,3 +422,11 @@ $ cargo test --all
 ```
 
 from the repository root.
+
+
+### Translations
+
+The following is a list of known translations of ripgrep's documentation. These
+are unofficially maintained and may not be up to date.
+
+* [Chinese](https://github.com/chinanf-boy/ripgrep-zh#%E6%9B%B4%E6%96%B0-)

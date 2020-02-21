@@ -1,5 +1,5 @@
 use crate::hay::{SHERLOCK, SHERLOCK_CRLF};
-use crate::util::{Dir, TestCommand, sort_lines};
+use crate::util::{sort_lines, Dir, TestCommand};
 
 // See: https://github.com/BurntSushi/ripgrep/issues/1
 rgtest!(f1_sjis, |dir: Dir, mut cmd: TestCommand| {
@@ -181,8 +181,10 @@ rgtest!(f45_precedence_internal, |dir: Dir, mut cmd: TestCommand| {
     dir.create("wat.log", "test");
 
     cmd.args(&[
-        "--ignore-file", ".not-an-ignore1",
-        "--ignore-file", ".not-an-ignore2",
+        "--ignore-file",
+        ".not-an-ignore1",
+        "--ignore-file",
+        ".not-an-ignore2",
         "test",
     ]);
     eqnice!("imp.log:test\n", cmd.stdout());
@@ -388,28 +390,34 @@ rgtest!(f362_exceeds_regex_size_limit, |dir: Dir, mut cmd: TestCommand| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/362
 #[cfg(target_pointer_width = "32")]
-rgtest!(f362_u64_to_narrow_usize_overflow, |dir: Dir, mut cmd: TestCommand| {
-    // --dfa-size-limit doesn't apply to PCRE2.
-    if dir.is_pcre2() {
-        return;
-    }
-    dir.create_size("foo", 1000000);
+rgtest!(
+    f362_u64_to_narrow_usize_overflow,
+    |dir: Dir, mut cmd: TestCommand| {
+        // --dfa-size-limit doesn't apply to PCRE2.
+        if dir.is_pcre2() {
+            return;
+        }
+        dir.create_size("foo", 1000000);
 
-    // 2^35 * 2^20 is ok for u64, but not for usize
-    cmd.arg("--dfa-size-limit").arg("34359738368M").arg("--files");
-    cmd.assert_err();
-});
+        // 2^35 * 2^20 is ok for u64, but not for usize
+        cmd.arg("--dfa-size-limit").arg("34359738368M").arg("--files");
+        cmd.assert_err();
+    }
+);
 
 // See: https://github.com/BurntSushi/ripgrep/issues/411
-rgtest!(f411_single_threaded_search_stats, |dir: Dir, mut cmd: TestCommand| {
-    dir.create("sherlock", SHERLOCK);
+rgtest!(
+    f411_single_threaded_search_stats,
+    |dir: Dir, mut cmd: TestCommand| {
+        dir.create("sherlock", SHERLOCK);
 
-    let lines = cmd.arg("--stats").arg("Sherlock").stdout();
-    assert!(lines.contains("2 matched lines"));
-    assert!(lines.contains("1 files contained matches"));
-    assert!(lines.contains("1 files searched"));
-    assert!(lines.contains("seconds"));
-});
+        let lines = cmd.arg("--stats").arg("Sherlock").stdout();
+        assert!(lines.contains("2 matched lines"));
+        assert!(lines.contains("1 files contained matches"));
+        assert!(lines.contains("1 files searched"));
+        assert!(lines.contains("seconds"));
+    }
+);
 
 rgtest!(f411_parallel_search_stats, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock_1", SHERLOCK);
@@ -568,7 +576,7 @@ rgtest!(f948_exit_code_error, |dir: Dir, mut cmd: TestCommand| {
 
 // See: https://github.com/BurntSushi/ripgrep/issues/917
 rgtest!(f917_trim, |dir: Dir, mut cmd: TestCommand| {
-const SHERLOCK: &'static str = "\
+    const SHERLOCK: &'static str = "\
 zzz
     For the Doctor Watsons of this world, as opposed to the Sherlock
   Holmeses, success in the province of detective work must always
@@ -578,9 +586,7 @@ but Doctor Watson has to have it taken out for him and dusted,
  and exhibited clearly, with a label attached.
 ";
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "-n", "-B1", "-A2", "--trim", "Holmeses", "sherlock",
-    ]);
+    cmd.args(&["-n", "-B1", "-A2", "--trim", "Holmeses", "sherlock"]);
 
     let expected = "\
 2-For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -596,7 +602,7 @@ but Doctor Watson has to have it taken out for him and dusted,
 // This is like f917_trim, except this tests that trimming occurs even when the
 // whitespace is part of a match.
 rgtest!(f917_trim_match, |dir: Dir, mut cmd: TestCommand| {
-const SHERLOCK: &'static str = "\
+    const SHERLOCK: &'static str = "\
 zzz
     For the Doctor Watsons of this world, as opposed to the Sherlock
   Holmeses, success in the province of detective work must always
@@ -606,9 +612,7 @@ but Doctor Watson has to have it taken out for him and dusted,
  and exhibited clearly, with a label attached.
 ";
     dir.create("sherlock", SHERLOCK);
-    cmd.args(&[
-        "-n", "-B1", "-A2", "--trim", r"\s+Holmeses", "sherlock",
-    ]);
+    cmd.args(&["-n", "-B1", "-A2", "--trim", r"\s+Holmeses", "sherlock"]);
 
     let expected = "\
 2-For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -636,7 +640,8 @@ rgtest!(f993_null_data, |dir: Dir, mut cmd: TestCommand| {
 rgtest!(f1078_max_columns_preview1, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-M46", "--max-columns-preview",
+        "-M46",
+        "--max-columns-preview",
         "exhibited|dusted|has to have it",
     ]);
 
@@ -650,7 +655,8 @@ sherlock:and exhibited clearly, with a label attached.
 rgtest!(f1078_max_columns_preview2, |dir: Dir, mut cmd: TestCommand| {
     dir.create("sherlock", SHERLOCK);
     cmd.args(&[
-        "-M43", "--max-columns-preview",
+        "-M43",
+        "--max-columns-preview",
         // Doing a replacement forces ripgrep to show the number of remaining
         // matches. Normally, this happens by default when printing a tty with
         // colors.
@@ -702,10 +708,7 @@ sherlock:For the Doctor Watsons of this world, as opposed to the Sherlock
 // Tests if without encoding 'none' flag null bytes are consumed by automatic
 // encoding detection.
 rgtest!(f1207_auto_encoding, |dir: Dir, mut cmd: TestCommand| {
-    dir.create_bytes(
-        "foo",
-        b"\xFF\xFE\x00\x62"
-    );
+    dir.create_bytes("foo", b"\xFF\xFE\x00\x62");
     cmd.arg("-a").arg("\\x00").arg("foo");
     cmd.assert_exit_code(1);
 });
@@ -720,10 +723,99 @@ rgtest!(f1207_ignore_encoding, |dir: Dir, mut cmd: TestCommand| {
         return;
     }
 
-    dir.create_bytes(
-        "foo",
-        b"\xFF\xFE\x00\x62"
-    );
+    dir.create_bytes("foo", b"\xFF\xFE\x00\x62");
     cmd.arg("--encoding").arg("none").arg("-a").arg("\\x00").arg("foo");
     eqnice!("\u{FFFD}\u{FFFD}\x00b\n", cmd.stdout());
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1414
+rgtest!(f1414_no_require_git, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".gitignore", "foo");
+    dir.create("foo", "");
+    dir.create("bar", "");
+
+    let stdout = cmd.args(&["--sort", "path", "--files"]).stdout();
+    eqnice!("bar\nfoo\n", stdout);
+
+    let stdout =
+        cmd.args(&["--sort", "path", "--files", "--no-require-git"]).stdout();
+    eqnice!("bar\n", stdout);
+
+    let stdout = cmd
+        .args(&[
+            "--sort",
+            "path",
+            "--files",
+            "--no-require-git",
+            "--require-git",
+        ])
+        .stdout();
+    eqnice!("bar\nfoo\n", stdout);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/pull/1420
+rgtest!(f1420_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_dir(".git/info");
+    dir.create(".git/info/exclude", "foo");
+    dir.create("bar", "");
+    dir.create("foo", "");
+
+    cmd.arg("--sort").arg("path").arg("--files");
+    eqnice!("bar\n", cmd.stdout());
+    eqnice!("bar\nfoo\n", cmd.arg("--no-ignore-exclude").stdout());
+});
+
+rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&["-A1", "--no-context-separator", "foo", "test"]);
+    eqnice!("foo\nctx\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_context_sep_overrides, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--context-separator",
+        "AAA",
+        "--no-context-separator",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_context_sep_overridden, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&[
+        "-A1",
+        "--no-context-separator",
+        "--context-separator",
+        "AAA",
+        "foo",
+        "test",
+    ]);
+    eqnice!("foo\nctx\nAAA\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&["-A1", "--context-separator", "AAA", "foo", "test"]);
+    eqnice!("foo\nctx\nAAA\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep_default, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&["-A1", "foo", "test"]);
+    eqnice!("foo\nctx\n--\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(context_sep_empty, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
+    cmd.args(&["-A1", "--context-separator", "", "foo", "test"]);
+    eqnice!("foo\nctx\n\nfoo\nctx\n", cmd.stdout());
+});
+
+rgtest!(no_unicode, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "δ");
+    cmd.arg("-i").arg("--no-unicode").arg("Δ").assert_err();
 });

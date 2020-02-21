@@ -1,13 +1,92 @@
 TBD
 ===
-TODO.
+TODO
+
+Deprecations:
+
+* The `--no-pcre2-unicode` flag is deprecated. Instead, use the `--no-unicode`
+  flag, which applies to both the default regex engine and PCRE2. For now,
+  `--no-pcre2-unicode` and `--pcre2-unicode` are aliases to `--no-unicode`
+  and `--unicode`, respectively. The `--[no-]pcre2-unicode` flags may be
+  removed in a future release.
+
+Performance improvements:
+
+* [PERF #1381](https://github.com/BurntSushi/ripgrep/pull/1381):
+  Directory traversal is sped up with speculative ignore-file existence checks.
+* [PERF cd8ec38a](https://github.com/BurntSushi/ripgrep/commit/cd8ec38a):
+  Improve inner literal detection to cover more cases more effectively.
+  e.g., ` +Sherlock Holmes +` now has ` Sherlock Holmes ` extracted instead
+  of ` `.
+* [PERF 6a0e0147](https://github.com/BurntSushi/ripgrep/commit/6a0e0147):
+  Improve literal detection when the `-w/--word-regexp` flag is used.
+* [PERF ad97e9c9](https://github.com/BurntSushi/ripgrep/commit/ad97e9c9):
+  Improve overall performance of the `-w/--word-regexp` flag.
+
+Feature enhancements:
+
+* Added or improved file type filtering for erb, diff, Gradle, HAML, Org,
+  Postscript, Skim, Slim, Slime, RPM Spec files, Typoscript, xml.
+* [FEATURE #1370](https://github.com/BurntSushi/ripgrep/pull/1370):
+  Add `--include-zero` flag that shows files searched without matches.
+* [FEATURE #1390](https://github.com/BurntSushi/ripgrep/pull/1390):
+  Add `--no-context-separator` flag that always hides context separators.
+* [FEATURE #1414](https://github.com/BurntSushi/ripgrep/pull/1414):
+  Add `--no-require-git` flag to allow ripgrep to respect gitignores anywhere.
+* [FEATURE #1420](https://github.com/BurntSushi/ripgrep/pull/1420):
+  Add `--no-ignore-exclude` to disregard rules in `.git/info/exclude` files.
+* [FEATURE 75cbe88f](https://github.com/BurntSushi/ripgrep/commit/75cbe88f):
+  Add `--no-unicode` flag. This works on all supported regex engines.
 
 Bug fixes:
 
+* [BUG #1291](https://github.com/BurntSushi/ripgrep/issues/1291):
+  ripgrep now works in non-existent directories.
+* [BUG #1319](https://github.com/BurntSushi/ripgrep/issues/1319):
+  Fix match bug due to errant literal detection.
+* [**BUG #1335**](https://github.com/BurntSushi/ripgrep/issues/1335):
+  Fixes a performance bug when searching plain text files with very long lines.
+  This was a serious performance regression in some cases.
+* [BUG #1344](https://github.com/BurntSushi/ripgrep/issues/1344):
+  Document usage of `--type all`.
+* [BUG #1389](https://github.com/BurntSushi/ripgrep/issues/1389):
+  Fixes a bug where ripgrep would panic when searching a symlinked directory.
+* [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
+  ripgrep now respects ignore rules from .git/info/exclude in worktrees.
+* [BUG #1485](https://github.com/BurntSushi/ripgrep/issues/1485):
+  Fish shell completions from the release Debian package are now installed to
+  `/usr/share/fish/vendor_completions.d/rg.fish`.
+
+
+11.0.2 (2019-08-01)
+===================
+ripgrep 11.0.2 is a new patch release that fixes a few bugs, including a
+performance regression and a matching bug when using the `-F/--fixed-strings`
+flag.
+
+Feature enhancements:
+
+* [FEATURE #1293](https://github.com/BurntSushi/ripgrep/issues/1293):
+  Added `--glob-case-insensitive` flag that makes `--glob` behave as `--iglob`.
+
+Bug fixes:
+
+* [BUG #1246](https://github.com/BurntSushi/ripgrep/issues/1246):
+  Add translations to README, starting with an unofficial Chinese translation.
 * [BUG #1259](https://github.com/BurntSushi/ripgrep/issues/1259):
   Fix bug where the last byte of a `-f file` was stripped if it wasn't a `\n`.
+* [BUG #1261](https://github.com/BurntSushi/ripgrep/issues/1261):
+  Document that no error is reported when searching for `\n` with `-P/--pcre2`.
+* [BUG #1284](https://github.com/BurntSushi/ripgrep/issues/1284):
+  Mention `.ignore` and `.rgignore` more prominently in the README.
+* [BUG #1292](https://github.com/BurntSushi/ripgrep/issues/1292):
+  Fix bug where `--with-filename` was sometimes enabled incorrectly.
+* [BUG #1268](https://github.com/BurntSushi/ripgrep/issues/1268):
+  Fix major performance regression in GitHub `x86_64-linux` binary release.
 * [BUG #1302](https://github.com/BurntSushi/ripgrep/issues/1302):
   Show better error messages when a non-existent preprocessor command is given.
+* [BUG #1334](https://github.com/BurntSushi/ripgrep/issues/1334):
+  Fix match regression with `-F` flag when patterns contain meta characters.
 
 
 11.0.1 (2019-04-16)
