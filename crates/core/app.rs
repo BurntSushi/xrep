@@ -508,6 +508,13 @@ impl RGArg {
         self
     }
 
+    /// Sets the default value of this argument when not specified at
+    /// runtime.
+    fn default_value(mut self, value: &'static str) -> RGArg {
+        self.claparg = self.claparg.default_value(value);
+        self
+    }
+
     /// Sets the default value of this argument if and only if the argument
     /// given is present.
     fn default_value_if(
@@ -566,6 +573,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_debug(&mut args);
     flag_dfa_size_limit(&mut args);
     flag_encoding(&mut args);
+    flag_engine(&mut args);
     flag_file(&mut args);
     flag_files(&mut args);
     flag_files_with_matches(&mut args);
@@ -1182,6 +1190,36 @@ This flag can be disabled with --no-encoding.
     args.push(arg);
 
     let arg = RGArg::switch("no-encoding").hidden().overrides("encoding");
+    args.push(arg);
+}
+
+fn flag_engine(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Specify which regexp engine to use: default|pcre2|auto-hybrid.";
+    const LONG: &str = long!(
+        "\
+Specify which regular expression engine to use. When you choose a
+regex engine, it applies that choice for every regex provided to ripgrep (e.g.,
+via multiple -e/--regexp or -f/--file flags).
+
+Accepted values are `default|pcre2|auto-hybrid`.
+
+The default value is default, which is the fastest and should be good for most
+use-cases. PCRE2 engine is generally useful when you want to use features such
+as look-around backreferences. auto-hybrid will dynamically choose between
+supported regex engines depending on the features used in a pattern.
+
+Please have a look at the custom flags '--pcre2' and '--auto-hybrid-regexp'
+which explain their respective meaning in more depth. Those flags override
+any value provided to the `engine` option.
+
+Using '--pcre2' or '--auto-hybrid-regexp' overrides the value of this flag.
+"
+    );
+    let arg = RGArg::flag("engine", "ENGINE")
+        .help(SHORT)
+        .long_help(LONG)
+        .possible_values(&["default", "pcre2", "auto-hybrid"])
+        .default_value("default");
     args.push(arg);
 }
 
