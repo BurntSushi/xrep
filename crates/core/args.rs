@@ -582,10 +582,12 @@ impl ArgMatches {
         } else if self.is_present("auto-hybrid-regex") {
             self.matcher_engine("auto-hybrid", patterns)
         } else {
-            let engine = self.value_of_lossy("engine")
-                             .ok_or(clap::Error::with_description("Please \
-                                     provide a valid value to the engine \
-                                     option.", clap::ErrorKind::InvalidValue))?;
+            let engine = self.value_of_lossy("engine").ok_or(
+                clap::Error::with_description(
+                    "Please provide a valid value to the engine option.",
+                    clap::ErrorKind::InvalidValue,
+                ),
+            )?;
             self.matcher_engine(engine.as_str(), patterns)
         }
     }
@@ -598,7 +600,7 @@ impl ArgMatches {
     fn matcher_engine(
         &self,
         engine: &str,
-        patterns: &[String]
+        patterns: &[String],
     ) -> Result<PatternMatcher> {
         match engine {
             "default" => {
@@ -609,23 +611,24 @@ impl ArgMatches {
                     }
                 };
                 Ok(PatternMatcher::RustRegex(matcher))
-            },
+            }
 
             #[cfg(feature = "pcre2")]
             "pcre2" => {
                 let matcher = self.matcher_pcre2(patterns)?;
                 Ok(PatternMatcher::PCRE2(matcher))
-            },
+            }
 
             #[cfg(not(feature = "pcre2"))]
-            "pcre2" => {
-                Err(From::from("PCRE2 is not available in \
-                                this build of ripgrep"))
-            },
+            "pcre2" => Err(From::from(
+                "PCRE2 is not available in this build of ripgrep",
+            )),
 
             "auto-hybrid" => {
                 let rust_err = match self.matcher_rust(patterns) {
-                    Ok(matcher) => return Ok(PatternMatcher::RustRegex(matcher)),
+                    Ok(matcher) => {
+                        return Ok(PatternMatcher::RustRegex(matcher))
+                    }
                     Err(err) => err,
                 };
                 log::debug!(
@@ -648,14 +651,15 @@ impl ArgMatches {
                     "~".repeat(79),
                     pcre_err,
                 )))
-            },
+            }
 
-            _ => Err(From::from(format!("Engine '{}' not found. Refer to the \
-                                         help to know supported values.",
-                                        engine)))
+            _ => Err(From::from(format!(
+                "Engine '{}' not found. Refer to the help to know supported \
+                 values.",
+                engine
+            ))),
         }
     }
-
 
     /// Build a matcher using Rust's regex engine.
     ///

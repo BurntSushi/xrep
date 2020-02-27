@@ -1194,7 +1194,8 @@ This flag can be disabled with --no-encoding.
 }
 
 fn flag_engine(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Specify which regexp engine to use: default|pcre2|auto-hybrid.";
+    const SHORT: &str =
+        "Specify which regexp engine to use: default|pcre2|auto-hybrid.";
     const LONG: &str = long!(
         "\
 Specify which regular expression engine to use. When you choose a
