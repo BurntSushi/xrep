@@ -1209,11 +1209,10 @@ use-cases. PCRE2 engine is generally useful when you want to use features such
 as look-around backreferences. auto-hybrid will dynamically choose between
 supported regex engines depending on the features used in a pattern.
 
-Please have a look at the custom flags '--pcre2' and '--auto-hybrid-regexp'
-which explain their respective meaning in more depth. Those flags override
-any value provided to the `engine` option.
+Please have a look at the custom flags '--pcre2' and '--auto-hybrid-regex'
+which explain their respective meaning in more depth.
 
-Using '--pcre2' or '--auto-hybrid-regexp' overrides the value of this flag.
+Using '--pcre2' or '--auto-hybrid-regex' overrides the value of this flag.
 "
     );
     let arg = RGArg::flag("engine", "ENGINE")
