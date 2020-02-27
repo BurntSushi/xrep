@@ -582,7 +582,8 @@ impl ArgMatches {
         } else if self.is_present("auto-hybrid-regex") {
             self.matcher_engine("auto-hybrid", patterns)
         } else {
-            self.matcher_engine("default", patterns)
+            let engine = self.value_of_lossy("engine").unwrap();
+            self.matcher_engine(engine.as_str(), patterns)
         }
     }
 

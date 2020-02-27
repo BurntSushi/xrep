@@ -109,7 +109,8 @@ increases the times to `2.640s` for ripgrep and `10.277s` for GNU grep.
   Among other things, this makes it possible to use look-around and
   backreferences in your patterns, which are not supported in ripgrep's default
   regex engine. PCRE2 support can be enabled with `-P/--pcre2` (use PCRE2
-  always) or `--auto-hybrid-regex` (use PCRE2 only if needed).
+  always) or `--auto-hybrid-regex` (use PCRE2 only if needed). An alternative
+  syntax is provided via the `--engine (default|pcre2|auto-hybrid)` option.
 * ripgrep supports searching files in text encodings other than UTF-8, such
   as UTF-16, latin-1, GBK, EUC-JP, Shift_JIS and more. (Some support for
   automatically detecting UTF-16 is provided. Other text encodings must be

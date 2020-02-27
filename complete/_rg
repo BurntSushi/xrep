@@ -78,6 +78,13 @@ _rg() {
     {-E+,--encoding=}'[specify text encoding of files to search]: :_rg_encodings'
     $no'--no-encoding[use default text encoding]'
 
+    + '(engine)' # Engine choice options
+    '--engine=[select which regexp engine to use (overriden by pcre2 and hybrid options)]:when:((
+      default\:"use default engine"
+      pcre2\:"identical to --pcre2"
+      auto-hybrid\:"identical to --auto-hybrid-regex"
+    ))'
+
     + file # File-input options
     '(1)*'{-f+,--file=}'[specify file containing patterns to search for]: :_files'
 
