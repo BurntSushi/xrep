@@ -576,59 +576,86 @@ impl ArgMatches {
     ///
     /// If there was a problem building the matcher (e.g., a syntax error),
     /// then this returns an error.
-    #[cfg(feature = "pcre2")]
     fn matcher(&self, patterns: &[String]) -> Result<PatternMatcher> {
         if self.is_present("pcre2") {
-            let matcher = self.matcher_pcre2(patterns)?;
-            Ok(PatternMatcher::PCRE2(matcher))
+            self.matcher_engine("pcre2", patterns)
         } else if self.is_present("auto-hybrid-regex") {
-            let rust_err = match self.matcher_rust(patterns) {
-                Ok(matcher) => return Ok(PatternMatcher::RustRegex(matcher)),
-                Err(err) => err,
-            };
-            log::debug!(
-                "error building Rust regex in hybrid mode:\n{}",
-                rust_err,
-            );
-            let pcre_err = match self.matcher_pcre2(patterns) {
-                Ok(matcher) => return Ok(PatternMatcher::PCRE2(matcher)),
-                Err(err) => err,
-            };
-            Err(From::from(format!(
-                "regex could not be compiled with either the default regex \
-                 engine or with PCRE2.\n\n\
-                 default regex engine error:\n{}\n{}\n{}\n\n\
-                 PCRE2 regex engine error:\n{}",
-                "~".repeat(79),
-                rust_err,
-                "~".repeat(79),
-                pcre_err,
-            )))
+            self.matcher_engine("auto-hybrid", patterns)
         } else {
-            let matcher = match self.matcher_rust(patterns) {
-                Ok(matcher) => matcher,
-                Err(err) => {
-                    return Err(From::from(suggest_pcre2(err.to_string())));
-                }
-            };
-            Ok(PatternMatcher::RustRegex(matcher))
+            let engine = self.value_of_lossy("engine")
+                             .ok_or(clap::Error::with_description("Please \
+                                     provide a valid value to the engine \
+                                     option.", clap::ErrorKind::InvalidValue))?;
+            self.matcher_engine(engine.as_str(), patterns)
         }
     }
 
-    /// Return the matcher that should be used for searching.
+    /// Return the matcher that should be used for searching using engine
+    /// as the engine for the patterns.
     ///
     /// If there was a problem building the matcher (e.g., a syntax error),
     /// then this returns an error.
-    #[cfg(not(feature = "pcre2"))]
-    fn matcher(&self, patterns: &[String]) -> Result<PatternMatcher> {
-        if self.is_present("pcre2") {
-            return Err(From::from(
-                "PCRE2 is not available in this build of ripgrep",
-            ));
+    fn matcher_engine(
+        &self,
+        engine: &str,
+        patterns: &[String]
+    ) -> Result<PatternMatcher> {
+        match engine {
+            "default" => {
+                let matcher = match self.matcher_rust(patterns) {
+                    Ok(matcher) => matcher,
+                    Err(err) => {
+                        return Err(From::from(suggest(err.to_string())));
+                    }
+                };
+                Ok(PatternMatcher::RustRegex(matcher))
+            },
+
+            #[cfg(feature = "pcre2")]
+            "pcre2" => {
+                let matcher = self.matcher_pcre2(patterns)?;
+                Ok(PatternMatcher::PCRE2(matcher))
+            },
+
+            #[cfg(not(feature = "pcre2"))]
+            "pcre2" => {
+                Err(From::from("PCRE2 is not available in \
+                                this build of ripgrep"))
+            },
+
+            "auto-hybrid" => {
+                let rust_err = match self.matcher_rust(patterns) {
+                    Ok(matcher) => return Ok(PatternMatcher::RustRegex(matcher)),
+                    Err(err) => err,
+                };
+                log::debug!(
+                    "error building Rust regex in hybrid mode:\n{}",
+                    rust_err,
+                );
+
+                let pcre_err = match self.matcher_engine("pcre2", patterns) {
+                    Ok(matcher) => return Ok(matcher),
+                    Err(err) => err,
+                };
+
+                Err(From::from(format!(
+                    "regex could not be compiled with either the default regex \
+                     engine or with PCRE2.\n\n\
+                     default regex engine error:\n{}\n{}\n{}\n\n\
+                     PCRE2 regex engine error:\n{}",
+                    "~".repeat(79),
+                    rust_err,
+                    "~".repeat(79),
+                    pcre_err,
+                )))
+            },
+
+            _ => Err(From::from(format!("Engine '{}' not found. Refer to the \
+                                         help to know supported values.",
+                                        engine)))
         }
-        let matcher = self.matcher_rust(patterns)?;
-        Ok(PatternMatcher::RustRegex(matcher))
     }
+
 
     /// Build a matcher using Rust's regex engine.
     ///
@@ -1677,12 +1704,24 @@ impl ArgMatches {
 }
 
 /// Inspect an error resulting from building a Rust regex matcher, and if it's
+/// believed to correspond to a syntax error that another engine could handle,
+/// then add a message to suggest the use of the engine flag.
+fn suggest(msg: String) -> String {
+    let pcre_suggestion = suggest_pcre2(&msg);
+    if pcre_suggestion != msg {
+        return pcre_suggestion;
+    }
+
+    //add other engines suggestions here, return msg if nothing is found
+    msg
+}
+/// Inspect an error resulting from building a Rust regex matcher, and if it's
 /// believed to correspond to a syntax error that PCRE2 could handle, then
 /// add a message to suggest the use of -P/--pcre2.
 #[cfg(feature = "pcre2")]
-fn suggest_pcre2(msg: String) -> String {
+fn suggest_pcre2(msg: &String) -> String {
     if !msg.contains("backreferences") && !msg.contains("look-around") {
-        msg
+        msg.to_string()
     } else {
         format!(
             "{}
@@ -1706,6 +1745,17 @@ When multiline mode is enabled, new line characters can be matched.",
     } else {
         msg
     }
+}
+
+/// Inspect an error resulting from building a Rust regex matcher, and if it's
+/// believed to correspond to a syntax error that PCRE2 could handle, then
+/// add a message to suggest the use of -P/--pcre2.
+///
+/// Since here rg is not compiled with pcre2, we can't offer any suggestion
+/// so we return the message untouched.
+#[cfg(not(feature = "pcre2"))]
+fn suggest_pcre2(msg: &String) -> String {
+    msg.to_string()
 }
 
 /// Convert the result of parsing a human readable file size to a `usize`,
