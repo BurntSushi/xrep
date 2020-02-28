@@ -2109,6 +2109,24 @@ mod tests {
         assert_paths(td.path(), &builder.follow_links(true), &["a", "a/b"]);
     }
 
+    #[cfg(unix)] // because symlinks on windows are weird
+    #[test]
+    fn broken_symlinks() {
+        let td = tmpdir();
+        mkdirp(td.path().join("dir"));
+        symlink(td.path().join("dir"), td.path().join("normal_link"));
+        symlink(td.path().join("non-existing"), td.path().join("broken_link"));
+
+        let mut builder = WalkBuilder::new(td.path());
+        assert_paths(td.path(), &builder, &["dir", "normal_link", "broken_link"]);
+
+        assert_paths(
+            td.path(),
+            &builder.follow_links(true),
+            &["dir", "normal_link", "broken_link"],
+        );
+    }
+
     // It's a little tricky to test the 'same_file_system' option since
     // we need an environment with more than one file system. We adopt a
     // heuristic where /sys is typically a distinct volume on Linux and roll
