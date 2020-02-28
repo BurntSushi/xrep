@@ -34,6 +34,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("cmake", &["*.cmake", "CMakeLists.txt"]),
     ("coffeescript", &["*.coffee"]),
     ("config", &["*.cfg", "*.conf", "*.config", "*.ini"]),
+    ("coq", &["*.v"]),
     ("cpp", &[
         "*.[ChH]", "*.cc", "*.[ch]pp", "*.[ch]xx", "*.hh",  "*.inl",
         "*.[ChH].in", "*.cc.in", "*.[ch]pp.in", "*.[ch]xx.in", "*.hh.in",
