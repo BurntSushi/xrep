@@ -6,8 +6,8 @@ description = """
 Fast line oriented regex searching as a library.
 """
 documentation = "http://burntsushi.net/rustdoc/grep/"
-homepage = "https://github.com/BurntSushi/ripgrep"
-repository = "https://github.com/BurntSushi/ripgrep"
+homepage = "https://github.com/BurntSushi/ripgrep/tree/master/crates/grep"
+repository = "https://github.com/BurntSushi/ripgrep/tree/master/crates/grep"
 readme = "README.md"
 keywords = ["regex", "grep", "egrep", "search", "pattern"]
 license = "Unlicense/MIT"
