@@ -481,6 +481,7 @@ pub struct WalkBuilder {
     ig_builder: IgnoreBuilder,
     max_depth: Option<usize>,
     max_filesize: Option<u64>,
+    min_modified_time: Option<std::time::SystemTime>,
     follow_links: bool,
     same_file_system: bool,
     sorter: Option<Sorter>,
@@ -503,6 +504,7 @@ impl fmt::Debug for WalkBuilder {
             .field("ig_builder", &self.ig_builder)
             .field("max_depth", &self.max_depth)
             .field("max_filesize", &self.max_filesize)
+            .field("min_modified_time", &self.min_modified_time)
             .field("follow_links", &self.follow_links)
             .field("threads", &self.threads)
             .field("skip", &self.skip)
@@ -523,6 +525,7 @@ impl WalkBuilder {
             ig_builder: IgnoreBuilder::new(),
             max_depth: None,
             max_filesize: None,
+            min_modified_time: None,
             follow_links: false,
             same_file_system: false,
             sorter: None,
@@ -575,6 +578,7 @@ impl WalkBuilder {
             ig_root: ig_root.clone(),
             ig: ig_root.clone(),
             max_filesize: self.max_filesize,
+            min_modified_time: self.min_modified_time,
             skip: self.skip.clone(),
         }
     }
@@ -590,6 +594,7 @@ impl WalkBuilder {
             ig_root: self.ig_builder.build(),
             max_depth: self.max_depth,
             max_filesize: self.max_filesize,
+            min_modified_time: self.min_modified_time,
             follow_links: self.follow_links,
             same_file_system: self.same_file_system,
             threads: self.threads,
@@ -624,6 +629,12 @@ impl WalkBuilder {
     /// Whether to ignore files above the specified limit.
     pub fn max_filesize(&mut self, filesize: Option<u64>) -> &mut WalkBuilder {
         self.max_filesize = filesize;
+        self
+    }
+
+    /// Whether to ignore files older than the specified time.
+    pub fn min_modified(&mut self, modified: Option<std::time::SystemTime>) -> &mut WalkBuilder {
+        self.min_modified_time = modified;
         self
     }
 
@@ -889,6 +900,7 @@ pub struct Walk {
     ig_root: Ignore,
     ig: Ignore,
     max_filesize: Option<u64>,
+    min_modified_time: Option<std::time::SystemTime>,
     skip: Option<Arc<Handle>>,
 }
 
@@ -915,12 +927,28 @@ impl Walk {
         if should_skip_entry(&self.ig, ent) {
             return Ok(true);
         }
+        let mut meta = None;
         if self.max_filesize.is_some() && !ent.is_dir() {
-            return Ok(skip_filesize(
+            meta = ent.metadata().ok();
+            if skip_filesize(
                 self.max_filesize.unwrap(),
                 ent.path(),
-                &ent.metadata().ok(),
-            ));
+                &meta,
+            ) {
+                return Ok(true)
+            }
+        }
+        if let Some(m) = self.min_modified_time {
+            if meta.is_none() {
+                meta = ent.metadata().ok()
+            }
+            if skip_modified(
+                m,
+                ent.path(),
+                &meta,
+            ) {
+                return Ok(true)
+            }
         }
         Ok(false)
     }
@@ -1150,6 +1178,7 @@ pub struct WalkParallel {
     ig_root: Ignore,
     max_filesize: Option<u64>,
     max_depth: Option<usize>,
+    min_modified_time: Option<std::time::SystemTime>,
     follow_links: bool,
     same_file_system: bool,
     threads: usize,
@@ -1258,6 +1287,7 @@ impl WalkParallel {
                     num_pending: num_pending.clone(),
                     max_depth: self.max_depth,
                     max_filesize: self.max_filesize,
+                    min_modified_time: self.min_modified_time,
                     follow_links: self.follow_links,
                     skip: self.skip.clone(),
                 };
@@ -1378,6 +1408,9 @@ struct Worker<'s> {
     /// The maximum size a searched file can be (in bytes). If a file exceeds
     /// this size it will be skipped.
     max_filesize: Option<u64>,
+    /// The minimum last modification time for a search file. Files
+    /// older than this time will be skipped.
+    min_modified_time: Option<std::time::SystemTime>,
     /// Whether to follow symbolic links or not. When this is enabled, loop
     /// detection is performed.
     follow_links: bool,
@@ -1528,18 +1561,33 @@ impl<'s> Worker<'s> {
             }
         }
         let should_skip_path = should_skip_entry(ig, &dent);
+        let mut meta = None;
         let should_skip_filesize =
             if self.max_filesize.is_some() && !dent.is_dir() {
+                meta = dent.metadata().ok();
                 skip_filesize(
                     self.max_filesize.unwrap(),
                     dent.path(),
-                    &dent.metadata().ok(),
+                    &meta,
+                )
+            } else {
+                false
+            };
+        let should_skip_modified =
+            if let Some(m) = self.min_modified_time {
+                if meta.is_none() {
+                    meta = dent.metadata().ok()
+                }
+                skip_modified(
+                    m,
+                    dent.path(),
+                    &meta,
                 )
             } else {
                 false
             };
 
-        if !should_skip_path && !should_skip_filesize {
+        if !should_skip_path && !should_skip_filesize && !should_skip_modified {
             self.send(Work { dent, ignore: ig.clone(), root_device });
         }
         WalkState::Continue
@@ -1661,6 +1709,30 @@ fn skip_filesize(
     if let Some(fs) = filesize {
         if fs > max_filesize {
             debug!("ignoring {}: {} bytes", path.display(), fs);
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    }
+}
+
+// Before calling this function, make sure that you ensure that is really
+// necessary as the arguments imply a file stat.
+fn skip_modified(
+    min_modified_time: std::time::SystemTime,
+    path: &Path,
+    ent: &Option<Metadata>,
+) -> bool {
+    let modified = match *ent {
+        Some(ref md) => md.modified().ok(),
+        None => None,
+    };
+
+    if let Some(m) = modified {
+        if m < min_modified_time {
+            debug!("ignoring {}: {:?} < {:?}", path.display(), m, min_modified_time);
             true
         } else {
             false
@@ -2056,6 +2128,47 @@ mod tests {
             td.path(),
             builder.max_filesize(Some(50000)),
             &["a", "a/b", "foo", "bar", "baz", "a/foo", "a/bar", "a/baz"],
+        );
+    }
+
+    #[test]
+    fn min_modified() {
+        let td = tmpdir();
+        mkdirp(td.path().join("a/b"));
+        mkdirp(td.path().join("c/d"));
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("a/bar"), "");
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let mid = std::time::SystemTime::now();
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        wfile(td.path().join("c/baz"), "");
+        wfile(td.path().join("foo"), "");
+        wfile(td.path().join("bar"), "");
+        wfile(td.path().join("baz"), "");
+
+        let mut builder = WalkBuilder::new(td.path());
+        assert_paths(
+            td.path(),
+            &builder,
+            &["a", "a/b", "a/bar", "a/foo", "bar", "baz", "c", "c/baz", "c/d", "foo"],
+        );
+        assert_paths(
+            td.path(),
+            builder.min_modified(Some(mid)),
+            &["bar", "baz", "c", "c/baz", "foo"]
+        );
+
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let mid = std::time::SystemTime::now();
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        wfile(td.path().join("a/foo"), "");
+        wfile(td.path().join("a/baz"), "");
+
+        assert_paths(
+            td.path(),
+            builder.min_modified(Some(mid)),
+            &["a", "a/baz", "a/foo"],
         );
     }
 
