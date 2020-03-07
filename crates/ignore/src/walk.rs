@@ -633,7 +633,10 @@ impl WalkBuilder {
     }
 
     /// Whether to ignore files older than the specified time.
-    pub fn min_modified(&mut self, modified: Option<std::time::SystemTime>) -> &mut WalkBuilder {
+    pub fn min_modified(
+        &mut self,
+        modified: Option<std::time::SystemTime>,
+    ) -> &mut WalkBuilder {
         self.min_modified_time = modified;
         self
     }
@@ -930,24 +933,16 @@ impl Walk {
         let mut meta = None;
         if self.max_filesize.is_some() && !ent.is_dir() {
             meta = ent.metadata().ok();
-            if skip_filesize(
-                self.max_filesize.unwrap(),
-                ent.path(),
-                &meta,
-            ) {
-                return Ok(true)
+            if skip_filesize(self.max_filesize.unwrap(), ent.path(), &meta) {
+                return Ok(true);
             }
         }
         if let Some(m) = self.min_modified_time {
             if meta.is_none() {
                 meta = ent.metadata().ok()
             }
-            if skip_modified(
-                m,
-                ent.path(),
-                &meta,
-            ) {
-                return Ok(true)
+            if skip_modified(m, ent.path(), &meta) {
+                return Ok(true);
             }
         }
         Ok(false)
@@ -1565,29 +1560,21 @@ impl<'s> Worker<'s> {
         let should_skip_filesize =
             if self.max_filesize.is_some() && !dent.is_dir() {
                 meta = dent.metadata().ok();
-                skip_filesize(
-                    self.max_filesize.unwrap(),
-                    dent.path(),
-                    &meta,
-                )
+                skip_filesize(self.max_filesize.unwrap(), dent.path(), &meta)
             } else {
                 false
             };
-        let should_skip_modified =
-            if let Some(m) = self.min_modified_time {
-                if meta.is_none() {
-                    meta = dent.metadata().ok()
-                }
-                skip_modified(
-                    m,
-                    dent.path(),
-                    &meta,
-                )
-            } else {
-                false
-            };
+        let should_skip_modified = if let Some(m) = self.min_modified_time {
+            if meta.is_none() {
+                meta = dent.metadata().ok()
+            }
+            skip_modified(m, dent.path(), &meta)
+        } else {
+            false
+        };
 
-        if !should_skip_path && !should_skip_filesize && !should_skip_modified {
+        if !should_skip_path && !should_skip_filesize && !should_skip_modified
+        {
             self.send(Work { dent, ignore: ig.clone(), root_device });
         }
         WalkState::Continue
@@ -1732,7 +1719,12 @@ fn skip_modified(
 
     if let Some(m) = modified {
         if m < min_modified_time {
-            debug!("ignoring {}: {:?} < {:?}", path.display(), m, min_modified_time);
+            debug!(
+                "ignoring {}: {:?} < {:?}",
+                path.display(),
+                m,
+                min_modified_time
+            );
             true
         } else {
             false
@@ -2139,7 +2131,7 @@ mod tests {
         wfile(td.path().join("a/foo"), "");
         wfile(td.path().join("a/bar"), "");
         std::thread::sleep(std::time::Duration::from_secs(1));
-        let mid = std::time::SystemTime::now();
+        let t0 = std::time::SystemTime::now();
         std::thread::sleep(std::time::Duration::from_secs(1));
         wfile(td.path().join("c/baz"), "");
         wfile(td.path().join("foo"), "");
@@ -2150,24 +2142,26 @@ mod tests {
         assert_paths(
             td.path(),
             &builder,
-            &["a", "a/b", "a/bar", "a/foo", "bar", "baz", "c", "c/baz", "c/d", "foo"],
+            &[
+                "a", "a/b", "a/bar", "a/foo", "bar", "baz", "c", "c/baz",
+                "c/d", "foo",
+            ],
         );
         assert_paths(
             td.path(),
-            builder.min_modified(Some(mid)),
-            &["bar", "baz", "c", "c/baz", "foo"]
+            builder.min_modified(Some(t0)),
+            &["bar", "baz", "c", "c/baz", "foo"],
         );
 
-
         std::thread::sleep(std::time::Duration::from_secs(1));
-        let mid = std::time::SystemTime::now();
+        let t1 = std::time::SystemTime::now();
         std::thread::sleep(std::time::Duration::from_secs(1));
-        wfile(td.path().join("a/foo"), "");
-        wfile(td.path().join("a/baz"), "");
+        wfile(td.path().join("a/foo"), "foo");
+        wfile(td.path().join("a/baz"), "baz");
 
         assert_paths(
             td.path(),
-            builder.min_modified(Some(mid)),
+            builder.min_modified(Some(t1)),
             &["a", "a/baz", "a/foo"],
         );
     }
