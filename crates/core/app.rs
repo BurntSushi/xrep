@@ -1364,7 +1364,13 @@ fn flag_glob(args: &mut Vec<RGArg>) {
 Include or exclude files and directories for searching that match the given
 glob. This always overrides any other ignore logic. Multiple glob flags may be
 used. Globbing rules match .gitignore globs. Precede a glob with a ! to exclude
-it.
+it. If multiple globs match a file or directory, the glob given later in the
+command line takes precedence.
+
+When this flag is set, every file and directory is applied to it to test for
+a match. So for example, if you only want to search in a particular directory
+'foo', then *-g foo* is incorrect because 'foo/bar' does not match the glob
+'foo'. Instead, you should use *-g +++'foo/**'+++*.
 "
     );
     let arg = RGArg::flag("glob", "GLOB")

@@ -59,6 +59,9 @@ Bug fixes:
   Improve documentation for ripgrep's automatic stdin detection.
 * [BUG #1441](https://github.com/BurntSushi/ripgrep/issues/1441):
   Remove CPU features from man page.
+* [BUG #1442](https://github.com/BurntSushi/ripgrep/issues/1442),
+  [BUG #1478](https://github.com/BurntSushi/ripgrep/issues/1478):
+  Improve documentation of the `-g/--glob` flag.
 * [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
   ripgrep now respects ignore rules from .git/info/exclude in worktrees.
 * [BUG #1485](https://github.com/BurntSushi/ripgrep/issues/1485):
