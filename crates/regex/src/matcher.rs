@@ -54,9 +54,9 @@ impl RegexMatcherBuilder {
         trace!("final regex: {:?}", matcher.regex());
         Ok(RegexMatcher {
             config: self.config.clone(),
-            matcher: matcher,
-            fast_line_regex: fast_line_regex,
-            non_matching_bytes: non_matching_bytes,
+            matcher,
+            fast_line_regex,
+            non_matching_bytes,
         })
     }
 

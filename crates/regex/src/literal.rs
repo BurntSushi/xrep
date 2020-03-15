@@ -35,7 +35,7 @@ impl LiteralSets {
         LiteralSets {
             prefixes: Literals::prefixes(expr),
             suffixes: Literals::suffixes(expr),
-            required: required,
+            required,
         }
     }
 

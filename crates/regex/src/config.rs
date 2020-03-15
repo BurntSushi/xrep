@@ -87,7 +87,7 @@ impl Config {
         Ok(ConfiguredHIR {
             original: pattern.to_string(),
             config: self.clone(),
-            analysis: analysis,
+            analysis,
             // If CRLF mode is enabled, replace `$` with `(?:\r?$)`.
             expr: if self.crlf { crlfify(expr) } else { expr },
         })
@@ -282,7 +282,7 @@ impl ConfiguredHIR {
             original: self.original.clone(),
             config: self.config.clone(),
             analysis: self.analysis.clone(),
-            expr: expr,
+            expr,
         })
     }
 }
