@@ -41,6 +41,11 @@ configuration file. The file can specify one shell argument per line. Lines
 starting with *#* are ignored. For more details, see the man page or the
 *README*.
 
+ripgrep will automatically detect if stdin exists and search stdin for a regex
+pattern, e.g. *ls | rg foo*. In some environments, stdin may exist when it
+shouldn't. To turn off stdin detection explicitly specify the directory to
+search, e.g. *rg foo ./*.
+
 Tip: to disable all smart filtering and make ripgrep behave a bit more like
 classical grep, use *rg -uuu*.
 

@@ -55,6 +55,8 @@ Bug fixes:
   Document usage of `--type all`.
 * [BUG #1389](https://github.com/BurntSushi/ripgrep/issues/1389):
   Fixes a bug where ripgrep would panic when searching a symlinked directory.
+* [BUG #1439](https://github.com/BurntSushi/ripgrep/issues/1439):
+  Improve documentation for ripgrep's automatic stdin detection.
 * [BUG #1445](https://github.com/BurntSushi/ripgrep/issues/1445):
   ripgrep now respects ignore rules from .git/info/exclude in worktrees.
 * [BUG #1485](https://github.com/BurntSushi/ripgrep/issues/1485):
