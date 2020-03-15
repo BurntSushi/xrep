@@ -37,6 +37,8 @@ Feature enhancements:
   Add `--no-require-git` flag to allow ripgrep to respect gitignores anywhere.
 * [FEATURE #1420](https://github.com/BurntSushi/ripgrep/pull/1420):
   Add `--no-ignore-exclude` to disregard rules in `.git/info/exclude` files.
+* [FEATURE #1466](https://github.com/BurntSushi/ripgrep/pull/1466):
+  Add `--no-ignore-files` flag to disable all `--ignore-file` flags.
 * [FEATURE #1488](https://github.com/BurntSushi/ripgrep/pull/1488):
   Add '--engine' flag for easier switching between regex engines.
 * [FEATURE 75cbe88f](https://github.com/BurntSushi/ripgrep/commit/75cbe88f):

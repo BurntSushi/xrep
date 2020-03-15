@@ -156,9 +156,13 @@ _rg() {
     "--no-require-git[don't require git repository to respect gitignore rules]"
     $no'--require-git[require git repository to respect gitignore rules]'
 
-    + '(ignore-dot)' # .ignore-file options
+    + '(ignore-dot)' # .ignore options
     "--no-ignore-dot[don't respect .ignore files]"
     $no'--ignore-dot[respect .ignore files]'
+
+    + '(ignore-files)' # custom global ignore file options
+    "--no-ignore-files[don't respect --ignore-file flags]"
+    $no'--ignore-files[respect --ignore-file files]'
 
     + '(json)' # JSON options
     '--json[output results in JSON Lines format]'

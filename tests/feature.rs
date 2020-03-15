@@ -754,7 +754,7 @@ rgtest!(f1414_no_require_git, |dir: Dir, mut cmd: TestCommand| {
 });
 
 // See: https://github.com/BurntSushi/ripgrep/pull/1420
-rgtest!(f1420_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
+rgtest!(f1420_no_ignore_exclude, |dir: Dir, mut cmd: TestCommand| {
     dir.create_dir(".git/info");
     dir.create(".git/info/exclude", "foo");
     dir.create("bar", "");
@@ -763,6 +763,28 @@ rgtest!(f1420_no_ignore_dot, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("--sort").arg("path").arg("--files");
     eqnice!("bar\n", cmd.stdout());
     eqnice!("bar\nfoo\n", cmd.arg("--no-ignore-exclude").stdout());
+});
+
+// See: https://github.com/BurntSushi/ripgrep/pull/1466
+rgtest!(f1466_no_ignore_files, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".myignore", "bar");
+    dir.create("bar", "");
+    dir.create("foo", "");
+
+    // Test that --no-ignore-files disables --ignore-file.
+    // And that --ignore-files overrides --no-ignore-files.
+    cmd.arg("--sort").arg("path").arg("--files");
+    eqnice!("bar\nfoo\n", cmd.stdout());
+    eqnice!("foo\n", cmd.arg("--ignore-file").arg(".myignore").stdout());
+    eqnice!("bar\nfoo\n", cmd.arg("--no-ignore-files").stdout());
+    eqnice!("foo\n", cmd.arg("--ignore-files").stdout());
+
+    // Test that the -u flag does not disable --ignore-file.
+    let mut cmd = dir.command();
+    cmd.arg("--sort").arg("path").arg("--files");
+    cmd.arg("--ignore-file").arg(".myignore");
+    eqnice!("foo\n", cmd.stdout());
+    eqnice!("foo\n", cmd.arg("-u").stdout());
 });
 
 rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {

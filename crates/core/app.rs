@@ -614,6 +614,7 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_no_ignore(&mut args);
     flag_no_ignore_dot(&mut args);
     flag_no_ignore_exclude(&mut args);
+    flag_no_ignore_files(&mut args);
     flag_no_ignore_global(&mut args);
     flag_no_ignore_messages(&mut args);
     flag_no_ignore_parent(&mut args);
@@ -1955,7 +1956,11 @@ fn flag_no_ignore(args: &mut Vec<RGArg>) {
     const LONG: &str = long!(
         "\
 Don't respect ignore files (.gitignore, .ignore, etc.). This implies
---no-ignore-parent, --no-ignore-dot and --no-ignore-vcs.
+--no-ignore-dot, --no-ignore-exclude, --no-ignore-global, no-ignore-parent and
+--no-ignore-vcs.
+
+This does *not* imply --no-ignore-files, since --ignore-file is specified
+explicitly as a command line argument.
 
 This flag can be disabled with the --ignore flag.
 "
@@ -2008,6 +2013,27 @@ This flag can be disabled with the --ignore-exclude flag.
     let arg = RGArg::switch("ignore-exclude")
         .hidden()
         .overrides("no-ignore-exclude");
+    args.push(arg);
+}
+
+fn flag_no_ignore_files(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Don't respect --ignore-file arguments.";
+    const LONG: &str = long!(
+        "\
+When set, any --ignore-file flags, even ones that come after this flag, are
+ignored.
+
+This flag can be disabled with the --ignore-files flag.
+"
+    );
+    let arg = RGArg::switch("no-ignore-files")
+        .help(SHORT)
+        .long_help(LONG)
+        .overrides("ignore-files");
+    args.push(arg);
+
+    let arg =
+        RGArg::switch("ignore-files").hidden().overrides("no-ignore-files");
     args.push(arg);
 }
 

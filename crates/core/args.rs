@@ -862,9 +862,11 @@ impl ArgMatches {
         for path in &paths[1..] {
             builder.add(path);
         }
-        for path in self.ignore_paths() {
-            if let Some(err) = builder.add_ignore(path) {
-                ignore_message!("{}", err);
+        if !self.no_ignore_files() {
+            for path in self.ignore_paths() {
+                if let Some(err) = builder.add_ignore(path) {
+                    ignore_message!("{}", err);
+                }
             }
         }
         builder
@@ -1226,6 +1228,14 @@ impl ArgMatches {
     /// Returns true if local exclude (ignore) files should be ignored.
     fn no_ignore_exclude(&self) -> bool {
         self.is_present("no-ignore-exclude") || self.no_ignore()
+    }
+
+    /// Returns true if explicitly given ignore files should be ignored.
+    fn no_ignore_files(&self) -> bool {
+        // We don't look at no-ignore here because --no-ignore is explicitly
+        // documented to not override --ignore-file. We could change this, but
+        // it would be a fairly severe breaking change.
+        self.is_present("no-ignore-files")
     }
 
     /// Returns true if global ignore files should be ignored.
