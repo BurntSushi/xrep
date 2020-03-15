@@ -86,7 +86,7 @@ fn generate_man_page<P: AsRef<Path>>(outdir: P) -> io::Result<()> {
 
     let githash = git_revision_hash();
     let githash = githash.as_ref().map(|x| &**x);
-    tpl = tpl.replace("{VERSION}", &app::long_version(githash));
+    tpl = tpl.replace("{VERSION}", &app::long_version(githash, false));
 
     File::create(&txt_path)?.write_all(tpl.as_bytes())?;
     let result = process::Command::new("a2x")

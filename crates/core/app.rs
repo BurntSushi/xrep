@@ -66,7 +66,7 @@ pub fn app() -> App<'static, 'static> {
     // 'static, but we need to build the version string dynamically. We can
     // fake the 'static lifetime with lazy_static.
     lazy_static! {
-        static ref LONG_VERSION: String = long_version(None);
+        static ref LONG_VERSION: String = long_version(None, true);
     }
 
     let mut app = App::new("ripgrep")
@@ -91,30 +91,36 @@ pub fn app() -> App<'static, 'static> {
 /// If a revision hash is given, then it is used. If one isn't given, then
 /// the RIPGREP_BUILD_GIT_HASH env var is inspected for it. If that isn't set,
 /// then a revision hash is not included in the version string returned.
-pub fn long_version(revision_hash: Option<&str>) -> String {
+///
+/// If `cpu` is true, then the version string will include the compiled and
+/// runtime CPU features.
+pub fn long_version(revision_hash: Option<&str>, cpu: bool) -> String {
     // Do we have a git hash?
     // (Yes, if ripgrep was built on a machine with `git` installed.)
     let hash = match revision_hash.or(option_env!("RIPGREP_BUILD_GIT_HASH")) {
         None => String::new(),
         Some(githash) => format!(" (rev {})", githash),
     };
-    // Put everything together.
-    let runtime = runtime_cpu_features();
-    if runtime.is_empty() {
-        format!(
-            "{}{}\n{} (compiled)",
-            crate_version!(),
-            hash,
-            compile_cpu_features().join(" ")
-        )
+    if !cpu {
+        format!("{}{}", crate_version!(), hash,)
     } else {
-        format!(
-            "{}{}\n{} (compiled)\n{} (runtime)",
-            crate_version!(),
-            hash,
-            compile_cpu_features().join(" "),
-            runtime.join(" ")
-        )
+        let runtime = runtime_cpu_features();
+        if runtime.is_empty() {
+            format!(
+                "{}{}\n{} (compiled)",
+                crate_version!(),
+                hash,
+                compile_cpu_features().join(" ")
+            )
+        } else {
+            format!(
+                "{}{}\n{} (compiled)\n{} (runtime)",
+                crate_version!(),
+                hash,
+                compile_cpu_features().join(" "),
+                runtime.join(" ")
+            )
+        }
     }
 }
 
