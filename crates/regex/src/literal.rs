@@ -5,6 +5,7 @@ the regex engine doesn't look for inner literals. Since we're doing line based
 searching, we can use them, so we need to do it ourselves.
 */
 
+use bstr::ByteSlice;
 use regex_syntax::hir::literal::{Literal, Literals};
 use regex_syntax::hir::{self, Hir, HirKind};
 
@@ -99,7 +100,12 @@ impl LiteralSets {
         // helps with case insensitive matching, which can generate lots of
         // inner required literals.
         let any_empty = req_lits.iter().any(|lit| lit.is_empty());
-        if req.len() > lit.len() && req_lits.len() > 1 && !any_empty {
+        let any_white = has_only_whitespace(&req_lits);
+        if req.len() > lit.len()
+            && req_lits.len() > 1
+            && !any_empty
+            && !any_white
+        {
             debug!("required literals found: {:?}", req_lits);
             let alts: Vec<String> = req_lits
                 .into_iter()
@@ -121,7 +127,7 @@ impl LiteralSets {
             // with the highest minimum length and use that to build our "fast"
             // regex.
             //
-            // This manifest in fairly common scenarios. e.g.,
+            // This manifests in fairly common scenarios. e.g.,
             //
             //     rg -w 'foo|bar|baz|quux'
             //
@@ -159,12 +165,20 @@ impl LiteralSets {
             };
 
             debug!("prefix/suffix literals found: {:?}", lits);
+            if has_only_whitespace(lits) {
+                debug!("dropping literals because one was whitespace");
+                return None;
+            }
             let alts: Vec<String> =
                 lits.into_iter().map(|x| util::bytes_to_regex(x)).collect();
             // We're matching raw bytes, so disable Unicode mode.
             Some(format!("(?-u:{})", alts.join("|")))
         } else {
             debug!("required literal found: {:?}", util::show_bytes(lit));
+            if lit.chars().all(|c| c.is_whitespace()) {
+                debug!("dropping literal because one was whitespace");
+                return None;
+            }
             Some(format!("(?-u:{})", util::bytes_to_regex(&lit)))
         }
     }
@@ -326,6 +340,17 @@ fn count_unicode_class(cls: &hir::ClassUnicode) -> u32 {
 /// Return the number of bytes in the given class.
 fn count_byte_class(cls: &hir::ClassBytes) -> u32 {
     cls.iter().map(|r| 1 + (r.end() as u32 - r.start() as u32)).sum()
+}
+
+/// Returns true if and only if any of the literals in the given set is
+/// entirely whitespace.
+fn has_only_whitespace(lits: &[Literal]) -> bool {
+    for lit in lits {
+        if lit.chars().all(|c| c.is_whitespace()) {
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]

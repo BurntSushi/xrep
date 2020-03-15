@@ -14,6 +14,8 @@ Deprecations:
 
 Performance improvements:
 
+* [PERF #1087](https://github.com/BurntSushi/ripgrep/pull/1087):
+  ripgrep is smarter when detected literals are whitespace.
 * [PERF #1381](https://github.com/BurntSushi/ripgrep/pull/1381):
   Directory traversal is sped up with speculative ignore-file existence checks.
 * [PERF cd8ec38a](https://github.com/BurntSushi/ripgrep/commit/cd8ec38a):

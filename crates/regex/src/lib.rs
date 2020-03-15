@@ -5,6 +5,7 @@ An implementation of `grep-matcher`'s `Matcher` trait for Rust's regex engine.
 #![deny(missing_docs)]
 
 extern crate aho_corasick;
+extern crate bstr;
 extern crate grep_matcher;
 #[macro_use]
 extern crate log;
