@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+D="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 # This script builds a binary dpkg for Debian based distros. It does not
 # currently run in CI, and is instead run manually and the resulting dpkg is
@@ -23,20 +24,12 @@ fi
 # the deb, which knows where to look.
 
 DEPLOY_DIR=deployment/deb
+OUT_DIR="$("$D"/cargo-out-dir target/debug/)"
 mkdir -p "$DEPLOY_DIR"
 cargo build
 
-# Find and copy man page.
-manpage="$(find ./target/debug -name rg.1 -print0 | xargs -0 ls -t | head -n1)"
-cp "$manpage" "$DEPLOY_DIR/"
-
-# Do the same for shell completions.
-compbash="$(find ./target/debug -name rg.bash -print0 | xargs -0 ls -t | head -n1)"
-cp "$compbash" "$DEPLOY_DIR/"
-compfish="$(find ./target/debug -name rg.fish -print0 | xargs -0 ls -t | head -n1)"
-cp "$compfish" "$DEPLOY_DIR/"
-compzsh="complete/_rg"
-cp "$compzsh" "$DEPLOY_DIR/"
+# Copy man page and shell completions.
+cp "$OUT_DIR"/{rg.1,rg.bash,rg.fish,_rg} "$DEPLOY_DIR/"
 
 # Since we're distributing the dpkg, we don't know whether the user will have
 # PCRE2 installed, so just do a static build.

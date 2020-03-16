@@ -3,7 +3,7 @@
 ##
 # zsh completion function for ripgrep
 #
-# Run ci/test_complete.sh after building to ensure that the options supported by
+# Run ci/test-complete after building to ensure that the options supported by
 # this function stay in synch with the `rg` binary.
 #
 # For convenience, a completion reference guide is included at the bottom of
@@ -323,7 +323,7 @@ _rg() {
     '(--type-list)*: :_files'
   )
 
-  # This is used with test_complete.sh to verify that there are no options
+  # This is used with test-complete to verify that there are no options
   # listed in the help output that aren't also defined here
   [[ $_RG_COMPLETE_LIST_ARGS == (1|t*|y*) ]] && {
     print -rl - $args
