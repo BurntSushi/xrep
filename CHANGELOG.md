@@ -1,6 +1,15 @@
-TBD
-===
-TODO
+12.0.0 (2020-03-15)
+===================
+ripgrep 12 is a new major version release of ripgrep that contains many bug
+fixes, several important performance improvements and a few minor new features.
+
+In a near future release, I am hoping to add an
+[indexing feature](https://github.com/BurntSushi/ripgrep/issues/1497)
+to ripgrep, which will dramatically speed up searching by building an index.
+Feedback would very much be appreciated, especially on the user experience
+which will be difficult to get right.
+
+This release has no known breaking changes.
 
 Deprecations:
 
