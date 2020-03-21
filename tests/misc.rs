@@ -511,7 +511,7 @@ rgtest!(context_line_numbers, |dir: Dir, mut cmd: TestCommand| {
     eqnice!(expected, cmd.stdout());
 });
 
-rgtest!(max_filesize_parse_errro_length, |_: Dir, mut cmd: TestCommand| {
+rgtest!(max_filesize_parse_error_length, |_: Dir, mut cmd: TestCommand| {
     cmd.arg("--max-filesize").arg("44444444444444444444");
     cmd.assert_non_empty_stderr();
 });
