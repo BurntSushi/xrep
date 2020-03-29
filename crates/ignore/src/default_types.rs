@@ -52,6 +52,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("dhall", &["*.dhall"]),
     ("diff", &["*.patch", "*.diff"]),
     ("docker", &["*Dockerfile*"]),
+    ("ebuild", &["*.ebuild"]),
     ("edn", &["*.edn"]),
     ("elisp", &["*.el"]),
     ("elixir", &["*.ex", "*.eex", "*.exs"]),
