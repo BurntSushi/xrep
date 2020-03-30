@@ -2313,7 +2313,7 @@ This flag can be disabled with --no-one-file-system.
 }
 
 fn flag_only_matching(args: &mut Vec<RGArg>) {
-    const SHORT: &str = "Print only matches parts of a line.";
+    const SHORT: &str = "Print only matched parts of a line.";
     const LONG: &str = long!(
         "\
 Print only the matched (non-empty) parts of a matching line, with each such
