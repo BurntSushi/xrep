@@ -65,6 +65,51 @@ fn git_revision_hash() -> Option<String> {
 }
 
 fn generate_man_page<P: AsRef<Path>>(outdir: P) -> io::Result<()> {
+    // If asciidoctor isn't installed, fallback to asciidoc.
+    if let Err(err) = process::Command::new("asciidoctor").output() {
+        eprintln!(
+            "Could not run 'asciidoctor' binary, falling back to 'a2x'."
+        );
+        eprintln!("Error from running 'asciidoctor': {}", err);
+        return legacy_generate_man_page::<P>(outdir);
+    }
+    // 1. Read asciidoctor template.
+    // 2. Interpolate template with auto-generated docs.
+    // 3. Save interpolation to disk.
+    // 4. Use asciidoctor to convert to man page.
+    let outdir = outdir.as_ref();
+    let cwd = env::current_dir()?;
+    let tpl_path = cwd.join("doc").join("rg.1.txt.tpl");
+    let txt_path = outdir.join("rg.1.txt");
+
+    let mut tpl = String::new();
+    File::open(&tpl_path)?.read_to_string(&mut tpl)?;
+    let options =
+        formatted_options()?.replace("&#123;", "{").replace("&#125;", "}");
+    tpl = tpl.replace("{OPTIONS}", &options);
+
+    let githash = git_revision_hash();
+    let githash = githash.as_ref().map(|x| &**x);
+    tpl = tpl.replace("{VERSION}", &app::long_version(githash, false));
+
+    File::create(&txt_path)?.write_all(tpl.as_bytes())?;
+    let result = process::Command::new("asciidoctor")
+        .arg("--doctype")
+        .arg("manpage")
+        .arg("--backend")
+        .arg("manpage")
+        .arg(&txt_path)
+        .spawn()?
+        .wait()?;
+    if !result.success() {
+        let msg =
+            format!("'asciidoctor' failed with exit code {:?}", result.code());
+        return Err(ioerr(msg));
+    }
+    Ok(())
+}
+
+fn legacy_generate_man_page<P: AsRef<Path>>(outdir: P) -> io::Result<()> {
     // If asciidoc isn't installed, then don't do anything.
     if let Err(err) = process::Command::new("a2x").output() {
         eprintln!("Could not run 'a2x' binary, skipping man page generation.");

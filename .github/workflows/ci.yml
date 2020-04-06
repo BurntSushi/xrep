@@ -19,8 +19,6 @@ jobs:
       TARGET_DIR: ./target
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
-      # Apparently needed to use a2x on macOS.
-      XML_CATALOG_FILES: /usr/local/etc/xml/catalog
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

@@ -75,8 +75,6 @@ jobs:
       RUST_BACKTRACE: 1
       # Build static releases with PCRE2.
       PCRE2_SYS_STATIC: 1
-      # Apparently needed to use a2x on macOS.
-      XML_CATALOG_FILES: /usr/local/etc/xml/catalog
     strategy:
       matrix:
         build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
