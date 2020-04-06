@@ -60,9 +60,10 @@ patch release out with a fix. However, no promises are made.
 Does ripgrep have a man page?
 </h3>
 
-Yes! Whenever ripgrep is compiled on a system with `asciidoc` present, then a
-man page is generated from ripgrep's argv parser. After compiling ripgrep, you
-can find the man page like so from the root of the repository:
+Yes! Whenever ripgrep is compiled on a system with `asciidoctor` or `asciidoc`
+present, then a man page is generated from ripgrep's argv parser. After
+compiling ripgrep, you can find the man page like so from the root of the
+repository:
 
 ```
 $ find ./target -name rg.1 -print0 | xargs -0 ls -t | head -n1

@@ -15,6 +15,8 @@ Bug fixes:
   Note how to escape a `$` when using `--replace`.
 * [BUG #1537](https://github.com/BurntSushi/ripgrep/issues/1537):
   Fix match bug caused by inner literal optimization.
+* [BUG #1544](https://github.com/BurntSushi/ripgrep/issues/1544):
+  ripgrep now uses `asciidoctor` instead of `a2x` to generate its man page.
 * [BUG #1571](https://github.com/BurntSushi/ripgrep/issues/1571):
   Add note about configuration files in `--type-{add,clear}` docs.
 * [BUG #1573](https://github.com/BurntSushi/ripgrep/issues/1573):
