@@ -1,5 +1,5 @@
 class RipgrepBin < Formula
-  version '12.0.0'
+  version '12.0.1'
   desc "Recursively search directories for a regex pattern."
   homepage "https://github.com/BurntSushi/ripgrep"
 
