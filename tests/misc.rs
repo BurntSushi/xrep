@@ -970,6 +970,21 @@ be, to a very large extent, the result of luck. Sherlock Holmes
     eqnice!(expected, cmd.stdout());
 });
 
+rgtest!(compressed_uncompress, |dir: Dir, mut cmd: TestCommand| {
+    if !cmd_exists("uncompress") {
+        return;
+    }
+
+    dir.create_bytes("sherlock.Z", include_bytes!("./data/sherlock.Z"));
+    cmd.arg("-z").arg("Sherlock").arg("sherlock.Z");
+
+    let expected = "\
+    For the Doctor Watsons of this world, as opposed to the Sherlock
+be, to a very large extent, the result of luck. Sherlock Holmes
+";
+    eqnice!(expected, cmd.stdout());
+});
+
 rgtest!(compressed_failing_gzip, |dir: Dir, mut cmd: TestCommand| {
     if !cmd_exists("gzip") {
         return;
