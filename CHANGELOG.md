@@ -1,5 +1,10 @@
 TBD
 ===
+Feature enhancements:
+
+* [FEATURE #1547](https://github.com/BurntSushi/ripgrep/pull/1547):
+  Support decompressing `.Z` files via `uncompress`.
+
 Bug fixes:
 
 * [BUG #1252](https://github.com/BurntSushi/ripgrep/issues/1252):

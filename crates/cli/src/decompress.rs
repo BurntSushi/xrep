@@ -348,6 +348,7 @@ fn default_decompression_commands() -> Vec<DecompressionCommand> {
     const ARGS_LZMA: &[&str] = &["xz", "--format=lzma", "-d", "-c"];
     const ARGS_BROTLI: &[&str] = &["brotli", "-d", "-c"];
     const ARGS_ZSTD: &[&str] = &["zstd", "-q", "-d", "-c"];
+    const ARGS_UNCOMPRESS: &[&str] = &["uncompress", "-c"];
 
     fn cmd(glob: &str, args: &[&str]) -> DecompressionCommand {
         DecompressionCommand {
@@ -372,5 +373,6 @@ fn default_decompression_commands() -> Vec<DecompressionCommand> {
         cmd("*.br", ARGS_BROTLI),
         cmd("*.zst", ARGS_ZSTD),
         cmd("*.zstd", ARGS_ZSTD),
+        cmd("*.Z", ARGS_UNCOMPRESS),
     ]
 }
