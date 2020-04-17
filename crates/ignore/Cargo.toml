@@ -18,7 +18,6 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam-channel = "0.4.0"
 crossbeam-utils = "0.7.0"
 globset = { version = "0.4.3", path = "../globset" }
 lazy_static = "1.1"
@@ -31,6 +30,9 @@ walkdir = "2.2.7"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.2"
+
+[dev-dependencies]
+crossbeam-channel = "0.4.0"
 
 [features]
 simd-accel = ["globset/simd-accel"]
