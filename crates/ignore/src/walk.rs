@@ -489,6 +489,7 @@ pub struct WalkBuilder {
     sorter: Option<Sorter>,
     threads: usize,
     skip: Option<Arc<Handle>>,
+    filter: Option<Filter>,
 }
 
 #[derive(Clone)]
@@ -498,6 +499,9 @@ enum Sorter {
     ),
     ByPath(Arc<dyn Fn(&Path, &Path) -> cmp::Ordering + Send + Sync + 'static>),
 }
+
+#[derive(Clone)]
+struct Filter(Arc<dyn Fn(&DirEntry) -> bool + Send + Sync + 'static>);
 
 impl fmt::Debug for WalkBuilder {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -531,6 +535,7 @@ impl WalkBuilder {
             sorter: None,
             threads: 0,
             skip: None,
+            filter: None,
         }
     }
 
@@ -579,6 +584,7 @@ impl WalkBuilder {
             ig: ig_root.clone(),
             max_filesize: self.max_filesize,
             skip: self.skip.clone(),
+            filter: self.filter.clone(),
         }
     }
 
@@ -597,6 +603,7 @@ impl WalkBuilder {
             same_file_system: self.same_file_system,
             threads: self.threads,
             skip: self.skip.clone(),
+            filter: self.filter.clone(),
         }
     }
 
@@ -878,6 +885,23 @@ impl WalkBuilder {
         }
         self
     }
+
+    /// Yields only entries which satisfy the given predicate and skips
+    /// descending into directories that do not satisfy the given predicate.
+    ///
+    /// The predicate is applied to all entries. If the predicate is
+    /// true, iteration carries on as normal. If the predicate is false, the
+    /// entry is ignored and if it is a directory, it is not descended into.
+    ///
+    /// Note that the errors for reading entries that may not satisfy the
+    /// predicate will still be yielded.
+    pub fn filter_entry<P>(&mut self, filter: P) -> &mut WalkBuilder
+    where
+        P: Fn(&DirEntry) -> bool + Send + Sync + 'static,
+    {
+        self.filter = Some(Filter(Arc::new(filter)));
+        self
+    }
 }
 
 /// Walk is a recursive directory iterator over file paths in one or more
@@ -893,6 +917,7 @@ pub struct Walk {
     ig: Ignore,
     max_filesize: Option<u64>,
     skip: Option<Arc<Handle>>,
+    filter: Option<Filter>,
 }
 
 impl Walk {
@@ -924,6 +949,11 @@ impl Walk {
                 ent.path(),
                 &ent.metadata().ok(),
             ));
+        }
+        if let Some(Filter(filter)) = &self.filter {
+            if !filter(ent) {
+                return Ok(true);
+            }
         }
         Ok(false)
     }
@@ -1157,6 +1187,7 @@ pub struct WalkParallel {
     same_file_system: bool,
     threads: usize,
     skip: Option<Arc<Handle>>,
+    filter: Option<Filter>,
 }
 
 impl WalkParallel {
@@ -1255,6 +1286,7 @@ impl WalkParallel {
                     max_filesize: self.max_filesize,
                     follow_links: self.follow_links,
                     skip: self.skip.clone(),
+                    filter: self.filter.clone(),
                 };
                 handles.push(s.spawn(|_| worker.run()));
             }
@@ -1380,6 +1412,9 @@ struct Worker<'s> {
     /// A file handle to skip, currently is either `None` or stdout, if it's
     /// a file and it has been requested to skip files identical to stdout.
     skip: Option<Arc<Handle>>,
+    /// A predicate applied to dir entries. If true, the entry and all
+    /// children will be skipped.
+    filter: Option<Filter>,
 }
 
 impl<'s> Worker<'s> {
@@ -1534,8 +1569,14 @@ impl<'s> Worker<'s> {
             } else {
                 false
             };
-
-        if !should_skip_path && !should_skip_filesize {
+        let should_skip_filtered =
+            if let Some(Filter(predicate)) = &self.filter {
+                !predicate(&dent)
+            } else {
+                false
+            };
+        if !should_skip_path && !should_skip_filesize && !should_skip_filtered
+        {
             self.send(Work { dent, ignore: ig.clone(), root_device });
         }
         WalkState::Continue
@@ -1793,6 +1834,7 @@ fn device_num<P: AsRef<Path>>(_: P) -> io::Result<u64> {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsStr;
     use std::fs::{self, File};
     use std::io::Write;
     use std::path::Path;
@@ -2173,5 +2215,27 @@ mod tests {
         // Check that we can't descend but get an entry for the parent dir.
         let builder = WalkBuilder::new(&dir_path);
         assert_paths(dir_path.parent().unwrap(), &builder, &["root"]);
+    }
+
+    #[test]
+    fn filter() {
+        let td = tmpdir();
+        mkdirp(td.path().join("a/b/c"));
+        mkdirp(td.path().join("x/y"));
+        wfile(td.path().join("a/b/foo"), "");
+        wfile(td.path().join("x/y/foo"), "");
+
+        assert_paths(
+            td.path(),
+            &WalkBuilder::new(td.path()),
+            &["x", "x/y", "x/y/foo", "a", "a/b", "a/b/foo", "a/b/c"],
+        );
+
+        assert_paths(
+            td.path(),
+            &WalkBuilder::new(td.path())
+                .filter_entry(|entry| entry.file_name() != OsStr::new("a")),
+            &["x", "x/y", "x/y/foo"],
+        );
     }
 }
