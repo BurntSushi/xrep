@@ -591,6 +591,19 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
                     true
                 })
                 .map_err(io::Error::error_message)?;
+            if match_count == 0 {
+                // It is possible for the match count to be zero when
+                // look-around is used. Since `SinkMatch` won't necessarily
+                // contain the look-around in its match span, the search here
+                // could fail to find anything.
+                //
+                // It seems likely that setting match_count=1 here is probably
+                // wrong in some cases, but I don't think we can do any
+                // better. (Because this printer cannot assume that subsequent
+                // contents have been loaded into memory, so we have no way of
+                // increasing the search span here.)
+                match_count = 1;
+            }
             stats.add_matches(match_count);
             stats.add_matched_lines(mat.lines().count() as u64);
         } else if self.summary.config.kind.quit_early() {

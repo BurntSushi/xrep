@@ -822,3 +822,45 @@ foo:	TaskID   int    `json:\"taskID\"`
 ";
     eqnice!(expected, cmd.arg("TaskID +int").stdout());
 });
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1573
+//
+// Tests that if look-ahead is used, then --count-matches is correct.
+rgtest!(r1573, |dir: Dir, mut cmd: TestCommand| {
+    // Only PCRE2 supports look-ahead.
+    if !dir.is_pcre2() {
+        return;
+    }
+
+    dir.create_bytes("foo", b"\xFF\xFE\x00\x62");
+    dir.create(
+        "foo",
+        "\
+def A;
+def B;
+use A;
+use B;
+",
+    );
+
+    // Check that normal --count is correct.
+    cmd.args(&[
+        "--pcre2",
+        "--multiline",
+        "--count",
+        r"(?s)def (\w+);(?=.*use \w+)",
+        "foo",
+    ]);
+    eqnice!("2\n", cmd.stdout());
+
+    // Now check --count-matches.
+    let mut cmd = dir.command();
+    cmd.args(&[
+        "--pcre2",
+        "--multiline",
+        "--count-matches",
+        r"(?s)def (\w+);(?=.*use \w+)",
+        "foo",
+    ]);
+    eqnice!("2\n", cmd.stdout());
+});
