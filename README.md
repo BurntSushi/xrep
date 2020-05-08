@@ -116,9 +116,10 @@ times are unaffected by the presence or absence of `-n`.
   specifically specified with the `-E/--encoding` flag.)
 * ripgrep supports searching files compressed in a common format (brotli,
   bzip2, gzip, lz4, lzma, xz, or zstandard) with the `-z/--search-zip` flag.
-* ripgrep supports arbitrary input preprocessing filters which could be PDF
-  text extraction, less supported decompression, decrypting, automatic encoding
-  detection and so on.
+* ripgrep supports
+  [arbitrary input preprocessing filters](GUIDE.md#preprocessor)
+  which could be PDF text extraction, less supported decompression, decrypting,
+  automatic encoding detection and so on.
 
 In other words, use ripgrep if you like speed, filtering by default, fewer
 bugs and Unicode support.

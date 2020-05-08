@@ -2,6 +2,8 @@ TBD
 ===
 Bug fixes:
 
+* [BUG #1252](https://github.com/BurntSushi/ripgrep/issues/1252):
+  Add a section on the `--pre` flag to the GUIDE.
 * [BUG #1339](https://github.com/BurntSushi/ripgrep/issues/1339):
   Improve error message when a pattern with invalid UTF-8 is provided.
 * [BUG #1524](https://github.com/BurntSushi/ripgrep/issues/1524):

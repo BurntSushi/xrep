@@ -19,6 +19,7 @@ translatable to any command line shell environment.
 * [Configuration file](#configuration-file)
 * [File encoding](#file-encoding)
 * [Binary data](#binary-data)
+* [Preprocessor](#preprocessor)
 * [Common options](#common-options)
 
 
@@ -765,6 +766,212 @@ on the internal search strategy used by ripgrep. If you prefer to keep
 ripgrep's binary file detection consistent, then you can disable memory maps
 via the `--no-mmap` flag. (The cost will be a small performance regression when
 searching very large files on some platforms.)
+
+
+### Preprocessor
+
+In ripgrep, a preprocessor is any type of command that can be run to transform
+the input of every file before ripgrep searches it. This makes it possible to
+search virtually any kind of content that can be automatically converted to
+text without having to teach ripgrep how to read said content.
+
+One common example is searching PDFs. PDFs are first and foremost meant to be
+displayed to users. But PDFs often have text streams in them that can be useful
+to search. In our case, we want to search Bruce Watson's excellent
+dissertation,
+[Taxonomies and Toolkits of Regular Language Algorithms](https://burntsushi.net/stuff/1995-watson.pdf).
+After downloading it, let's try searching it:
+
+```
+$ rg 'The Commentz-Walter algorithm' 1995-watson.pdf
+$
+```
+
+Surely, a dissertation on regular language algorithms would mention
+Commentz-Walter. Indeed it does, but our search isn't picking it up because
+PDFs are a binary format, and the text shown in the PDF may not be encoded as
+simple contiguous UTF-8. Namely, even passing the `-a/--text` flag to ripgrep
+will not make our search work.
+
+One way to fix this is to convert the PDF to plain text first. This won't work
+well for all PDFs, but does great in a lot of cases. (Note that the tool we
+use, `pdftotext`, is part of the [poppler](https://poppler.freedesktop.org)
+PDF rendering library.)
+
+```
+$ pdftotext 1995-watson.pdf > 1995-watson.txt
+$ rg 'The Commentz-Walter algorithm' 1995-watson.txt
+316:The Commentz-Walter algorithms : : : : : : : : : : : : : : :
+7165:4.4 The Commentz-Walter algorithms
+10062:in input string S , we obtain the Boyer-Moore algorithm. The Commentz-Walter algorithm
+17218:The Commentz-Walter algorithm (and its variants) displayed more interesting behaviour,
+17249:Aho-Corasick algorithms are used extensively. The Commentz-Walter algorithms are used
+17297: The Commentz-Walter algorithms (CW). In all versions of the CW algorithms, a common program skeleton is used with di erent shift functions. The CW algorithms are
+```
+
+But having to explicitly convert every file can be a pain, especially when you
+have a directory full of PDF files. Instead, we can use ripgrep's preprocessor
+feature to search the PDF. ripgrep's `--pre` flag works by taking a single
+command name and then executing that command for every file that it searches.
+ripgrep passes the file path as the first and only argument to the command and
+also sends the contents of the file to stdin. So let's write a simple shell
+script that wraps `pdftotext` in a way that conforms to this interface:
+
+```
+$ cat preprocess
+#!/bin/sh
+
+exec pdftotext - -
+```
+
+With `preprocess` in the same directory as `1995-watson.pdf`, we can now use it
+to search the PDF:
+
+```
+$ rg --pre ./preprocess 'The Commentz-Walter algorithm' 1995-watson.pdf
+316:The Commentz-Walter algorithms : : : : : : : : : : : : : : :
+7165:4.4 The Commentz-Walter algorithms
+10062:in input string S , we obtain the Boyer-Moore algorithm. The Commentz-Walter algorithm
+17218:The Commentz-Walter algorithm (and its variants) displayed more interesting behaviour,
+17249:Aho-Corasick algorithms are used extensively. The Commentz-Walter algorithms are used
+17297: The Commentz-Walter algorithms (CW). In all versions of the CW algorithms, a common program skeleton is used with di erent shift functions. The CW algorithms are
+```
+
+Note that `preprocess` must be resolvable to a command that ripgrep can read.
+The simplest way to do this is to put your preprocessor command in a directory
+that is in your `PATH` (or equivalent), or otherwise use an absolute path.
+
+As a bonus, this turns out to be quite a bit faster than other specialized PDF
+grepping tools:
+
+```
+$ time rg --pre ./preprocess 'The Commentz-Walter algorithm' 1995-watson.pdf -c
+6
+
+real    0.697
+user    0.684
+sys     0.007
+maxmem  16 MB
+faults  0
+
+$ time pdfgrep 'The Commentz-Walter algorithm' 1995-watson.pdf -c
+6
+
+real    1.336
+user    1.310
+sys     0.023
+maxmem  16 MB
+faults  0
+```
+
+If you wind up needing to search a lot of PDFs, then ripgrep's parallelism can
+make the speed difference even greater.
+
+#### A more robust preprocessor
+
+One of the problems with the aforementioned preprocessor is that it will fail
+if you try to search a file that isn't a PDF:
+
+```
+$ echo foo > not-a-pdf
+$ rg --pre ./preprocess 'The Commentz-Walter algorithm' not-a-pdf
+not-a-pdf: preprocessor command failed: '"./preprocess" "not-a-pdf"':
+-------------------------------------------------------------------------------
+Syntax Warning: May not be a PDF file (continuing anyway)
+Syntax Error: Couldn't find trailer dictionary
+Syntax Error: Couldn't find trailer dictionary
+Syntax Error: Couldn't read xref table
+```
+
+To fix this, we can make our preprocessor script a bit more robust by only
+running `pdftotext` when we think the input is a non-empty PDF:
+
+```
+$ cat preprocessor
+#!/bin/sh
+
+case "$1" in
+*.pdf)
+  # The -s flag ensures that the file is non-empty.
+  if [ -s "$1" ]; then
+    exec pdftotext - -
+  else
+    exec cat
+  fi
+  ;;
+*)
+  exec cat
+  ;;
+esac
+```
+
+We can even extend our preprocessor to search other kinds of files. Sometimes
+we don't always know the file type from the file name, so we can use the `file`
+utility to "sniff" the type of the file based on its contents:
+
+```
+$ cat processor
+#!/bin/sh
+
+case "$1" in
+*.pdf)
+  # The -s flag ensures that the file is non-empty.
+  if [ -s "$1" ]; then
+    exec pdftotext - -
+  else
+    exec cat
+  fi
+  ;;
+*)
+  case $(file "$1") in
+  *Zstandard*)
+    exec pzstd -cdq
+    ;;
+  *)
+    exec cat
+    ;;
+  esac
+  ;;
+esac
+```
+
+#### Reducing preprocessor overhead
+
+There is one more problem with the above approach: it requires running a
+preprocessor for every single file that ripgrep searches. If every file needs
+a preprocessor, then this is OK. But if most don't, then this can substantially
+slow down searches because of the overhead of launching new processors. You
+can avoid this by telling ripgrep to only invoke the preprocessor when the file
+path matches a glob. For example, consider the performance difference even when
+searching a repository as small as ripgrep's:
+
+```
+$ time rg --pre pre-rg 'fn is_empty' -c
+crates/globset/src/lib.rs:1
+crates/matcher/src/lib.rs:2
+crates/ignore/src/overrides.rs:1
+crates/ignore/src/gitignore.rs:1
+crates/ignore/src/types.rs:1
+
+real    0.138
+user    0.485
+sys     0.209
+maxmem  7 MB
+faults  0
+
+$ time rg --pre pre-rg --pre-glob '*.pdf' 'fn is_empty' -c
+crates/globset/src/lib.rs:1
+crates/ignore/src/types.rs:1
+crates/ignore/src/gitignore.rs:1
+crates/ignore/src/overrides.rs:1
+crates/matcher/src/lib.rs:2
+
+real    0.008
+user    0.010
+sys     0.002
+maxmem  7 MB
+faults  0
+```
 
 
 ### Common options
