@@ -693,8 +693,8 @@ fn arg_path(args: &mut Vec<RGArg>) {
     const SHORT: &str = "A file or directory to search.";
     const LONG: &str = long!(
         "\
-A file or directory to search. Directories are searched recursively. Paths \
-specified on the command line override glob and ignore rules. \
+A file or directory to search. Directories are searched recursively. File \
+paths specified on the command line override glob and ignore rules. \
 "
     );
     let arg = RGArg::positional("path", "PATH")

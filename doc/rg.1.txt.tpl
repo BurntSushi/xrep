@@ -75,8 +75,9 @@ _PATTERN_::
   dash, use the -e/--regexp option.
 
 _PATH_::
-  A file or directory to search. Directories are searched recursively. Paths
-  specified explicitly on the command line override glob and ignore rules.
+  A file or directory to search. Directories are searched recursively. File
+  paths specified explicitly on the command line override glob and ignore
+  rules.
 
 
 OPTIONS
