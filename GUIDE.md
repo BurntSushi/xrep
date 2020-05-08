@@ -788,6 +788,7 @@ used options that will likely impact how you use ripgrep on a regular basis.
 * `--files`: Print the files that ripgrep *would* search, but don't actually
   search them.
 * `-a/--text`: Search binary files as if they were plain text.
+* `-U/--multiline`: Permit matches to span multiple lines.
 * `-z/--search-zip`: Search compressed files (gzip, bzip2, lzma, xz, lz4,
   brotli, zstd). This is disabled by default.
 * `-C/--context`: Show the lines surrounding a match.
