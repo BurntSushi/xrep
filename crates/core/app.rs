@@ -17,27 +17,10 @@ ripgrep (rg) recursively searches your current directory for a regex pattern.
 By default, ripgrep will respect your .gitignore and automatically skip hidden
 files/directories and binary files.
 
-ripgrep's default regex engine uses finite automata and guarantees linear
-time searching. Because of this, features like backreferences and arbitrary
-look-around are not supported. However, if ripgrep is built with PCRE2, then
-the --pcre2 flag can be used to enable backreferences and look-around.
-
-ripgrep supports configuration files. Set RIPGREP_CONFIG_PATH to a
-configuration file. The file can specify one shell argument per line. Lines
-starting with '#' are ignored. For more details, see the man page or the
-README.
-
-ripgrep will automatically detect if stdin exists and search stdin for a regex
-pattern, e.g. 'ls | rg foo'. In some environments, stdin may exist when it
-shouldn't. To turn off stdin detection explicitly specify the directory to
-search, e.g. 'rg foo ./'.
-
-Tip: to disable all smart filtering and make ripgrep behave a bit more like
-classical grep, use 'rg -uuu'.
+Use -h for short descriptions and --help for more details.
 
 Project home page: https://github.com/BurntSushi/ripgrep
-
-Use -h for short descriptions and --help for more details.";
+";
 
 const USAGE: &str = "
     rg [OPTIONS] PATTERN [PATH ...]
