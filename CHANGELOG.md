@@ -2,6 +2,8 @@ TBD
 ===
 Bug fixes:
 
+* [BUG #1524](https://github.com/BurntSushi/ripgrep/issues/1524):
+  Note how to escape a `$` when using `--replace`.
 * [BUG #1537](https://github.com/BurntSushi/ripgrep/issues/1537):
   Fix match bug caused by inner literal optimization.
 * [BUG #1571](https://github.com/BurntSushi/ripgrep/issues/1571):

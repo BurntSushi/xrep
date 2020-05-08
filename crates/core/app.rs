@@ -2598,6 +2598,8 @@ pattern in single quotes instead of double quotes. Otherwise, capture group
 indices will be replaced by expanded shell variables which will most likely
 be empty.
 
+To write a literal '$', use '$$'.
+
 Note that the replacement by default replaces each match, and NOT the entire
 line. To replace the entire line, you should match the entire line.
 
