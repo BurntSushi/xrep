@@ -2,6 +2,8 @@ TBD
 ===
 Bug fixes:
 
+* [BUG #1339](https://github.com/BurntSushi/ripgrep/issues/1339):
+  Improve error message when a pattern with invalid UTF-8 is provided.
 * [BUG #1524](https://github.com/BurntSushi/ripgrep/issues/1524):
   Note how to escape a `$` when using `--replace`.
 * [BUG #1537](https://github.com/BurntSushi/ripgrep/issues/1537):

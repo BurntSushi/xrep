@@ -38,9 +38,9 @@ impl fmt::Display for InvalidPatternError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "found invalid UTF-8 in pattern at byte offset {} \
-             (use hex escape sequences to match arbitrary bytes \
-             in a pattern, e.g., \\xFF): '{}'",
+            "found invalid UTF-8 in pattern at byte offset {}: {} \
+             (disable Unicode mode and use hex escape sequences to match \
+             arbitrary bytes in a pattern, e.g., '(?-u)\\xFF')",
             self.valid_up_to, self.original,
         )
     }
@@ -64,10 +64,7 @@ pub fn pattern_from_os(pattern: &OsStr) -> Result<&str, InvalidPatternError> {
             .to_string_lossy()
             .find('\u{FFFD}')
             .expect("a Unicode replacement codepoint for invalid UTF-8");
-        InvalidPatternError {
-            original: escape_os(pattern),
-            valid_up_to: valid_up_to,
-        }
+        InvalidPatternError { original: escape_os(pattern), valid_up_to }
     })
 }
 
