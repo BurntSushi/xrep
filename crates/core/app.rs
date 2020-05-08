@@ -2877,7 +2877,7 @@ time. Multiple --type-add flags can be provided. Unless --type-clear is used,
 globs are added to any existing globs defined inside of ripgrep.
 
 Note that this MUST be passed to every invocation of ripgrep. Type settings are
-NOT persisted.
+NOT persisted. See CONFIGURATION FILES for a workaround.
 
 Example:
 
@@ -2915,7 +2915,7 @@ Clear the file type globs previously defined for TYPE. This only clears the
 default type definitions that are found inside of ripgrep.
 
 Note that this MUST be passed to every invocation of ripgrep. Type settings are
-NOT persisted.
+NOT persisted. See CONFIGURATION FILES for a workaround.
 "
     );
     let arg = RGArg::flag("type-clear", "TYPE")

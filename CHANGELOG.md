@@ -4,6 +4,8 @@ Bug fixes:
 
 * [BUG #1537](https://github.com/BurntSushi/ripgrep/issues/1537):
   Fix match bug caused by inner literal optimization.
+* [BUG #1571](https://github.com/BurntSushi/ripgrep/issues/1571):
+  Add note about configuration files in `--type-{add,clear}` docs.
 * [BUG #1573](https://github.com/BurntSushi/ripgrep/issues/1573):
   Fix incorrect `--count-matches` output when using look-around.
 
