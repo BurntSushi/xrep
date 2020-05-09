@@ -1,5 +1,19 @@
 TBD
 ===
+ripgrep 12.1.0 is a small minor version release that mostly includes bug fixes
+and documentation improvements.
+
+**Notices for downstream ripgrep package maintainers:**
+
+* Fish shell completions will be removed in the ripgrep 13 release.
+  See [#1577](https://github.com/BurntSushi/ripgrep/issues/1577)
+  for more details.
+* ripgrep has switched from `a2x` to `asciidoctor` to generate the man page.
+  If `asciidoctor` is not present, then ripgrep will currently fall back to
+  `a2x`. Support for `a2x` will be dropped in the ripgrep 13 release.
+  See [#1544](https://github.com/BurntSushi/ripgrep/issues/1544)
+  for more details.
+
 Feature enhancements:
 
 * [FEATURE #1547](https://github.com/BurntSushi/ripgrep/pull/1547):
