@@ -177,15 +177,22 @@ After recursive search, ripgrep's most important feature is what it *doesn't*
 search. By default, when you search a directory, ripgrep will ignore all of
 the following:
 
-1. Files and directories that match the rules in your `.gitignore` glob
-   pattern.
+1. Glob patterns specified in several ignore files:
+   1. `.gitignore`, only in git repos.
+   2. `.ignore`, which for conflicting rules takes precedence over `.gitignore`.
+   3. `.rgignore` with the highest precedence.
 2. Hidden files and directories.
 3. Binary files. (ripgrep considers any file with a `NUL` byte to be binary.)
 4. Symbolic links aren't followed.
 
 All of these things can be toggled using various flags provided by ripgrep:
 
-1. You can disable `.gitignore` handling with the `--no-ignore` flag.
+1. You can disable  handling with the `--no-ignore` flag.
+   1. `.gitignore` can be toggled on outside of git repos using the
+      `--no-require-git` or toggled off inside git repos with `--no-ignore-vcs`.
+      and toggled on again via `--ignore-vcs`.
+   2. `.ignore` can be toggled via `--no-ignore-dot`/`--ignore-dot`.
+   3. `.rgignore` can only be toggled via `--no-ignore`, which also removes all other ignore rules.
 2. Hidden files and directories can be searched with the `--hidden` flag.
 3. Binary files can be searched via the `--text` (`-a` for short) flag.
    Be careful with this flag! Binary files may emit control characters to your
