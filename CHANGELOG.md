@@ -572,7 +572,7 @@ Bug fixes:
 
 0.8.0 (2018-02-11)
 ==================
-This is a new minor version releae of ripgrep that satisfies several popular
+This is a new minor version release of ripgrep that satisfies several popular
 feature requests (config files, search compressed files, true colors), fixes
 many bugs and improves the quality of life for ripgrep maintainers. This
 release also includes greatly improved documentation in the form of a

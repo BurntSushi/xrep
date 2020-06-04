@@ -134,7 +134,7 @@ impl<'a> Glob<'a> {
         Glob(GlobInner::UnmatchedIgnore)
     }
 
-    /// Return the file type defintion that matched, if one exists. A file type
+    /// Return the file type definition that matched, if one exists. A file type
     /// definition always exists when a specific definition matches a file
     /// path.
     pub fn file_type_def(&self) -> Option<&FileTypeDef> {

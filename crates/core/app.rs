@@ -461,7 +461,7 @@ impl RGArg {
         self
     }
 
-    /// Permit this flag to have values that begin with a hypen.
+    /// Permit this flag to have values that begin with a hyphen.
     ///
     /// This panics if this arg is not a flag.
     fn allow_leading_hyphen(mut self) -> RGArg {
@@ -2577,7 +2577,7 @@ flag nor any other ripgrep flag will modify your files.
 
 Capture group indices (e.g., $5) and names (e.g., $foo) are supported in the
 replacement string. Capture group indices are numbered based on the position of
-the opening paranthesis of the group, where the leftmost such group is $1. The
+the opening parenthesis of the group, where the leftmost such group is $1. The
 special $0 group corresponds to the entire match.
 
 In shells such as Bash and zsh, you should wrap the pattern in single quotes

@@ -367,7 +367,7 @@ impl Glob {
         }
     }
 
-    /// This is like `ext`, but returns an extension even if it isn't sufficent
+    /// This is like `ext`, but returns an extension even if it isn't sufficient
     /// to imply a match. Namely, if an extension is returned, then it is
     /// necessary but not sufficient for a match.
     fn required_ext(&self) -> Option<String> {

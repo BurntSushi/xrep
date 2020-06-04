@@ -352,7 +352,7 @@ impl GlobSet {
     /// Adds the sequence number of every glob pattern that matches the given
     /// path to the vec given.
     ///
-    /// `into` is is cleared before matching begins, and contains the set of
+    /// `into` is cleared before matching begins, and contains the set of
     /// sequence numbers (in ascending order) after matching ends. If no globs
     /// were matched, then `into` will be empty.
     pub fn matches_into<P: AsRef<Path>>(
@@ -366,7 +366,7 @@ impl GlobSet {
     /// Adds the sequence number of every glob pattern that matches the given
     /// path to the vec given.
     ///
-    /// `into` is is cleared before matching begins, and contains the set of
+    /// `into` is cleared before matching begins, and contains the set of
     /// sequence numbers (in ascending order) after matching ends. If no globs
     /// were matched, then `into` will be empty.
     ///

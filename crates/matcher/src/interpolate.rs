@@ -59,7 +59,7 @@ pub fn interpolate<A, N>(
 /// `CaptureRef` represents a reference to a capture group inside some text.
 /// The reference is either a capture group name or a number.
 ///
-/// It is also tagged with the position in the text immediately proceding the
+/// It is also tagged with the position in the text immediately proceeding the
 /// capture reference.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct CaptureRef<'a> {

@@ -139,7 +139,7 @@ How do I search compressed files?
 
 ripgrep's `-z/--search-zip` flag will cause it to search compressed files
 automatically. Currently, this supports gzip, bzip2, xz, lzma, lz4, Brotli and
-Zstd. Each of these requires requires the corresponding `gzip`, `bzip2`, `xz`,
+Zstd. Each of these requires the corresponding `gzip`, `bzip2`, `xz`,
 `lz4`, `brotli` and `zstd` binaries to be installed on your system. (That is,
 ripgrep does decompression by shelling out to another process.)
 
@@ -824,7 +824,7 @@ rg foo --files-with-matches | xargs sed -i 's/foo/bar/g'
 will replace all instances of 'foo' with 'bar' in the files in which
 ripgrep finds the foo pattern. The `-i` flag to sed indicates that you are
 editing files in place, and `s/foo/bar/g` says that you are performing a
-**s**ubstitution of the pattren `foo` for `bar`, and that you are doing this
+**s**ubstitution of the pattern `foo` for `bar`, and that you are doing this
 substitution **g**lobally (all occurrences of the pattern in each file).
 
 Note: the above command assumes that you are using GNU sed. If you are using

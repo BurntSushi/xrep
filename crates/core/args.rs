@@ -1541,7 +1541,7 @@ impl ArgMatches {
     ///
     /// Generally, this is only enabled when explicitly requested by in the
     /// command line arguments via the --stats flag, but this can also be
-    /// enabled implicity via the output format, e.g., for JSON Lines.
+    /// enabled implicitly via the output format, e.g., for JSON Lines.
     fn stats(&self) -> bool {
         self.output_kind() == OutputKind::JSON || self.is_present("stats")
     }

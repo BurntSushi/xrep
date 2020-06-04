@@ -116,7 +116,7 @@ impl LiteralSets {
         } else if lit.is_empty() {
             // If we're here, then we have no LCP. No LCS. And no detected
             // inner required literals. In theory this shouldn't happen, but
-            // the inner literal detector isn't as nice as we hope and doens't
+            // the inner literal detector isn't as nice as we hope and doesn't
             // actually support returning a set of alternating required
             // literals. (Instead, it only returns a set where EVERY literal
             // in it is required. It cannot currently express "either P or Q
