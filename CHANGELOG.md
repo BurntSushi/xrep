@@ -39,6 +39,8 @@ Feature enhancements:
   Yang.
 * [FEATURE #1404](https://github.com/BurntSushi/ripgrep/pull/1404):
   ripgrep now prints a warning if nothing is searched.
+* [FEATURE #1613](https://github.com/BurntSushi/ripgrep/pull/1613):
+  Cargo will now produce static executables on Windows when using MSVC.
 * [FEATURE #1680](https://github.com/BurntSushi/ripgrep/pull/1680):
   Add `-.` as a short flag alias for `--hidden`.
 * [FEATURE #1856](https://github.com/BurntSushi/ripgrep/pull/1856):

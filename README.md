@@ -192,15 +192,9 @@ multiline search and opt-in fancy regex support via PCRE2.
 The binary name for ripgrep is `rg`.
 
 **[Archives of precompiled binaries for ripgrep are available for Windows,
-macOS and Linux.](https://github.com/BurntSushi/ripgrep/releases)** Users of
-platforms not explicitly mentioned below are advised to download one of these
-archives.
-
-Linux binaries are static executables. Windows binaries are available either as
-built with MinGW (GNU) or with Microsoft Visual C++ (MSVC). When possible,
-prefer MSVC over GNU, but you'll need to have the [Microsoft VC++ 2015
-redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=48145)
-installed.
+macOS and Linux.](https://github.com/BurntSushi/ripgrep/releases)** Linux and
+Windows binaries are static executables. Users of platforms not explicitly
+mentioned below are advised to download one of these archives.
 
 If you're a **macOS Homebrew** or a **Linuxbrew** user, then you can install
 ripgrep from homebrew-core:
