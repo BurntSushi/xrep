@@ -370,7 +370,7 @@ If you have a Rust nightly compiler and a recent Intel CPU, then you can enable
 additional optional SIMD acceleration like so:
 
 ```
-RUSTFLAGS="-C target-cpu=native" cargo build --release --features 'simd-accel'
+RUSTFLAGS="-C target-cpu=native" cargo +nightly build --release --features 'simd-accel'
 ```
 
 The `simd-accel` feature enables SIMD support in certain ripgrep dependencies
