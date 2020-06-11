@@ -115,11 +115,6 @@ fn compile_cpu_features() -> Vec<&'static str> {
     } else {
         features.push("-SIMD");
     }
-    if cfg!(feature = "avx-accel") {
-        features.push("+AVX");
-    } else {
-        features.push("-AVX");
-    }
     features
 }
 
@@ -134,11 +129,6 @@ fn runtime_cpu_features() -> Vec<&'static str> {
         features.push("+SIMD");
     } else {
         features.push("-SIMD");
-    }
-    if is_x86_feature_detected!("avx2") {
-        features.push("+AVX");
-    } else {
-        features.push("-AVX");
     }
     features
 }
