@@ -162,6 +162,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("qmake", &["*.pro", "*.pri", "*.prf"]),
     ("qml", &["*.qml"]),
     ("r", &["*.R", "*.r", "*.Rmd", "*.Rnw"]),
+    ("racket", &["*.rkt"]),
     ("rdoc", &["*.rdoc"]),
     ("readme", &["README*", "*README"]),
     ("robot", &["*.robot"]),
