@@ -60,6 +60,7 @@ pub fn app() -> App<'static, 'static> {
         .max_term_width(100)
         .setting(AppSettings::UnifiedHelpMessage)
         .setting(AppSettings::AllArgsOverrideSelf)
+        .setting(AppSettings::ColoredHelp)
         .usage(USAGE)
         .template(TEMPLATE)
         .help_message("Prints help information. Use --help for more details.");
