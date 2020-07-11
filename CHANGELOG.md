@@ -44,6 +44,8 @@ Bug fixes:
 
 * [BUG #1277](https://github.com/BurntSushi/ripgrep/issues/1277):
   Document cygwin path translation behavior in the FAQ.
+* [BUG #1642](https://github.com/BurntSushi/ripgrep/issues/1642):
+  Fixes a bug where using `-m` and `-A` printed more matches than the limit.
 * [BUG #1703](https://github.com/BurntSushi/ripgrep/issues/1703):
   Clarify the function of `-u/--unrestricted`.
 * [BUG #1708](https://github.com/BurntSushi/ripgrep/issues/1708):

@@ -644,6 +644,16 @@ impl<'p, 's, M: Matcher, W: io::Write> JSONSink<'p, 's, M, W> {
         self.after_context_remaining == 0
     }
 
+    /// Returns whether the current match count exceeds the configured limit.
+    /// If there is no limit, then this always returns false.
+    fn match_more_than_limit(&self) -> bool {
+        let limit = match self.json.config.max_matches {
+            None => return false,
+            Some(limit) => limit,
+        };
+        self.match_count > limit
+    }
+
     /// Write the "begin" message.
     fn write_begin_message(&mut self) -> io::Result<()> {
         if self.begin_printed {
@@ -667,7 +677,20 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
         self.write_begin_message()?;
 
         self.match_count += 1;
-        self.after_context_remaining = searcher.after_context() as u64;
+        // When we've exceeded our match count, then the remaining context
+        // lines should not be reset, but instead, decremented. This avoids a
+        // bug where we display more matches than a configured limit. The main
+        // idea here is that 'matched' might be called again while printing
+        // an after-context line. In that case, we should treat this as a
+        // contextual line rather than a matching line for the purposes of
+        // termination.
+        if self.match_more_than_limit() {
+            self.after_context_remaining =
+                self.after_context_remaining.saturating_sub(1);
+        } else {
+            self.after_context_remaining = searcher.after_context() as u64;
+        }
+
         self.record_matches(mat.bytes())?;
         self.stats.add_matches(self.json.matches.len() as u64);
         self.stats.add_matched_lines(mat.lines().count() as u64);
@@ -869,6 +892,38 @@ and exhibited clearly, with a label attached.\
         let got = printer_contents(&mut printer);
 
         assert_eq!(got.lines().count(), 3);
+    }
+
+    #[test]
+    fn max_matches_after_context() {
+        let haystack = "\
+a
+b
+c
+d
+e
+d
+e
+d
+e
+d
+e
+";
+        let matcher = RegexMatcher::new(r"d").unwrap();
+        let mut printer =
+            JSONBuilder::new().max_matches(Some(1)).build(vec![]);
+        SearcherBuilder::new()
+            .after_context(2)
+            .build()
+            .search_reader(
+                &matcher,
+                haystack.as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+        let got = printer_contents(&mut printer);
+
+        assert_eq!(got.lines().count(), 5);
     }
 
     #[test]

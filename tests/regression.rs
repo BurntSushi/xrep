@@ -763,6 +763,28 @@ rgtest!(r1334_crazy_literals, |dir: Dir, mut cmd: TestCommand| {
     );
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1380
+rgtest!(r1380, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(
+        "foo",
+        "\
+a
+b
+c
+d
+e
+d
+e
+d
+e
+d
+e
+",
+    );
+
+    eqnice!("d\ne\nd\n", cmd.args(&["-A2", "-m1", "d", "foo"]).stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1389
 rgtest!(r1389_bad_symlinks_no_biscuit, |dir: Dir, mut cmd: TestCommand| {
     dir.create_dir("mydir");

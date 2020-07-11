@@ -724,6 +724,16 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
         }
         self.after_context_remaining == 0
     }
+
+    /// Returns whether the current match count exceeds the configured limit.
+    /// If there is no limit, then this always returns false.
+    fn match_more_than_limit(&self) -> bool {
+        let limit = match self.standard.config.max_matches {
+            None => return false,
+            Some(limit) => limit,
+        };
+        self.match_count > limit
+    }
 }
 
 impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
@@ -735,7 +745,19 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
         mat: &SinkMatch,
     ) -> Result<bool, io::Error> {
         self.match_count += 1;
-        self.after_context_remaining = searcher.after_context() as u64;
+        // When we've exceeded our match count, then the remaining context
+        // lines should not be reset, but instead, decremented. This avoids a
+        // bug where we display more matches than a configured limit. The main
+        // idea here is that 'matched' might be called again while printing
+        // an after-context line. In that case, we should treat this as a
+        // contextual line rather than a matching line for the purposes of
+        // termination.
+        if self.match_more_than_limit() {
+            self.after_context_remaining =
+                self.after_context_remaining.saturating_sub(1);
+        } else {
+            self.after_context_remaining = searcher.after_context() as u64;
+        }
 
         self.record_matches(mat.bytes())?;
         self.replace(mat.bytes())?;
@@ -3412,5 +3434,41 @@ and xxx clearly, with a label attached.
 
         let got = printer_contents_ansi(&mut printer);
         assert!(!got.is_empty());
+    }
+
+    #[test]
+    fn regression_after_context_with_match() {
+        let haystack = "\
+a
+b
+c
+d
+e
+d
+e
+d
+e
+d
+e
+";
+
+        let matcher = RegexMatcherBuilder::new().build(r"d").unwrap();
+        let mut printer = StandardBuilder::new()
+            .max_matches(Some(1))
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .line_number(true)
+            .after_context(2)
+            .build()
+            .search_reader(
+                &matcher,
+                haystack.as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "4:d\n5-e\n6:d\n";
+        assert_eq_printed!(expected, got);
     }
 }
