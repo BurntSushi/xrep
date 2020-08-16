@@ -934,14 +934,22 @@ impl Walk {
         if ent.depth() == 0 {
             return Ok(false);
         }
-
+        // We ensure that trivial skipping is done before any other potentially
+        // expensive operations (stat, filesystem other) are done. This seems
+        // like an obvious optimization but becomes critical when filesystem
+        // operations even as simple as stat can result in significant
+        // overheads; an example of this was a bespoke filesystem layer in
+        // Windows that hosted files remotely and would download them on-demand
+        // when particular filesystem operations occurred. Users of this system
+        // who ensured correct file-type fileters were being used could still
+        // get unnecessary file access resulting in large downloads.
+        if should_skip_entry(&self.ig, ent) {
+            return Ok(true);
+        }
         if let Some(ref stdout) = self.skip {
             if path_equals(ent, stdout)? {
                 return Ok(true);
             }
-        }
-        if should_skip_entry(&self.ig, ent) {
-            return Ok(true);
         }
         if self.max_filesize.is_some() && !ent.is_dir() {
             return Ok(skip_filesize(
@@ -1549,6 +1557,11 @@ impl<'s> Worker<'s> {
                 }
             }
         }
+        // N.B. See analogous call in the single-threaded implementation about
+        // why it's important for this to come before the checks below.
+        if should_skip_entry(ig, &dent) {
+            return WalkState::Continue;
+        }
         if let Some(ref stdout) = self.skip {
             let is_stdout = match path_equals(&dent, stdout) {
                 Ok(is_stdout) => is_stdout,
@@ -1558,7 +1571,6 @@ impl<'s> Worker<'s> {
                 return WalkState::Continue;
             }
         }
-        let should_skip_path = should_skip_entry(ig, &dent);
         let should_skip_filesize =
             if self.max_filesize.is_some() && !dent.is_dir() {
                 skip_filesize(
@@ -1575,8 +1587,7 @@ impl<'s> Worker<'s> {
             } else {
                 false
             };
-        if !should_skip_path && !should_skip_filesize && !should_skip_filtered
-        {
+        if !should_skip_filesize && !should_skip_filtered {
             self.send(Work { dent, ignore: ig.clone(), root_device });
         }
         WalkState::Continue

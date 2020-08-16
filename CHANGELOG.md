@@ -27,6 +27,11 @@ Security fixes:
   This is the public facing issue tracking CVE-2021-3013. ripgrep's README
   now contains a section describing how to report a vulnerability.
 
+Performance improvements:
+
+* [PERF #1657](https://github.com/BurntSushi/ripgrep/discussions/1657):
+  Check if a file should be ignored first before issuing stat calls.
+
 Feature enhancements:
 
 * Added or improved file type filtering for ASP, Bazel, dvc, FlatBuffers,
