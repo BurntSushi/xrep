@@ -224,6 +224,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("typoscript", &["*.typoscript", "*.ts"]),
     ("vala", &["*.vala"]),
     ("vb", &["*.vb"]),
+    ("vcl", &["*.vcl"]),
     ("verilog", &["*.v", "*.vh", "*.sv", "*.svh"]),
     ("vhdl", &["*.vhd", "*.vhdl"]),
     ("vim", &["*.vim"]),
