@@ -1594,8 +1594,7 @@ impl<'s> Worker<'s> {
             } else {
                 false
             };
-        if !should_skip_filesize && !should_skip_filtered
-        {
+        if !should_skip_filesize && !should_skip_filtered {
             self.send(Work { dent, ignore: ig.clone(), root_device });
         }
         WalkState::Continue
