@@ -30,7 +30,8 @@ Security fixes:
 Feature enhancements:
 
 * Added or improved file type filtering for ASP, Bazel, dvc, FlatBuffers,
-  Futhark, minified files, Mint, pofiles (from GNU gettext) Racket, VCL, Yang.
+  Futhark, minified files, Mint, pofiles (from GNU gettext) Racket, Red, VCL,
+  Yang.
 * [FEATURE #1404](https://github.com/BurntSushi/ripgrep/pull/1404):
   ripgrep now prints a warning if nothing is searched.
 * [FEATURE #1680](https://github.com/BurntSushi/ripgrep/pull/1680):

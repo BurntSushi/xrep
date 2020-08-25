@@ -170,6 +170,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("racket", &["*.rkt"]),
     ("rdoc", &["*.rdoc"]),
     ("readme", &["README*", "*README"]),
+    ("red", &["*.r", "*.red", "*.reds"]),
     ("robot", &["*.robot"]),
     ("rst", &["*.rst"]),
     ("ruby", &["Gemfile", "*.gemspec", ".irbrc", "Rakefile", "*.rb"]),
