@@ -2,6 +2,8 @@ TBD
 ===
 Unreleased changes. Release notes have not yet been written.
 
+**BREAKING CHANGES**:
+
 In this release, a small tweak has been made to the output format when a binary
 file is detected. Previously, it looked like this:
 
@@ -31,6 +33,8 @@ Feature enhancements:
   minified files, Mint, pofiles (from GNU gettext) Racket, VCL, Yang
 * [FEATURE #1404](https://github.com/BurntSushi/ripgrep/pull/1404):
   ripgrep now prints a warning if nothing is searched.
+* [FEATURE #1680](https://github.com/BurntSushi/ripgrep/pull/1680):
+  Add `-.` as a short flag alias for `--hidden`.
 * [FEATURE #1856](https://github.com/BurntSushi/ripgrep/pull/1856):
   The README now links to a
   [Spanish translation](https://github.com/UltiRequiem/traducciones/tree/master/ripgrep).

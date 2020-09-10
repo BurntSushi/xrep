@@ -121,7 +121,7 @@ _rg() {
     "(pretty-vimgrep)--no-heading[don't show matches grouped by file name]"
 
     + '(hidden)' # Hidden-file options
-    '--hidden[search hidden files and directories]'
+    {-.,--hidden}'[search hidden files and directories]'
     $no"--no-hidden[don't search hidden files and directories]"
 
     + '(hybrid)' # hybrid regex options

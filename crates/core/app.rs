@@ -1452,6 +1452,7 @@ This flag can be disabled with --no-hidden.
 "
     );
     let arg = RGArg::switch("hidden")
+        .short(".")
         .help(SHORT)
         .long_help(LONG)
         .overrides("no-hidden");
@@ -1987,7 +1988,7 @@ fn flag_no_ignore_dot(args: &mut Vec<RGArg>) {
 Don't respect .ignore files.
 
 This does *not* affect whether ripgrep will ignore files and directories
-whose names begin with a dot. For that, see --hidden.
+whose names begin with a dot. For that, see the -./--hidden flag.
 
 This flag can be disabled with the --ignore-dot flag.
 "
@@ -2360,7 +2361,7 @@ the empty string. For example, if you are searching using 'rg foo' then using
 occurrences of 'foo' will be highlighted. This flag enables the same behavior
 without needing to modify the pattern.
 
-This overrides the --context, --after-context and --before context flags.
+This overrides the --context, --after-context and --before-context flags.
 "
     );
     let arg = RGArg::switch("passthru")
@@ -2990,8 +2991,8 @@ fn flag_unrestricted(args: &mut Vec<RGArg>) {
         "\
 Reduce the level of \"smart\" searching. A single -u won't respect .gitignore
 (etc.) files (--no-ignore). Two -u flags will additionally search hidden files
-and directories (--hidden). Three -u flags will additionally search binary files
-(--binary).
+and directories (-./--hidden). Three -u flags will additionally search binary
+files (--binary).
 
 'rg -uuu' is roughly equivalent to 'grep -r'.
 "

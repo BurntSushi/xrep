@@ -166,7 +166,7 @@ Each of the types of filtering can be configured via command line flags:
     * There are several flags starting with '--no-ignore' that toggle which,
       if any, ignore rules are respected. '--no-ignore' by itself will disable
       all of them.
-    * '--hidden' will force ripgrep to search hidden files and directories.
+    * '-./--hidden' will force ripgrep to search hidden files and directories.
     * '--binary' will force ripgrep to search binary files.
     * '-L/--follow' will force ripgrep to follow symlinks.
 
