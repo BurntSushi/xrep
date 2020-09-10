@@ -1434,6 +1434,7 @@ This flag can be disabled with --no-hidden.
 "
     );
     let arg = RGArg::switch("hidden")
+        .short(".")
         .help(SHORT)
         .long_help(LONG)
         .overrides("no-hidden");
