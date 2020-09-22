@@ -57,7 +57,7 @@ pub fn app() -> App<'static, 'static> {
         .version(crate_version!())
         .long_version(LONG_VERSION.as_str())
         .about(ABOUT)
-        .max_term_width(100)
+        .max_term_width(80)
         .setting(AppSettings::UnifiedHelpMessage)
         .setting(AppSettings::AllArgsOverrideSelf)
         .usage(USAGE)
