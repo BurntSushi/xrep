@@ -51,6 +51,7 @@ extern crate globset;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate fs_err;
 extern crate memchr;
 extern crate regex;
 extern crate same_file;

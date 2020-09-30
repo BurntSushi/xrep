@@ -1,7 +1,7 @@
 use std::cmp;
 use std::ffi::OsStr;
 use std::fmt;
-use std::fs::{self, FileType, Metadata};
+use std::fs::{FileType, Metadata};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -10,6 +10,7 @@ use std::thread;
 use std::time::Duration;
 use std::vec;
 
+use fs_err as fs;
 use same_file::Handle;
 use walkdir::{self, WalkDir};
 
@@ -248,7 +249,7 @@ struct DirEntryRaw {
     /// The underlying metadata (Windows only). We store this on Windows
     /// because this comes for free while reading a directory.
     #[cfg(windows)]
-    metadata: fs::Metadata,
+    metadata: std::fs::Metadata,
 }
 
 impl fmt::Debug for DirEntryRaw {
@@ -282,9 +283,9 @@ impl DirEntryRaw {
     }
 
     #[cfg(windows)]
-    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
+    fn metadata_internal(&self) -> Result<std::fs::Metadata, Error> {
         if self.follow_link {
-            fs::metadata(&self.path)
+            std::fs::Metadata(&self.path)
         } else {
             Ok(self.metadata.clone())
         }
@@ -292,11 +293,11 @@ impl DirEntryRaw {
     }
 
     #[cfg(not(windows))]
-    fn metadata_internal(&self) -> Result<fs::Metadata, Error> {
+    fn metadata_internal(&self) -> Result<std::fs::Metadata, Error> {
         if self.follow_link {
-            fs::metadata(&self.path)
+            std::fs::metadata(&self.path)
         } else {
-            fs::symlink_metadata(&self.path)
+            std::fs::symlink_metadata(&self.path)
         }
         .map_err(|err| Error::Io(io::Error::from(err)).with_path(&self.path))
     }
@@ -352,7 +353,7 @@ impl DirEntryRaw {
     fn from_entry_os(
         depth: usize,
         ent: &fs::DirEntry,
-        ty: fs::FileType,
+        ty: std::fs::FileType,
     ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::DirEntryExt;
 
@@ -385,8 +386,8 @@ impl DirEntryRaw {
         pb: PathBuf,
         link: bool,
     ) -> Result<DirEntryRaw, Error> {
-        let md =
-            fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
+        let md = std::fs::Metadata(&pb)
+            .map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),
@@ -404,8 +405,8 @@ impl DirEntryRaw {
     ) -> Result<DirEntryRaw, Error> {
         use std::os::unix::fs::MetadataExt;
 
-        let md =
-            fs::metadata(&pb).map_err(|err| Error::Io(err).with_path(&pb))?;
+        let md = std::fs::metadata(&pb)
+            .map_err(|err| Error::Io(err).with_path(&pb))?;
         Ok(DirEntryRaw {
             path: pb,
             ty: md.file_type(),

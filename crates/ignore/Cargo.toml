@@ -27,6 +27,7 @@ regex = "1.1"
 same-file = "1.0.4"
 thread_local = "1"
 walkdir = "2.2.7"
+fs-err = "2.5.0"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.2"
