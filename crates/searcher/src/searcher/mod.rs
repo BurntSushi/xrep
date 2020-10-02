@@ -750,6 +750,13 @@ impl Searcher {
             trace!("slice reader: needs transcoding, using generic reader");
             return self.search_reader(matcher, slice, write_to);
         }
+
+        // Check if we have a UTF-8 BOM that needs to be sniffed.
+        let slice = match self.slice_has_utf8_bom_to_sniff(slice) {
+            (false, _) => slice,
+            (true, sz) => &slice[sz..],
+        };
+
         if self.multi_line_with_matcher(&matcher) {
             trace!("slice reader: searching via multiline strategy");
             MultiLine::new(self, matcher, slice, write_to).run()
@@ -789,6 +796,16 @@ impl Searcher {
     fn slice_needs_transcoding(&self, slice: &[u8]) -> bool {
         self.config.encoding.is_some()
             || (self.config.bom_sniffing && slice_has_utf16_bom(slice))
+    }
+
+    /// Returns true if and only if the give slice has a UTF-8 BOM that must be
+    /// sniffed. The second element in the tuple is the BOM size
+    fn slice_has_utf8_bom_to_sniff(&self, slice: &[u8]) -> (bool, usize) {
+        if !self.config.bom_sniffing {
+            return (false, 0);
+        }
+
+        slice_has_utf8_bom(slice)
     }
 }
 
@@ -985,6 +1002,23 @@ fn slice_has_utf16_bom(slice: &[u8]) -> bool {
     [encoding_rs::UTF_16LE, encoding_rs::UTF_16BE].contains(&enc)
 }
 
+/// Returns a tuple with the first element indicating if the slice has an UTF-8
+/// BOM and the second is the size of the BOM (should be always 3)
+///
+/// This is used by the searcher to sniff the BOM of UTF-8 encoded files
+fn slice_has_utf8_bom(slice: &[u8]) -> (bool, usize) {
+    match encoding_rs::Encoding::for_bom(slice) {
+        Some((enc, bom_sz)) => {
+            if enc == encoding_rs::UTF_8 {
+                return (true, bom_sz);
+            }
+        }
+        None => {}
+    }
+
+    (false, 0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1008,5 +1042,22 @@ mod tests {
         let mut searcher = Searcher::new();
         let res = searcher.search_slice(matcher, &[], sink);
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn uft8_bom_sniffing() {
+        // See: https://github.com/BurntSushi/ripgrep/issues/1638
+        // ripgrep must sniff utf-8 BOM, just like it does with utf-16
+        let matcher = RegexMatcher::new("foo");
+        let haystack: &[u8] = &[0xef, 0xbb, 0xbf, 0x66, 0x6f, 0x6f];
+
+        let mut sink = KitchenSink::new();
+        let mut searcher = SearcherBuilder::new().build();
+
+        let res = searcher.search_slice(matcher, haystack, &mut sink);
+        assert!(res.is_ok());
+
+        let sink_output = String::from_utf8(sink.as_bytes().to_vec()).unwrap();
+        assert_eq!(sink_output, "1:0:foo\nbyte count:3\n");
     }
 }
