@@ -788,7 +788,7 @@ impl Searcher {
     /// Returns true if and only if the given slice needs to be transcoded.
     fn slice_needs_transcoding(&self, slice: &[u8]) -> bool {
         self.config.encoding.is_some()
-            || (self.config.bom_sniffing && slice_has_utf16_bom(slice))
+            || (self.config.bom_sniffing && slice_has_bom(slice))
     }
 }
 
@@ -973,16 +973,18 @@ impl Searcher {
     }
 }
 
-/// Returns true if and only if the given slice begins with a UTF-16 BOM.
+/// Returns true if and only if the given slice begins with a UTF-8 or UTF-16
+/// BOM.
 ///
 /// This is used by the searcher to determine if a transcoder is necessary.
 /// Otherwise, it is advantageous to search the slice directly.
-fn slice_has_utf16_bom(slice: &[u8]) -> bool {
+fn slice_has_bom(slice: &[u8]) -> bool {
     let enc = match encoding_rs::Encoding::for_bom(slice) {
         None => return false,
         Some((enc, _)) => enc,
     };
-    [encoding_rs::UTF_16LE, encoding_rs::UTF_16BE].contains(&enc)
+    [encoding_rs::UTF_16LE, encoding_rs::UTF_16BE, encoding_rs::UTF_8]
+        .contains(&enc)
 }
 
 #[cfg(test)]
@@ -1008,5 +1010,22 @@ mod tests {
         let mut searcher = Searcher::new();
         let res = searcher.search_slice(matcher, &[], sink);
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn uft8_bom_sniffing() {
+        // See: https://github.com/BurntSushi/ripgrep/issues/1638
+        // ripgrep must sniff utf-8 BOM, just like it does with utf-16
+        let matcher = RegexMatcher::new("foo");
+        let haystack: &[u8] = &[0xef, 0xbb, 0xbf, 0x66, 0x6f, 0x6f];
+
+        let mut sink = KitchenSink::new();
+        let mut searcher = SearcherBuilder::new().build();
+
+        let res = searcher.search_slice(matcher, haystack, &mut sink);
+        assert!(res.is_ok());
+
+        let sink_output = String::from_utf8(sink.as_bytes().to_vec()).unwrap();
+        assert_eq!(sink_output, "1:0:foo\nbyte count:3\n");
     }
 }

@@ -867,6 +867,15 @@ use B;
     eqnice!("2\n", cmd.stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1638
+//
+// Tests if UTF-8 BOM is sniffed, then the column index is correct.
+rgtest!(r1638, |dir: Dir, mut cmd: TestCommand| {
+    dir.create_bytes("foo", b"\xef\xbb\xbfx");
+
+    eqnice!("foo:1:1:x\n", cmd.arg("--column").arg("x").stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1765
 rgtest!(r1765, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "\n");

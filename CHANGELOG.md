@@ -54,6 +54,8 @@ Bug fixes:
   Fix stdin detection when using PowerShell in UNIX environments.
 * [BUG #1765](https://github.com/BurntSushi/ripgrep/issues/1765):
   Fix panic when `--crlf` is used in some cases.
+* [BUG #1638](https://github.com/BurntSushi/ripgrep/issues/1638):
+  Correctly sniff UTF-8 and do transcoding, like we do for UTF-16.
 * [BUG #1816](https://github.com/BurntSushi/ripgrep/issues/1816):
   Add documentation for glob alternate syntax, e.g., `{a,b,..}`.
 * [BUG #1847](https://github.com/BurntSushi/ripgrep/issues/1847):
