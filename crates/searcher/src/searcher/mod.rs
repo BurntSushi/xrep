@@ -751,12 +751,6 @@ impl Searcher {
             return self.search_reader(matcher, slice, write_to);
         }
 
-        // Check if we have a UTF-8 BOM that needs to be sniffed.
-        let slice = match self.slice_has_utf8_bom_to_sniff(slice) {
-            (false, _) => slice,
-            (true, sz) => &slice[sz..],
-        };
-
         if self.multi_line_with_matcher(&matcher) {
             trace!("slice reader: searching via multiline strategy");
             MultiLine::new(self, matcher, slice, write_to).run()
@@ -795,17 +789,7 @@ impl Searcher {
     /// Returns true if and only if the given slice needs to be transcoded.
     fn slice_needs_transcoding(&self, slice: &[u8]) -> bool {
         self.config.encoding.is_some()
-            || (self.config.bom_sniffing && slice_has_utf16_bom(slice))
-    }
-
-    /// Returns true if and only if the give slice has a UTF-8 BOM that must be
-    /// sniffed. The second element in the tuple is the BOM size
-    fn slice_has_utf8_bom_to_sniff(&self, slice: &[u8]) -> (bool, usize) {
-        if !self.config.bom_sniffing {
-            return (false, 0);
-        }
-
-        slice_has_utf8_bom(slice)
+            || (self.config.bom_sniffing && slice_has_bom(slice))
     }
 }
 
@@ -990,33 +974,17 @@ impl Searcher {
     }
 }
 
-/// Returns true if and only if the given slice begins with a UTF-16 BOM.
+/// Returns true if and only if the given slice begins with a UTF-16 / UTF 8 BOM.
 ///
 /// This is used by the searcher to determine if a transcoder is necessary.
 /// Otherwise, it is advantageous to search the slice directly.
-fn slice_has_utf16_bom(slice: &[u8]) -> bool {
+fn slice_has_bom(slice: &[u8]) -> bool {
     let enc = match encoding_rs::Encoding::for_bom(slice) {
         None => return false,
         Some((enc, _)) => enc,
     };
-    [encoding_rs::UTF_16LE, encoding_rs::UTF_16BE].contains(&enc)
-}
-
-/// Returns a tuple with the first element indicating if the slice has an UTF-8
-/// BOM and the second is the size of the BOM (should be always 3)
-///
-/// This is used by the searcher to sniff the BOM of UTF-8 encoded files
-fn slice_has_utf8_bom(slice: &[u8]) -> (bool, usize) {
-    match encoding_rs::Encoding::for_bom(slice) {
-        Some((enc, bom_sz)) => {
-            if enc == encoding_rs::UTF_8 {
-                return (true, bom_sz);
-            }
-        }
-        None => {}
-    }
-
-    (false, 0)
+    [encoding_rs::UTF_16LE, encoding_rs::UTF_16BE, encoding_rs::UTF_8]
+        .contains(&enc)
 }
 
 #[cfg(test)]
