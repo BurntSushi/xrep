@@ -138,6 +138,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("matlab", &["*.m"]),
     ("md", &["*.markdown", "*.md", "*.mdown", "*.mkdn"]),
     ("meson", &["meson.build", "meson_options.txt"]),
+    ("minified", &["*.min.html", "*.min.css", "*.min.js"]),
     ("mk", &["mkfile"]),
     ("ml", &["*.ml"]),
     ("msbuild", &[
