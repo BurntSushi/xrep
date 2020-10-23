@@ -21,7 +21,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("ats", &["*.ats", "*.dats", "*.sats", "*.hats"]),
     ("avro", &["*.avdl", "*.avpr", "*.avsc"]),
     ("awk", &["*.awk"]),
-    ("bazel", &["*.bzl", "WORKSPACE", "BUILD", "BUILD.bazel"]),
+    ("bazel", &["*.bazel", "*.bzl", "BUILD", "WORKSPACE"]),
     ("bitbake", &["*.bb", "*.bbappend", "*.bbclass", "*.conf", "*.inc"]),
     ("brotli", &["*.br"]),
     ("buildstream", &["*.bst"]),
