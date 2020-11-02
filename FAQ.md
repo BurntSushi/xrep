@@ -208,7 +208,7 @@ The `--color` flag accepts one of the following possible values: `never`,
 ripgrep to only enable colors when it is printing to a terminal. But if you
 pipe ripgrep to a file or some other process, then it will suppress colors.
 
-The --colors` flag is a bit more complicated. The general format is:
+The `--colors` flag is a bit more complicated. The general format is:
 
 ```
 --colors '{type}:{attribute}:{value}'
