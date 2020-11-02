@@ -1358,25 +1358,24 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
 
         let bin = self.searcher.binary_detection();
         if let Some(byte) = bin.quit_byte() {
-            self.write(b"WARNING: stopped searching binary file ")?;
             if let Some(path) = self.path() {
                 self.write_spec(self.config().colors.path(), path.as_bytes())?;
-                self.write(b" ")?;
+                self.write(b": ")?;
             }
             let remainder = format!(
-                "after match (found {:?} byte around offset {})\n",
+                "WARNING: stopped searching binary file after match \
+                 (found {:?} byte around offset {})\n",
                 [byte].as_bstr(),
                 offset,
             );
             self.write(remainder.as_bytes())?;
         } else if let Some(byte) = bin.convert_byte() {
-            self.write(b"Binary file ")?;
             if let Some(path) = self.path() {
                 self.write_spec(self.config().colors.path(), path.as_bytes())?;
-                self.write(b" ")?;
+                self.write(b": ")?;
             }
             let remainder = format!(
-                "matches (found {:?} byte around offset {})\n",
+                "binary file matches (found {:?} byte around offset {})\n",
                 [byte].as_bstr(),
                 offset,
             );

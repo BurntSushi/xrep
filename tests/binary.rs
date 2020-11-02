@@ -40,7 +40,7 @@ rgtest!(after_match1_implicit, |dir: Dir, mut cmd: TestCommand| {
 
     let expected = "\
 hay:1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
-WARNING: stopped searching binary file hay after match (found \"\\0\" byte around offset 9741)
+hay: WARNING: stopped searching binary file after match (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -53,7 +53,7 @@ rgtest!(after_match1_explicit, |dir: Dir, mut cmd: TestCommand| {
 
     let expected = "\
 1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
-Binary file matches (found \"\\0\" byte around offset 9741)
+binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -64,7 +64,7 @@ rgtest!(after_match1_stdin, |_: Dir, mut cmd: TestCommand| {
 
     let expected = "\
 1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
-Binary file matches (found \"\\0\" byte around offset 9741)
+binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.pipe(HAY));
 });
@@ -85,7 +85,7 @@ rgtest!(after_match1_implicit_binary, |dir: Dir, mut cmd: TestCommand| {
 
     let expected = "\
 hay:1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
-Binary file hay matches (found \"\\0\" byte around offset 9741)
+hay: binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -200,7 +200,7 @@ rgtest!(after_match2_implicit, |dir: Dir, mut cmd: TestCommand| {
 
     let expected = "\
 hay:1:The Project Gutenberg EBook of A Study In Scarlet, by Arthur Conan Doyle
-WARNING: stopped searching binary file hay after match (found \"\\0\" byte around offset 9741)
+hay: WARNING: stopped searching binary file after match (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -240,7 +240,7 @@ rgtest!(before_match1_explicit, |dir: Dir, mut cmd: TestCommand| {
     cmd.args(&["--no-mmap", "-n", "Heaven", "hay"]);
 
     let expected = "\
-Binary file matches (found \"\\0\" byte around offset 9741)
+binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -253,7 +253,7 @@ rgtest!(before_match1_implicit_binary, |dir: Dir, mut cmd: TestCommand| {
     cmd.args(&["--no-mmap", "-n", "--binary", "Heaven", "-g", "hay"]);
 
     let expected = "\
-Binary file hay matches (found \"\\0\" byte around offset 9741)
+hay: binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -288,7 +288,7 @@ rgtest!(before_match2_explicit, |dir: Dir, mut cmd: TestCommand| {
     cmd.args(&["--no-mmap", "-n", "a medical student", "hay"]);
 
     let expected = "\
-Binary file matches (found \"\\0\" byte around offset 9741)
+binary file matches (found \"\\0\" byte around offset 9741)
 ";
     eqnice!(expected, cmd.stdout());
 });

@@ -2,6 +2,19 @@ TBD
 ===
 Unreleased changes. Release notes have not yet been written.
 
+In this release, a small tweak has been made to the output format when a binary
+file is detected. Previously, it looked like this:
+
+```
+Binary file FOO matches (found "\0" byte around offset XXX)
+```
+
+Now it looks like this:
+
+```
+FOO: binary file matches (found "\0" byte around offset XXX)
+```
+
 Bug fixes:
 
 * [BUG #1277](https://github.com/BurntSushi/ripgrep/issues/1277):

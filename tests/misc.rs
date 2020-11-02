@@ -788,7 +788,7 @@ rgtest!(unrestricted3, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("-uuu").arg("foo");
 
     let expected = "\
-Binary file hay matches (found \"\\0\" byte around offset 3)
+hay: binary file matches (found \"\\0\" byte around offset 3)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -1001,7 +1001,7 @@ rgtest!(binary_convert, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("--no-mmap").arg("foo").arg("file");
 
     let expected = "\
-Binary file matches (found \"\\0\" byte around offset 3)
+binary file matches (found \"\\0\" byte around offset 3)
 ";
     eqnice!(expected, cmd.stdout());
 });
@@ -1011,7 +1011,7 @@ rgtest!(binary_convert_mmap, |dir: Dir, mut cmd: TestCommand| {
     cmd.arg("--mmap").arg("foo").arg("file");
 
     let expected = "\
-Binary file matches (found \"\\0\" byte around offset 3)
+binary file matches (found \"\\0\" byte around offset 3)
 ";
     eqnice!(expected, cmd.stdout());
 });
