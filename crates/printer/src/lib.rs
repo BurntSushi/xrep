@@ -13,7 +13,7 @@ statistics.
 
 The [`JSON`](struct.JSON.html) printer shows results in a machine readable
 format. To facilitate a stream of search results, the format uses
-[JSON Lines](http://jsonlines.org/)
+[JSON Lines](https://jsonlines.org/)
 by emitting a series of messages as search results are found.
 
 The [`Summary`](struct.Summary.html) printer shows *aggregate* results for a

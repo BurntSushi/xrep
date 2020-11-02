@@ -309,14 +309,14 @@ If you're a **FreeBSD** user, then you can install ripgrep from the
 ```
 
 If you're an **OpenBSD** user, then you can install ripgrep from the
-[official ports](http://openports.se/textproc/ripgrep):
+[official ports](https://openports.se/textproc/ripgrep):
 
 ```
 $ doas pkg_add ripgrep
 ```
 
 If you're a **NetBSD** user, then you can install ripgrep from
-[pkgsrc](http://pkgsrc.se/textproc/ripgrep):
+[pkgsrc](https://pkgsrc.se/textproc/ripgrep):
 
 ```
 # pkgin install ripgrep

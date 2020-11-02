@@ -112,7 +112,7 @@ impl JSONBuilder {
 ///
 /// ## Overview
 ///
-/// The format of this printer is the [JSON Lines](http://jsonlines.org/)
+/// The format of this printer is the [JSON Lines](https://jsonlines.org/)
 /// format. Specifically, this printer emits a sequence of messages, where
 /// each message is encoded as a single JSON value on a single line. There are
 /// four different types of messages (and this number may expand over time):
