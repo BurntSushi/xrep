@@ -99,9 +99,7 @@ is_osx() {
 
 builder() {
     if is_musl && is_x86_64; then
-        # cargo install cross
-        # To work around https://github.com/rust-embedded/cross/issues/357
-        cargo install --git https://github.com/rust-embedded/cross --force
+        cargo install cross
         echo "cross"
     else
         echo "cargo"

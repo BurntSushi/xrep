@@ -131,9 +131,7 @@ jobs:
     - name: Use Cross
       # if: matrix.os != 'windows-2019'
       run: |
-        # FIXME: to work around bugs in latest cross release, install master.
-        # See: https://github.com/rust-embedded/cross/issues/357
-        cargo install --git https://github.com/rust-embedded/cross
+        cargo install cross
         echo "::set-env name=CARGO::cross"
         echo "::set-env name=TARGET_FLAGS::--target ${{ matrix.target }}"
         echo "::set-env name=TARGET_DIR::./target/${{ matrix.target }}"
