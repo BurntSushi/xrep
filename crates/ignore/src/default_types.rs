@@ -241,6 +241,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("xz", &["*.xz", "*.txz"]),
     ("yacc", &["*.y"]),
     ("yaml", &["*.yaml", "*.yml"]),
+    ("yang", &["*.yang"]),
     ("z", &["*.Z"]),
     ("zig", &["*.zig"]),
     ("zsh", &[
