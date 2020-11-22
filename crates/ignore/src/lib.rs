@@ -196,6 +196,71 @@ impl Error {
         }
     }
 
+    /// Inspect the original [`io::Error`] if there is one.
+    ///
+    /// [`None`] is returned if the [`Error`] doesn't correspond to an
+    /// [`io::Error`]. This might happen, for example, when the error was
+    /// produced because a cycle was found in the directory tree while
+    /// following symbolic links.
+    ///
+    /// This method returns a borrowed value that is bound to the lifetime of the [`Error`]. To
+    /// obtain an owned value, the [`into_io_error`] can be used instead.
+    ///
+    /// > This is the original [`io::Error`] and is _not_ the same as
+    /// > [`impl From<Error> for std::io::Error`][impl] which contains additional context about the
+    /// error.
+    ///
+    /// [`None`]: https://doc.rust-lang.org/stable/std/option/enum.Option.html#variant.None
+    /// [`io::Error`]: https://doc.rust-lang.org/stable/std/io/struct.Error.html
+    /// [`From`]: https://doc.rust-lang.org/stable/std/convert/trait.From.html
+    /// [`Error`]: struct.Error.html
+    /// [`into_io_error`]: struct.Error.html#method.into_io_error
+    /// [impl]: struct.Error.html#impl-From%3CError%3E
+    pub fn io_error(&self) -> Option<&std::io::Error> {
+        match *self {
+            Error::Partial(ref errs) => {
+                if errs.len() == 1 {
+                    errs[0].io_error()
+                } else {
+                    None
+                }
+            }
+            Error::WithLineNumber { ref err, .. } => err.io_error(),
+            Error::WithPath { ref err, .. } => err.io_error(),
+            Error::WithDepth { ref err, .. } => err.io_error(),
+            Error::Loop { .. } => None,
+            Error::Io(ref err) => Some(err),
+            Error::Glob { .. } => None,
+            Error::UnrecognizedFileType(_) => None,
+            Error::InvalidDefinition => None,
+        }
+    }
+
+    /// Similar to [`io_error`] except consumes self to convert to the original
+    /// [`io::Error`] if one exists.
+    ///
+    /// [`io_error`]: struct.Error.html#method.io_error
+    /// [`io::Error`]: https://doc.rust-lang.org/stable/std/io/struct.Error.html
+    pub fn into_io_error(self) -> Option<std::io::Error> {
+        match self {
+            Error::Partial(mut errs) => {
+                if errs.len() == 1 {
+                    errs.remove(0).into_io_error()
+                } else {
+                    None
+                }
+            }
+            Error::WithLineNumber { err, .. } => err.into_io_error(),
+            Error::WithPath { err, .. } => err.into_io_error(),
+            Error::WithDepth { err, .. } => err.into_io_error(),
+            Error::Loop { .. } => None,
+            Error::Io(err) => Some(err),
+            Error::Glob { .. } => None,
+            Error::UnrecognizedFileType(_) => None,
+            Error::InvalidDefinition => None,
+        }
+    }
+
     /// Returns a depth associated with recursively walking a directory (if
     /// this error was generated from a recursive directory iterator).
     pub fn depth(&self) -> Option<usize> {
