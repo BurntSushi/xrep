@@ -210,7 +210,7 @@ pub fn is_readable_stdin() -> bool {
             Err(_) => return false,
             Ok(md) => md.file_type(),
         };
-        ft.is_file() || ft.is_fifo()
+        ft.is_file() || ft.is_fifo() || ft.is_socket()
     }
 
     #[cfg(windows)]
