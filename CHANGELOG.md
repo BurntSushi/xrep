@@ -59,6 +59,8 @@ Bug fixes:
   Clarify that CLI invocation must always be valid, regardless of config file.
 * [BUG #1741](https://github.com/BurntSushi/ripgrep/issues/1741):
   Fix stdin detection when using PowerShell in UNIX environments.
+* [BUG #1756](https://github.com/BurntSushi/ripgrep/pull/1756):
+  Fix bug where `foo/**` would match `foo`, but it shouldn't.
 * [BUG #1765](https://github.com/BurntSushi/ripgrep/issues/1765):
   Fix panic when `--crlf` is used in some cases.
 * [BUG #1638](https://github.com/BurntSushi/ripgrep/issues/1638):
