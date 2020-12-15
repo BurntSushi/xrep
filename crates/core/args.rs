@@ -186,7 +186,7 @@ impl Args {
     /// Returns true if and only if `paths` had to be populated with a default
     /// path, which occurs only when no paths were given as command line
     /// arguments.
-    fn using_default_path(&self) -> bool {
+    pub fn using_default_path(&self) -> bool {
         self.0.using_default_path
     }
 

@@ -392,7 +392,9 @@ rgtest!(r428_color_context_path, |dir: Dir, mut cmd: TestCommand| {
 });
 
 // See: https://github.com/BurntSushi/ripgrep/issues/428
-rgtest!(r428_unrecognized_style, |_: Dir, mut cmd: TestCommand| {
+rgtest!(r428_unrecognized_style, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("file.txt", "Sherlock");
+
     cmd.arg("--colors=match:style:").arg("Sherlock");
     cmd.assert_err();
 

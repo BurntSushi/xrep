@@ -29,7 +29,9 @@ Feature enhancements:
 
 * Added or improved file type filtering for Bazel, dvc, FlatBuffers, Futhark,
   minified files, Mint, pofiles (from GNU gettext) Racket, VCL, Yang
-* [PR #1856](https://github.com/BurntSushi/ripgrep/pull/1856):
+* [FEATURE #1404](https://github.com/BurntSushi/ripgrep/pull/1404):
+  ripgrep now prints a warning if nothing is searched.
+* [FEATURE #1856](https://github.com/BurntSushi/ripgrep/pull/1856):
   The README now links to a
   [Spanish translation](https://github.com/UltiRequiem/traducciones/tree/master/ripgrep).
 

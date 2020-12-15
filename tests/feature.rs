@@ -787,6 +787,47 @@ rgtest!(f1466_no_ignore_files, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("foo\n", cmd.arg("-u").stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1404
+rgtest!(f1404_nothing_searched_warning, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".ignore", "ignored-dir/**");
+    dir.create_dir("ignored-dir");
+    dir.create("ignored-dir/foo", "needle");
+
+    // Test that, if ripgrep searches only ignored folders/files, then there
+    // is a non-zero exit code.
+    cmd.arg("needle");
+    cmd.assert_err();
+
+    // Test that we actually get an error message that we expect.
+    let output = cmd.cmd().output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let expected = "\
+        No files were searched, which means ripgrep probably applied \
+        a filter you didn't expect.\n\
+        Running with --debug will show why files are being skipped.\n\
+    ";
+    eqnice!(expected, stderr);
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1404
+rgtest!(f1404_nothing_searched_ignored, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".ignore", "ignored-dir/**");
+    dir.create_dir("ignored-dir");
+    dir.create("ignored-dir/foo", "needle");
+
+    // Test that, if ripgrep searches only ignored folders/files, then there
+    // is a non-zero exit code.
+    cmd.arg("--no-messages").arg("needle");
+    cmd.assert_err();
+
+    // But since --no-messages is given, there should not be any error message
+    // printed.
+    let output = cmd.cmd().output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let expected = "";
+    eqnice!(expected, stderr);
+});
+
 rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
     cmd.args(&["-A1", "--no-context-separator", "foo", "test"]);
