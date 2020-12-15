@@ -83,12 +83,14 @@ fn search(args: &Args) -> Result<bool> {
     let mut stats = args.stats()?;
     let mut searcher = args.search_worker(args.stdout())?;
     let mut matched = false;
+    let mut searched = false;
 
     for result in args.walker()? {
         let subject = match subject_builder.build_from_result(result) {
             Some(subject) => subject,
             None => continue,
         };
+        searched = true;
         let search_result = match searcher.search(&subject) {
             Ok(search_result) => search_result,
             Err(err) => {
@@ -107,6 +109,9 @@ fn search(args: &Args) -> Result<bool> {
         if matched && quit_after_match {
             break;
         }
+    }
+    if !searched {
+        eprint_nothing_searched();
     }
     if let Some(ref stats) = stats {
         let elapsed = Instant::now().duration_since(started_at);
@@ -129,11 +134,13 @@ fn search_parallel(args: &Args) -> Result<bool> {
     let bufwtr = args.buffer_writer()?;
     let stats = args.stats()?.map(Mutex::new);
     let matched = AtomicBool::new(false);
+    let searched = AtomicBool::new(false);
     let mut searcher_err = None;
     args.walker_parallel()?.run(|| {
         let bufwtr = &bufwtr;
         let stats = &stats;
         let matched = &matched;
+        let searched = &searched;
         let subject_builder = &subject_builder;
         let mut searcher = match args.search_worker(bufwtr.buffer()) {
             Ok(searcher) => searcher,
@@ -148,6 +155,7 @@ fn search_parallel(args: &Args) -> Result<bool> {
                 Some(subject) => subject,
                 None => return WalkState::Continue,
             };
+            searched.store(true, SeqCst);
             searcher.printer().get_mut().clear();
             let search_result = match searcher.search(&subject) {
                 Ok(search_result) => search_result,
@@ -178,6 +186,9 @@ fn search_parallel(args: &Args) -> Result<bool> {
             }
         })
     });
+    if !searched.load(SeqCst) {
+        eprint_nothing_searched();
+    }
     if let Some(err) = searcher_err.take() {
         return Err(err);
     }
@@ -189,6 +200,14 @@ fn search_parallel(args: &Args) -> Result<bool> {
         let _ = searcher.print_stats(elapsed, &stats);
     }
     Ok(matched.load(SeqCst))
+}
+
+fn eprint_nothing_searched() {
+    eprintln!(
+        "No files were searched, which means ripgrep probably \
+               applied a filter you didn't expect. \
+               Try running again with --debug."
+    );
 }
 
 /// The top-level entry point for listing files without searching them. This
