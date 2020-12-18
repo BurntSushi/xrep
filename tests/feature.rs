@@ -787,6 +787,24 @@ rgtest!(f1466_no_ignore_files, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("foo\n", cmd.arg("-u").stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1404
+rgtest!(f1404_nothing_searched_warning, |dir: Dir, mut cmd: TestCommand| {
+    dir.create(".ignore", "ignored-dir/**");
+    dir.create_dir("ignored-dir");
+    dir.create("ignored-dir/foo", "needle");
+
+    // Test that, if ripgrep searches only ignored folders/files, warning is displayed
+    cmd.arg("needle");
+    cmd.assert_err();
+
+    let output = cmd.cmd().output().unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let expected = "\
+    No files were searched, which means ripgrep probably applied a filter you didn't expect. Try running again with --debug.
+";
+    eqnice!(expected, stderr);
+});
+
 rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
     cmd.args(&["-A1", "--no-context-separator", "foo", "test"]);
