@@ -10,7 +10,6 @@ first class support on Windows, macOS and Linux.
 documentation = "https://github.com/BurntSushi/ripgrep"
 homepage = "https://github.com/BurntSushi/ripgrep"
 repository = "https://github.com/BurntSushi/ripgrep"
-readme = "README.md"
 keywords = ["regex", "grep", "egrep", "search", "pattern"]
 categories = ["command-line-utilities", "text-processing"]
 license = "Unlicense OR MIT"
