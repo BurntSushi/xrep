@@ -107,18 +107,12 @@ impl CommandReaderBuilder {
             .stdout(process::Stdio::piped())
             .stderr(process::Stdio::piped())
             .spawn()?;
-        let stdout = child.stdout.take().unwrap();
         let stderr = if self.async_stderr {
             StderrReader::async(child.stderr.take().unwrap())
         } else {
             StderrReader::sync(child.stderr.take().unwrap())
         };
-        Ok(CommandReader {
-            child: child,
-            stdout: stdout,
-            stderr: stderr,
-            done: false,
-        })
+        Ok(CommandReader { child, stderr })
     }
 
     /// When enabled, the reader will asynchronously read the contents of the
@@ -175,9 +169,7 @@ impl CommandReaderBuilder {
 #[derive(Debug)]
 pub struct CommandReader {
     child: process::Child,
-    stdout: process::ChildStdout,
     stderr: StderrReader,
-    done: bool,
 }
 
 impl CommandReader {
@@ -201,23 +193,61 @@ impl CommandReader {
     ) -> Result<CommandReader, CommandError> {
         CommandReaderBuilder::new().build(cmd)
     }
+
+    /// Closes the CommandReader, freeing any resources used by its underlying
+    /// child process. If the child process exits with a nonzero exit code, the
+    /// returned Err value will include its stderr.
+    ///
+    /// `close` is idempotent, meaning it can be safely called multiple times.
+    /// The first call closes the CommandReader and any subsequent calls do
+    /// nothing.
+    ///
+    /// This method should be called after partially reading a file to prevent
+    /// resource leakage. However there is no need to call `close` explicitly
+    /// if your code always calls `read` to EOF, as `read` takes care of
+    /// calling `close` in this case.
+    ///
+    /// `close` is also called in `drop` as a last line of defense against
+    /// resource leakage. Any error from the child process is then printed as a
+    /// warning to stderr. This can be avoided by explictly calling `close`
+    /// before the CommandReader is dropped.
+    pub fn close(&mut self) -> io::Result<()> {
+        // Dropping stdout closes the underlying file descriptor, which should
+        // cause a well-behaved child process to exit. If child.stdout is None
+        // we assume that close() has already been called and do nothing.
+        if let Some(stdout) = self.child.stdout.take() {
+            drop(stdout);
+            if self.child.wait()?.success() {
+                Ok(())
+            } else {
+                Err(io::Error::from(self.stderr.read_to_end()))
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl Drop for CommandReader {
+    fn drop(&mut self) {
+        if let Err(error) = self.close() {
+            warn!("{}", error);
+        }
+    }
 }
 
 impl io::Read for CommandReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.done {
-            return Ok(0);
-        }
-        let nread = self.stdout.read(buf)?;
-        if nread == 0 {
-            self.done = true;
-            // Reap the child now that we're done reading. If the command
-            // failed, report stderr as an error.
-            if !self.child.wait()?.success() {
-                return Err(io::Error::from(self.stderr.read_to_end()));
+        if let Some(ref mut stdout) = self.child.stdout {
+            let nread = stdout.read(buf)?;
+            if nread == 0 {
+                self.close().map(|_| 0)
+            } else {
+                Ok(nread)
             }
+        } else {
+            Ok(0)
         }
-        Ok(nread)
     }
 }
 

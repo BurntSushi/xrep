@@ -408,6 +408,7 @@ impl<W: WriteColor> SearchWorker<W> {
                 format!("preprocessor command failed: '{:?}': {}", cmd, err),
             )
         })
+        // rdr.close()
     }
 
     /// Attempt to decompress the data at the given file path and search the
@@ -416,6 +417,7 @@ impl<W: WriteColor> SearchWorker<W> {
     fn search_decompress(&mut self, path: &Path) -> io::Result<SearchResult> {
         let rdr = self.decomp_builder.build(path)?;
         self.search_reader(path, rdr)
+        // rdr.close()
     }
 
     /// Search the contents of the given file path.
