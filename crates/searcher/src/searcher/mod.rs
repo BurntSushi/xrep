@@ -707,14 +707,14 @@ impl Searcher {
         self.check_config(&matcher).map_err(S::Error::error_config)?;
 
         let mut decode_buffer = self.decode_buffer.borrow_mut();
-        let read_from = self
+        let decoder = self
             .decode_builder
             .build_with_buffer(read_from, &mut *decode_buffer)
             .map_err(S::Error::error_io)?;
 
         if self.multi_line_with_matcher(&matcher) {
             trace!("generic reader: reading everything to heap for multiline");
-            self.fill_multi_line_buffer_from_reader::<_, S>(read_from)?;
+            self.fill_multi_line_buffer_from_reader::<_, S>(decoder)?;
             trace!("generic reader: searching via multiline strategy");
             MultiLine::new(
                 self,
@@ -725,7 +725,7 @@ impl Searcher {
             .run()
         } else {
             let mut line_buffer = self.line_buffer.borrow_mut();
-            let rdr = LineBufferReader::new(read_from, &mut *line_buffer);
+            let rdr = LineBufferReader::new(decoder, &mut *line_buffer);
             trace!("generic reader: searching via roll buffer strategy");
             ReadByLine::new(self, matcher, rdr, write_to).run()
         }
