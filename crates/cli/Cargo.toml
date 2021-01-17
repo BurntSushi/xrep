@@ -13,14 +13,14 @@ keywords = ["regex", "grep", "cli", "utility", "util"]
 license = "Unlicense/MIT"
 
 [dependencies]
-atty = "0.2.11"
-bstr = "0.2.0"
+atty = "0.2.14"
+bstr = "0.2.14"
 globset = { version = "0.4.5", path = "../globset" }
-lazy_static = "1.1.0"
-log = "0.4.5"
-regex = "1.1"
-same-file = "1.0.4"
-termcolor = "1.0.4"
+lazy_static = "1.4.0"
+log = "0.4.13"
+regex = "1.4.3"
+same-file = "1.0.6"
+termcolor = "1.1.2"
 
-[target.'cfg(windows)'.dependencies.winapi-util]
-version = "0.1.1"
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.5"

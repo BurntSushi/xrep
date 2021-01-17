@@ -106,7 +106,7 @@ extern crate encoding_rs_io;
 extern crate grep_matcher;
 #[macro_use]
 extern crate log;
-extern crate memmap;
+extern crate memmap2;
 #[cfg(test)]
 extern crate regex;
 

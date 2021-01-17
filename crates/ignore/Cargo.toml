@@ -18,18 +18,18 @@ name = "ignore"
 bench = false
 
 [dependencies]
-crossbeam-utils = "0.8.0"
+crossbeam-utils = "0.8.1"
 globset = { version = "0.4.5", path = "../globset" }
-lazy_static = "1.1"
-log = "0.4.5"
-memchr = "2.1"
-regex = "1.1"
-same-file = "1.0.4"
-thread_local = "1"
-walkdir = "2.2.7"
+lazy_static = "1.4.0"
+log = "0.4.13"
+memchr = "2.3.4"
+regex = "1.4.3"
+same-file = "1.0.6"
+thread_local = "1.1.0"
+walkdir = "2.3.1"
 
-[target.'cfg(windows)'.dependencies.winapi-util]
-version = "0.1.2"
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.5"
 
 [dev-dependencies]
 crossbeam-channel = "0.5.0"

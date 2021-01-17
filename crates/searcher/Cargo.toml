@@ -13,17 +13,17 @@ keywords = ["regex", "grep", "egrep", "search", "pattern"]
 license = "Unlicense/MIT"
 
 [dependencies]
-bstr = { version = "0.2.0", default-features = false, features = ["std"] }
-bytecount = "0.6"
-encoding_rs = "0.8.14"
-encoding_rs_io = "0.1.6"
+bstr = { version = "0.2.14", default-features = false, features = ["std"] }
+bytecount = "0.6.2"
+encoding_rs = "0.8.26"
+encoding_rs_io = "0.1.7"
 grep-matcher = { version = "0.1.2", path = "../matcher" }
-log = "0.4.5"
-memmap = "0.7"
+log = "0.4.13"
+memmap2 = "0.2.0"
 
 [dev-dependencies]
 grep-regex = { version = "0.1.3", path = "../regex" }
-regex = "1.1"
+regex = "1.4.3"
 
 [features]
 default = ["bytecount/runtime-dispatch-simd"]

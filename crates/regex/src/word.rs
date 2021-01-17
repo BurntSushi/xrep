@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use grep_matcher::{Match, Matcher, NoError};
 use regex::bytes::{CaptureLocations, Regex};
-use thread_local::CachedThreadLocal;
+use thread_local::ThreadLocal;
 
 use config::ConfiguredHIR;
 use error::Error;
@@ -21,7 +21,7 @@ pub struct WordMatcher {
     /// A map from capture group name to capture group index.
     names: HashMap<String, usize>,
     /// A reusable buffer for finding the match location of the inner group.
-    locs: Arc<CachedThreadLocal<RefCell<CaptureLocations>>>,
+    locs: Arc<ThreadLocal<RefCell<CaptureLocations>>>,
 }
 
 impl Clone for WordMatcher {
@@ -33,7 +33,7 @@ impl Clone for WordMatcher {
             regex: self.regex.clone(),
             original: self.original.clone(),
             names: self.names.clone(),
-            locs: Arc::new(CachedThreadLocal::new()),
+            locs: Arc::new(ThreadLocal::new()),
         }
     }
 }
@@ -53,7 +53,7 @@ impl WordMatcher {
             pat
         })?;
         let regex = word_expr.regex()?;
-        let locs = Arc::new(CachedThreadLocal::new());
+        let locs = Arc::new(ThreadLocal::new());
 
         let mut names = HashMap::new();
         for (i, optional_name) in regex.capture_names().enumerate() {

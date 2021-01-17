@@ -13,10 +13,10 @@ keywords = ["regex", "grep", "search", "pattern", "line"]
 license = "Unlicense/MIT"
 
 [dependencies]
-aho-corasick = "0.7.3"
-bstr = "0.2.10"
+aho-corasick = "0.7.15"
+bstr = "0.2.14"
 grep-matcher = { version = "0.1.2", path = "../matcher" }
-log = "0.4.5"
-regex = "1.1"
-regex-syntax = "0.6.5"
-thread_local = "1"
+log = "0.4.13"
+regex = "1.4.3"
+regex-syntax = "0.6.22"
+thread_local = "1.1.0"
