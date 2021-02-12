@@ -95,7 +95,7 @@ impl RegexMatcherBuilder {
         }
 
         let matcher = MultiLiteralMatcher::new(&slices)?;
-        let imp = RegexMatcherImpl::MultiLiteral(matcher);
+        let imp = RegexMatcherImpl::MultiLiteral(Box::new(matcher));
         Ok(RegexMatcher {
             config: self.config.clone(),
             matcher: imp,
@@ -388,20 +388,20 @@ impl RegexMatcher {
 #[derive(Clone, Debug)]
 enum RegexMatcherImpl {
     /// The standard matcher used for all regular expressions.
-    Standard(StandardMatcher),
+    Standard(Box<StandardMatcher>),
     /// A matcher for an alternation of plain literals.
-    MultiLiteral(MultiLiteralMatcher),
+    MultiLiteral(Box<MultiLiteralMatcher>),
     /// A matcher that strips `\r` from the end of matches.
     ///
     /// This is only used when the CRLF hack is enabled and the regex is line
     /// anchored at the end.
-    CRLF(CRLFMatcher),
+    CRLF(Box<CRLFMatcher>),
     /// A matcher that only matches at word boundaries. This transforms the
     /// regex to `(^|\W)(...)($|\W)` instead of the more intuitive `\b(...)\b`.
     /// Because of this, the WordMatcher provides its own implementation of
     /// `Matcher` to encapsulate its use of capture groups to make them
     /// invisible to the caller.
-    Word(WordMatcher),
+    Word(Box<WordMatcher>),
 }
 
 impl RegexMatcherImpl {
@@ -409,17 +409,21 @@ impl RegexMatcherImpl {
     /// `Matcher` trait.
     fn new(expr: &ConfiguredHIR) -> Result<RegexMatcherImpl, Error> {
         if expr.config().word {
-            Ok(RegexMatcherImpl::Word(WordMatcher::new(expr)?))
+            Ok(RegexMatcherImpl::Word(Box::new(WordMatcher::new(expr)?)))
         } else if expr.needs_crlf_stripped() {
-            Ok(RegexMatcherImpl::CRLF(CRLFMatcher::new(expr)?))
+            Ok(RegexMatcherImpl::CRLF(Box::new(CRLFMatcher::new(expr)?)))
         } else {
             if let Some(lits) = expr.alternation_literals() {
                 if lits.len() >= 40 {
                     let matcher = MultiLiteralMatcher::new(&lits)?;
-                    return Ok(RegexMatcherImpl::MultiLiteral(matcher));
+                    return Ok(RegexMatcherImpl::MultiLiteral(Box::new(
+                        matcher,
+                    )));
                 }
             }
-            Ok(RegexMatcherImpl::Standard(StandardMatcher::new(expr)?))
+            Ok(RegexMatcherImpl::Standard(Box::new(StandardMatcher::new(
+                expr,
+            )?)))
         }
     }
 
