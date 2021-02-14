@@ -79,6 +79,9 @@ pcre2 = ["grep/pcre2"]
 
 [profile.release]
 debug = 1
+lto = true
+codegen-units = 1
+opt-level = 3
 
 [package.metadata.deb]
 features = ["pcre2"]
