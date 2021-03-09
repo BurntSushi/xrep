@@ -45,6 +45,8 @@ Bug fixes:
   Clarify that CLI invocation must always be valid, regardless of config file.
 * [BUG #1741](https://github.com/BurntSushi/ripgrep/issues/1741):
   Fix stdin detection when using PowerShell in UNIX environments.
+* [BUG #1816](https://github.com/BurntSushi/ripgrep/issues/1816):
+  Add documentation for glob alternate syntax, e.g., `{a,b,..}`.
 * [BUG #1847](https://github.com/BurntSushi/ripgrep/issues/1847):
   Clarify how the `--hidden` flag works.
 * [BUG #1866](https://github.com/BurntSushi/ripgrep/issues/1866#issuecomment-841635553):
