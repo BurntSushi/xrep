@@ -4,7 +4,7 @@ use std::io;
 use bstr::ByteSlice;
 
 /// The default buffer capacity that we use for the line buffer.
-pub(crate) const DEFAULT_BUFFER_CAPACITY: usize = 64 * (1 << 10); // 8 KB
+pub(crate) const DEFAULT_BUFFER_CAPACITY: usize = 64 * (1 << 10); // 64 KB
 
 /// The behavior of a searcher in the face of long lines and big contexts.
 ///
