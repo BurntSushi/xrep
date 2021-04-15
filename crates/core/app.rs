@@ -1433,6 +1433,10 @@ Search hidden files and directories. By default, hidden files and directories
 are skipped. Note that if a hidden file or a directory is whitelisted in an
 ignore file, then it will be searched even if this flag isn't provided.
 
+A file or directory is considered hidden if its base name starts with a dot
+character ('.'). On operating systems which support a `hidden` file attribute,
+like Windows, files with this attribute are also considered hidden.
+
 This flag can be disabled with --no-hidden.
 "
     );
@@ -1970,6 +1974,9 @@ fn flag_no_ignore_dot(args: &mut Vec<RGArg>) {
     const LONG: &str = long!(
         "\
 Don't respect .ignore files.
+
+This does **not** affect whether ripgrep will ignore files and directories
+whose names begin with a dot. For that, see --hidden.
 
 This flag can be disabled with the --ignore-dot flag.
 "
