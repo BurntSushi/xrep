@@ -1975,7 +1975,7 @@ fn flag_no_ignore_dot(args: &mut Vec<RGArg>) {
         "\
 Don't respect .ignore files.
 
-This does **not** affect whether ripgrep will ignore files and directories
+This does *not* affect whether ripgrep will ignore files and directories
 whose names begin with a dot. For that, see --hidden.
 
 This flag can be disabled with the --ignore-dot flag.
