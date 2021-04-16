@@ -210,4 +210,4 @@ jobs:
       - name: Check documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc --no-deps --document-private-items
+        run: cargo doc --no-deps --document-private-items --all --all-features
