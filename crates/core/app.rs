@@ -1209,7 +1209,7 @@ between supported regex engines depending on the features used in a pattern on
 a best effort basis.
 
 Note that the 'pcre2' engine is an optional ripgrep feature. If PCRE2 wasn't
-including in your build of ripgrep, then using this flag will result in ripgrep
+included in your build of ripgrep, then using this flag will result in ripgrep
 printing an error message and exiting.
 
 This overrides previous uses of --pcre2 and --auto-hybrid-regex flags.
