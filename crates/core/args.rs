@@ -786,8 +786,8 @@ impl ArgMatches {
             .trim_ascii(self.is_present("trim"))
             .separator_search(None)
             .separator_context(self.context_separator())
-            .separator_field_match(b":".to_vec())
-            .separator_field_context(b"-".to_vec())
+            .separator_field_match(self.field_match_separator())
+            .separator_field_context(self.field_context_separator())
             .separator_path(self.path_separator()?)
             .path_terminator(self.path_terminator());
         if separator_search {
@@ -1374,6 +1374,24 @@ impl ArgMatches {
             Some(b'\x00')
         } else {
             None
+        }
+    }
+
+    /// Returns the unescaped field context separator. If one wasn't specified,
+    /// then '-' is used as the default.
+    fn field_context_separator(&self) -> Vec<u8> {
+        match self.value_of_os("field-context-separator") {
+            None => b"-".to_vec(),
+            Some(sep) => cli::unescape_os(&sep),
+        }
+    }
+
+    /// Returns the unescaped field match separator. If one wasn't specified,
+    /// then ':' is used as the default.
+    fn field_match_separator(&self) -> Vec<u8> {
+        match self.value_of_os("field-match-separator") {
+            None => b":".to_vec(),
+            Some(sep) => cli::unescape_os(&sep),
         }
     }
 

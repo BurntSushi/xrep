@@ -568,6 +568,8 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_dfa_size_limit(&mut args);
     flag_encoding(&mut args);
     flag_engine(&mut args);
+    flag_field_context_separator(&mut args);
+    flag_field_match_separator(&mut args);
     flag_file(&mut args);
     flag_files(&mut args);
     flag_files_with_matches(&mut args);
@@ -1228,6 +1230,38 @@ This overrides previous uses of --pcre2 and --auto-hybrid-regex flags.
         .overrides("no-pcre2")
         .overrides("auto-hybrid-regex")
         .overrides("no-auto-hybrid-regex");
+    args.push(arg);
+}
+
+fn flag_field_context_separator(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Set the field context separator.";
+    const LONG: &str = long!(
+        "\
+Set the field context separator, which is used to delimit file paths, line
+numbers, columns and the context itself, when printing contextual lines. The
+separator may be any number of bytes, including zero. Escape sequences like
+\\x7F or \\t may be used. The default value is -.
+"
+    );
+    let arg = RGArg::flag("field-context-separator", "SEPARATOR")
+        .help(SHORT)
+        .long_help(LONG);
+    args.push(arg);
+}
+
+fn flag_field_match_separator(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Set the match separator.";
+    const LONG: &str = long!(
+        "\
+Set the field match separator, which is used to delimit file paths, line
+numbers, columns and the match itself. The separator may be any number of
+bytes, including zero. Escape sequences like \\x7F or \\t may be used. The
+default value is -.
+"
+    );
+    let arg = RGArg::flag("field-match-separator", "SEPARATOR")
+        .help(SHORT)
+        .long_help(LONG);
     args.push(arg);
 }
 

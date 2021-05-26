@@ -43,6 +43,8 @@ Feature enhancements:
   Cargo will now produce static executables on Windows when using MSVC.
 * [FEATURE #1680](https://github.com/BurntSushi/ripgrep/pull/1680):
   Add `-.` as a short flag alias for `--hidden`.
+* [FEATURE #1842](https://github.com/BurntSushi/ripgrep/issues/1842):
+  Add `--field-{context,match}-separator` for customizing field delimiters.
 * [FEATURE #1856](https://github.com/BurntSushi/ripgrep/pull/1856):
   The README now links to a
   [Spanish translation](https://github.com/UltiRequiem/traducciones/tree/master/ripgrep).

@@ -828,6 +828,99 @@ rgtest!(f1404_nothing_searched_ignored, |dir: Dir, mut cmd: TestCommand| {
     eqnice!(expected, stderr);
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1842
+rgtest!(f1842_field_context_separator, |dir: Dir, _: TestCommand| {
+    dir.create("sherlock", SHERLOCK);
+
+    // Test the default.
+    let base = &["-n", "-A1", "Doctor Watsons", "sherlock"];
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+2-Holmeses, success in the province of detective work must always
+";
+    eqnice!(expected, dir.command().args(base).stdout());
+
+    // Test that it can be overridden.
+    let mut args = vec!["--field-context-separator", "!"];
+    args.extend(base);
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+2!Holmeses, success in the province of detective work must always
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that it can use multiple bytes.
+    let mut args = vec!["--field-context-separator", "!!"];
+    args.extend(base);
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+2!!Holmeses, success in the province of detective work must always
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that unescaping works.
+    let mut args = vec!["--field-context-separator", r"\x7F"];
+    args.extend(base);
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+2\x7FHolmeses, success in the province of detective work must always
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that an empty separator is OK.
+    let mut args = vec!["--field-context-separator", r""];
+    args.extend(base);
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+2Holmeses, success in the province of detective work must always
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1842
+rgtest!(f1842_field_match_separator, |dir: Dir, _: TestCommand| {
+    dir.create("sherlock", SHERLOCK);
+
+    // Test the default.
+    let base = &["-n", "Doctor Watsons", "sherlock"];
+    let expected = "\
+1:For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, dir.command().args(base).stdout());
+
+    // Test that it can be overridden.
+    let mut args = vec!["--field-match-separator", "!"];
+    args.extend(base);
+    let expected = "\
+1!For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that it can use multiple bytes.
+    let mut args = vec!["--field-match-separator", "!!"];
+    args.extend(base);
+    let expected = "\
+1!!For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that unescaping works.
+    let mut args = vec!["--field-match-separator", r"\x7F"];
+    args.extend(base);
+    let expected = "\
+1\x7FFor the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+
+    // Test that an empty separator is OK.
+    let mut args = vec!["--field-match-separator", r""];
+    args.extend(base);
+    let expected = "\
+1For the Doctor Watsons of this world, as opposed to the Sherlock
+";
+    eqnice!(expected, dir.command().args(&args).stdout());
+});
+
 rgtest!(no_context_sep, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "foo\nctx\nbar\nctx\nfoo\nctx");
     cmd.args(&["-A1", "--no-context-separator", "foo", "test"]);
