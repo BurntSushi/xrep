@@ -614,6 +614,8 @@ pub fn all_args_and_flags() -> Vec<RGArg> {
     flag_one_file_system(&mut args);
     flag_only_matching(&mut args);
     flag_path_separator(&mut args);
+    flag_field_match_separator(&mut args);
+    flag_field_context_separator(&mut args);
     flag_passthru(&mut args);
     flag_pcre2(&mut args);
     flag_pcre2_version(&mut args);
@@ -2334,6 +2336,34 @@ cygwin). A path separator is limited to a single byte.
     );
     let arg =
         RGArg::flag("path-separator", "SEPARATOR").help(SHORT).long_help(LONG);
+    args.push(arg);
+}
+
+fn flag_field_match_separator(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Set the field match separator.";
+    const LONG: &str = long!(
+        "\
+Set the field match separator to use when printing file paths. This defaults to
+:. A field match separator is limited to a single byte.
+"
+    );
+    let arg = RGArg::flag("field-match-separator", "SEPARATOR")
+        .help(SHORT)
+        .long_help(LONG);
+    args.push(arg);
+}
+
+fn flag_field_context_separator(args: &mut Vec<RGArg>) {
+    const SHORT: &str = "Set the field context separator.";
+    const LONG: &str = long!(
+        "\
+Set the field context separator to use when printing file paths. This defaults to
+-. A field context separator is limited to a single byte.
+"
+    );
+    let arg = RGArg::flag("field-context-separator", "SEPARATOR")
+        .help(SHORT)
+        .long_help(LONG);
     args.push(arg);
 }
 

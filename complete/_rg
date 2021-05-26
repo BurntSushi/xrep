@@ -314,6 +314,8 @@ _rg() {
     "--no-config[don't load configuration files]"
     '(-0 --null)'{-0,--null}'[print NUL byte after file names]'
     '--path-separator=[specify path separator to use when printing file names]:separator'
+    '--field-match-separator=[specify field match separator to use when printing file names]:separator'
+    '--field-context-separator=[specify field context separator to use when printing file names]:separator'
     '(-q --quiet)'{-q,--quiet}'[suppress normal output]'
     '--regex-size-limit=[specify upper size limit of compiled regex]:regex size (bytes)'
     '*'{-u,--unrestricted}'[reduce level of "smart" searching]'

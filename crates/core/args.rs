@@ -786,8 +786,8 @@ impl ArgMatches {
             .trim_ascii(self.is_present("trim"))
             .separator_search(None)
             .separator_context(self.context_separator())
-            .separator_field_match(b":".to_vec())
-            .separator_field_context(b"-".to_vec())
+            .separator_field_match(self.field_match_separator()?)
+            .separator_field_context(self.field_context_separator()?)
             .separator_path(self.path_separator()?)
             .path_terminator(self.path_terminator());
         if separator_search {
@@ -1374,6 +1374,54 @@ impl ArgMatches {
             Some(b'\x00')
         } else {
             None
+        }
+    }
+
+    /// Returns the unescaped field match separator as a single byte, if one
+    /// exists.
+    ///
+    /// If the provided field match separator is more than a single byte, then
+    /// an error is returned.
+    fn field_match_separator(&self) -> Result<Vec<u8>> {
+        let sep = match self.value_of_os("field-match-separator") {
+            None => return Ok(b":".to_vec()),
+            Some(sep) => cli::unescape_os(&sep),
+        };
+        if sep.is_empty() {
+            Ok(vec![])
+        } else if sep.len() > 1 {
+            Err(From::from(format!(
+                "A field match separator must be exactly one byte, but \
+                 the given separator is {} bytes: {}\n.",
+                sep.len(),
+                cli::escape(&sep),
+            )))
+        } else {
+            Ok(sep)
+        }
+    }
+
+    /// Returns the unescaped field context separator as a single byte, if one
+    /// exists.
+    ///
+    /// If the provided field context separator is more than a single byte,
+    /// then an error is returned.
+    fn field_context_separator(&self) -> Result<Vec<u8>> {
+        let sep = match self.value_of_os("field-context-separator") {
+            None => return Ok(b"-".to_vec()),
+            Some(sep) => cli::unescape_os(&sep),
+        };
+        if sep.is_empty() {
+            Ok(vec![])
+        } else if sep.len() > 1 {
+            Err(From::from(format!(
+                "A field context separator must be exactly one byte, but \
+                 the given separator is {} bytes: {}\n.",
+                sep.len(),
+                cli::escape(&sep),
+            )))
+        } else {
+            Ok(sep)
         }
     }
 
