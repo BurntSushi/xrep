@@ -156,6 +156,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("pdf", &["*.pdf"]),
     ("perl", &["*.perl", "*.pl", "*.PL", "*.plh", "*.plx", "*.pm", "*.t"]),
     ("php", &["*.php", "*.php3", "*.php4", "*.php5", "*.phtml"]),
+    ("po", &["*.po"]),
     ("pod", &["*.pod"]),
     ("postscript", &["*.eps", "*.ps"]),
     ("protobuf", &["*.proto"]),
