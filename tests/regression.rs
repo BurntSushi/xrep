@@ -867,6 +867,16 @@ use B;
     eqnice!("2\n", cmd.stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1765
+rgtest!(r1765, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "\n");
+    // We need to add --color=always here to force the failure, since the bad
+    // code path is only triggered when colors are enabled.
+    cmd.args(&[r"x?", "--crlf", "--color", "always"]);
+
+    assert!(!cmd.stdout().is_empty());
+});
+
 rgtest!(r1866, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "foobar\nfoobar\nfoo quux");
     cmd.args(&[

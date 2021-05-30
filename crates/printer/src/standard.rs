@@ -1474,7 +1474,10 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
         let lineterm = self.searcher.line_terminator();
         if lineterm.is_suffix(&buf[*line]) {
             let mut end = line.end() - 1;
-            if lineterm.is_crlf() && buf[end - 1] == b'\r' {
+            if lineterm.is_crlf()
+                && end > 0
+                && buf.get(end - 1) == Some(&b'\r')
+            {
                 end -= 1;
             }
             *line = line.with_end(end);
@@ -1547,11 +1550,12 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
 
 #[cfg(test)]
 mod tests {
-    use grep_regex::RegexMatcher;
+    use grep_matcher::LineTerminator;
+    use grep_regex::{RegexMatcher, RegexMatcherBuilder};
     use grep_searcher::SearcherBuilder;
-    use termcolor::NoColor;
+    use termcolor::{Ansi, NoColor};
 
-    use super::{Standard, StandardBuilder};
+    use super::{ColorSpecs, Standard, StandardBuilder};
 
     const SHERLOCK: &'static str = "\
 For the Doctor Watsons of this world, as opposed to the Sherlock
@@ -1573,6 +1577,10 @@ and exhibited clearly, with a label attached.\
 ";
 
     fn printer_contents(printer: &mut Standard<NoColor<Vec<u8>>>) -> String {
+        String::from_utf8(printer.get_mut().get_ref().to_owned()).unwrap()
+    }
+
+    fn printer_contents_ansi(printer: &mut Standard<Ansi<Vec<u8>>>) -> String {
         String::from_utf8(printer.get_mut().get_ref().to_owned()).unwrap()
     }
 
@@ -3387,5 +3395,22 @@ and xxx clearly, with a label attached.
 6:and exhibited clearly, with a label attached.
 ";
         assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn regression_search_empty_with_crlf() {
+        let matcher =
+            RegexMatcherBuilder::new().crlf(true).build(r"x?").unwrap();
+        let mut printer = StandardBuilder::new()
+            .color_specs(ColorSpecs::default_with_color())
+            .build(Ansi::new(vec![]));
+        SearcherBuilder::new()
+            .line_terminator(LineTerminator::crlf())
+            .build()
+            .search_reader(&matcher, &b"\n"[..], printer.sink(&matcher))
+            .unwrap();
+
+        let got = printer_contents_ansi(&mut printer);
+        assert!(!got.is_empty());
     }
 }
