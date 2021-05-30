@@ -27,7 +27,7 @@ Synopsis
 
 DESCRIPTION
 -----------
-ripgrep (rg) recursively searches your current directory for a regex pattern.
+ripgrep (rg) recursively searches the current directory for a regex pattern.
 By default, ripgrep will respect your .gitignore and automatically skip hidden
 files/directories and binary files.
 
@@ -82,7 +82,7 @@ _PATH_::
 
 OPTIONS
 -------
-Note that for many options, there exist flags to disable them. In some cases,
+Note that many options can be disabled through flags. In some cases,
 those flags are not listed in a first class way below. For example, the
 *--column* flag (listed below) enables column numbers in ripgrep's output, but
 the *--no-column* flag (not listed below) disables them. The reverse can also
