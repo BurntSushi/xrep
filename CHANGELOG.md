@@ -71,6 +71,8 @@ Bug fixes:
   Document cygwin path translation behavior in the FAQ.
 * [BUG #1311](https://github.com/BurntSushi/ripgrep/issues/1311):
   Fix multi-line bug where a search & replace for `\n` didn't work as expected.
+* [BUG #1401](https://github.com/BurntSushi/ripgrep/issues/1401):
+  Fix buggy interaction between PCRE2 look-around and `-o/--only-matching`.
 * [BUG #1412](https://github.com/BurntSushi/ripgrep/issues/1412):
   Fix multi-line bug with searches using look-around past matching lines.
 * [BUG #1642](https://github.com/BurntSushi/ripgrep/issues/1642):

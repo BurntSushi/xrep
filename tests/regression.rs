@@ -806,7 +806,32 @@ rgtest!(r1389_bad_symlinks_no_biscuit, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("mylink/file.txt:test\n", stdout);
 });
 
-// printf "foo\nbar\n" | rg -PU '(?<=foo\n)bar' -r quux
+// See: https://github.com/BurntSushi/ripgrep/issues/1401
+rgtest!(r1401_look_ahead_only_matching_1, |dir: Dir, mut cmd: TestCommand| {
+    // Only PCRE2 supports look-around.
+    if !dir.is_pcre2() {
+        return;
+    }
+    dir.create("ip.txt", "foo 42\nxoyz\ncat\tdog\n");
+    cmd.args(&["-No", r".*o(?!.*\s)", "ip.txt"]);
+    eqnice!("xo\ncat\tdo\n", cmd.stdout());
+
+    let mut cmd = dir.command();
+    cmd.args(&["-No", r".*o(?!.*[ \t])", "ip.txt"]);
+    eqnice!("xo\ncat\tdo\n", cmd.stdout());
+});
+
+// See: https://github.com/BurntSushi/ripgrep/issues/1401
+rgtest!(r1401_look_ahead_only_matching_2, |dir: Dir, mut cmd: TestCommand| {
+    // Only PCRE2 supports look-around.
+    if !dir.is_pcre2() {
+        return;
+    }
+    dir.create("ip.txt", "foo 42\nxoyz\ncat\tdog\nfoo");
+    cmd.args(&["-No", r".*o(?!.*\s)", "ip.txt"]);
+    eqnice!("xo\ncat\tdo\nfoo\n", cmd.stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1412
 rgtest!(r1412_look_behind_no_replacement, |dir: Dir, mut cmd: TestCommand| {
     // Only PCRE2 supports look-around.

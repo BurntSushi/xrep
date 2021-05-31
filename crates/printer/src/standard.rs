@@ -17,7 +17,8 @@ use color::ColorSpecs;
 use counter::CounterWriter;
 use stats::Stats;
 use util::{
-    find_iter_at_in_context, trim_ascii_prefix, PrinterPath, Replacer, Sunk,
+    find_iter_at_in_context, trim_ascii_prefix, trim_line_terminator,
+    PrinterPath, Replacer, Sunk,
 };
 
 /// The configuration for the standard printer.
@@ -1547,17 +1548,7 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
     }
 
     fn trim_line_terminator(&self, buf: &[u8], line: &mut Match) {
-        let lineterm = self.searcher.line_terminator();
-        if lineterm.is_suffix(&buf[*line]) {
-            let mut end = line.end() - 1;
-            if lineterm.is_crlf()
-                && end > 0
-                && buf.get(end - 1) == Some(&b'\r')
-            {
-                end -= 1;
-            }
-            *line = line.with_end(end);
-        }
+        trim_line_terminator(&self.searcher, buf, line);
     }
 
     fn has_line_terminator(&self, buf: &[u8]) -> bool {
