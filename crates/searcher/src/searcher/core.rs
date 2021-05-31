@@ -441,6 +441,8 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
                 bytes: linebuf,
                 absolute_byte_offset: offset,
                 line_number: self.line_number,
+                buffer: buf,
+                bytes_range_in_buffer: range.start()..range.end(),
             },
         )?;
         if !keepgoing {

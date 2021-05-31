@@ -365,6 +365,8 @@ pub struct SinkMatch<'b> {
     pub(crate) bytes: &'b [u8],
     pub(crate) absolute_byte_offset: u64,
     pub(crate) line_number: Option<u64>,
+    pub(crate) buffer: &'b [u8],
+    pub(crate) bytes_range_in_buffer: std::ops::Range<usize>,
 }
 
 impl<'b> SinkMatch<'b> {
@@ -404,6 +406,18 @@ impl<'b> SinkMatch<'b> {
     #[inline]
     pub fn line_number(&self) -> Option<u64> {
         self.line_number
+    }
+
+    /// TODO
+    #[inline]
+    pub fn buffer(&self) -> &'b [u8] {
+        self.buffer
+    }
+
+    /// TODO
+    #[inline]
+    pub fn bytes_range_in_buffer(&self) -> std::ops::Range<usize> {
+        self.bytes_range_in_buffer.clone()
     }
 }
 

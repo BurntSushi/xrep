@@ -7,10 +7,12 @@ use std::time;
 use bstr::{ByteSlice, ByteVec};
 use grep_matcher::{Captures, LineTerminator, Match, Matcher};
 use grep_searcher::{
-    LineIter, SinkContext, SinkContextKind, SinkError, SinkMatch,
+    LineIter, Searcher, SinkContext, SinkContextKind, SinkError, SinkMatch,
 };
 #[cfg(feature = "serde1")]
 use serde::{Serialize, Serializer};
+
+use MAX_LOOK_AHEAD;
 
 /// A type for handling replacements while amortizing allocation.
 pub struct Replacer<M: Matcher> {
@@ -52,10 +54,22 @@ impl<M: Matcher> Replacer<M> {
     /// This can fail if the underlying matcher reports an error.
     pub fn replace_all<'a>(
         &'a mut self,
+        searcher: &Searcher,
         matcher: &M,
-        subject: &[u8],
+        mut subject: &[u8],
+        range: std::ops::Range<usize>,
         replacement: &[u8],
     ) -> io::Result<()> {
+        // See the giant comment in 'find_iter_at_in_context' below for why we
+        // do this dance.
+        let is_multi_line = searcher.multi_line_with_matcher(&matcher);
+        if is_multi_line {
+            if subject[range.end..].len() >= MAX_LOOK_AHEAD {
+                subject = &subject[..range.end + MAX_LOOK_AHEAD];
+            }
+        } else {
+            subject = &subject[..range.end];
+        }
         {
             let &mut Space { ref mut dst, ref mut caps, ref mut matches } =
                 self.allocate(matcher)?;
@@ -63,18 +77,24 @@ impl<M: Matcher> Replacer<M> {
             matches.clear();
 
             matcher
-                .replace_with_captures(subject, caps, dst, |caps, dst| {
-                    let start = dst.len();
-                    caps.interpolate(
-                        |name| matcher.capture_index(name),
-                        subject,
-                        replacement,
-                        dst,
-                    );
-                    let end = dst.len();
-                    matches.push(Match::new(start, end));
-                    true
-                })
+                .replace_with_captures_at(
+                    subject,
+                    range.start,
+                    caps,
+                    dst,
+                    |caps, dst| {
+                        let start = dst.len();
+                        caps.interpolate(
+                            |name| matcher.capture_index(name),
+                            subject,
+                            replacement,
+                            dst,
+                        );
+                        let end = dst.len();
+                        matches.push(Match::new(start, end));
+                        true
+                    },
+                )
                 .map_err(io::Error::error_message)?;
         }
         Ok(())
@@ -356,4 +376,56 @@ pub fn trim_ascii_prefix(
         })
         .count();
     range.with_start(range.start() + count)
+}
+
+pub fn find_iter_at_in_context<M, F>(
+    searcher: &Searcher,
+    matcher: M,
+    mut bytes: &[u8],
+    range: std::ops::Range<usize>,
+    mut matched: F,
+) -> io::Result<()>
+where
+    M: Matcher,
+    F: FnMut(Match) -> bool,
+{
+    // This strange dance is to account for the possibility of look-ahead in
+    // the regex. The problem here is that mat.bytes() doesn't include the
+    // lines beyond the match boundaries in mulit-line mode, which means that
+    // when we try to rediscover the full set of matches here, the regex may no
+    // longer match if it required some look-ahead beyond the matching lines.
+    //
+    // PCRE2 (and the grep-matcher interfaces) has no way of specifying an end
+    // bound of the search. So we kludge it and let the regex engine search the
+    // rest of the buffer... But to avoid things getting too crazy, we cap the
+    // buffer.
+    //
+    // If it weren't for multi-line mode, then none of this would be needed.
+    // Alternatively, if we refactored the grep interfaces to pass along the
+    // full set of matches (if available) from the searcher, then that might
+    // also help here. But that winds up paying an upfront unavoidable cost for
+    // the case where matches don't need to be counted. So then you'd have to
+    // introduce a way to pass along matches conditionally, only when needed.
+    // Yikes.
+    //
+    // Maybe the bigger picture thing here is that the searcher should be
+    // responsible for finding matches when necessary, and the printer
+    // shouldn't be involved in this business in the first place. Sigh. Live
+    // and learn. Abstraction boundaries are hard.
+    let is_multi_line = searcher.multi_line_with_matcher(&matcher);
+    if is_multi_line {
+        if bytes[range.end..].len() >= MAX_LOOK_AHEAD {
+            bytes = &bytes[..range.end + MAX_LOOK_AHEAD];
+        }
+    } else {
+        bytes = &bytes[..range.end];
+    }
+    matcher
+        .find_iter_at(bytes, range.start, |m| {
+            if m.start() >= range.end {
+                return false;
+            }
+            matched(m)
+        })
+        .map_err(io::Error::error_message)
 }

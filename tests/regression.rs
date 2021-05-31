@@ -806,6 +806,19 @@ rgtest!(r1389_bad_symlinks_no_biscuit, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("mylink/file.txt:test\n", stdout);
 });
 
+// printf "foo\nbar\n" | rg -PU '(?<=foo\n)bar' -r quux
+// See: https://github.com/BurntSushi/ripgrep/issues/1412
+rgtest!(r1412_look_behind_no_replacement, |dir: Dir, mut cmd: TestCommand| {
+    // Only PCRE2 supports look-around.
+    if !dir.is_pcre2() {
+        return;
+    }
+
+    dir.create("test", "foo\nbar\n");
+    cmd.args(&["-nU", "-rquux", r"(?<=foo\n)bar", "test"]);
+    eqnice!("2:quux\n", cmd.stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/pull/1446
 rgtest!(
     r1446_respect_excludes_in_worktree,

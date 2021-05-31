@@ -92,6 +92,17 @@ pub use stats::Stats;
 pub use summary::{Summary, SummaryBuilder, SummaryKind, SummarySink};
 pub use util::PrinterPath;
 
+// The maximum number of bytes to execute a search to account for look-ahead.
+//
+// This is an unfortunate kludge since PCRE2 doesn't provide a way to search
+// a substring of some input while accounting for look-ahead. In theory, we
+// could refactor the various 'grep' interfaces to account for it, but it would
+// be a large change. So for now, we just let PCRE2 go looking a bit for a
+// match without searching the entire rest of the contents.
+//
+// Note that this kludge is only active in multi-line mode.
+const MAX_LOOK_AHEAD: usize = 128;
+
 #[macro_use]
 mod macros;
 

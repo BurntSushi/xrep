@@ -8,15 +8,17 @@ use std::time::Instant;
 use bstr::ByteSlice;
 use grep_matcher::{Match, Matcher};
 use grep_searcher::{
-    LineStep, Searcher, Sink, SinkContext, SinkContextKind, SinkError,
-    SinkFinish, SinkMatch,
+    LineStep, Searcher, Sink, SinkContext, SinkContextKind, SinkFinish,
+    SinkMatch,
 };
 use termcolor::{ColorSpec, NoColor, WriteColor};
 
 use color::ColorSpecs;
 use counter::CounterWriter;
 use stats::Stats;
-use util::{trim_ascii_prefix, PrinterPath, Replacer, Sunk};
+use util::{
+    find_iter_at_in_context, trim_ascii_prefix, PrinterPath, Replacer, Sunk,
+};
 
 /// The configuration for the standard printer.
 ///
@@ -682,7 +684,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
 
     /// Execute the matcher over the given bytes and record the match
     /// locations if the current configuration demands match granularity.
-    fn record_matches(&mut self, bytes: &[u8]) -> io::Result<()> {
+    fn record_matches(
+        &mut self,
+        searcher: &Searcher,
+        bytes: &[u8],
+        range: std::ops::Range<usize>,
+    ) -> io::Result<()> {
         self.standard.matches.clear();
         if !self.needs_match_granularity {
             return Ok(());
@@ -695,16 +702,21 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
         // one search to find the matches (well, for replacements, we do one
         // additional search to perform the actual replacement).
         let matches = &mut self.standard.matches;
-        self.matcher
-            .find_iter(bytes, |m| {
-                matches.push(m);
+        find_iter_at_in_context(
+            searcher,
+            &self.matcher,
+            bytes,
+            range.clone(),
+            |m| {
+                let (s, e) = (m.start() - range.start, m.end() - range.start);
+                matches.push(Match::new(s, e));
                 true
-            })
-            .map_err(io::Error::error_message)?;
+            },
+        )?;
         // Don't report empty matches appearing at the end of the bytes.
         if !matches.is_empty()
             && matches.last().unwrap().is_empty()
-            && matches.last().unwrap().start() >= bytes.len()
+            && matches.last().unwrap().start() >= range.end
         {
             matches.pop().unwrap();
         }
@@ -715,14 +727,25 @@ impl<'p, 's, M: Matcher, W: WriteColor> StandardSink<'p, 's, M, W> {
     /// replacement, lazily allocating memory if necessary.
     ///
     /// To access the result of a replacement, use `replacer.replacement()`.
-    fn replace(&mut self, bytes: &[u8]) -> io::Result<()> {
+    fn replace(
+        &mut self,
+        searcher: &Searcher,
+        bytes: &[u8],
+        range: std::ops::Range<usize>,
+    ) -> io::Result<()> {
         self.replacer.clear();
         if self.standard.config.replacement.is_some() {
             let replacement = (*self.standard.config.replacement)
                 .as_ref()
                 .map(|r| &*r)
                 .unwrap();
-            self.replacer.replace_all(&self.matcher, bytes, replacement)?;
+            self.replacer.replace_all(
+                searcher,
+                &self.matcher,
+                bytes,
+                range,
+                replacement,
+            )?;
         }
         Ok(())
     }
@@ -777,8 +800,12 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
             self.after_context_remaining = searcher.after_context() as u64;
         }
 
-        self.record_matches(mat.bytes())?;
-        self.replace(mat.bytes())?;
+        self.record_matches(
+            searcher,
+            mat.buffer(),
+            mat.bytes_range_in_buffer(),
+        )?;
+        self.replace(searcher, mat.buffer(), mat.bytes_range_in_buffer())?;
 
         if let Some(ref mut stats) = self.stats {
             stats.add_matches(self.standard.matches.len() as u64);
@@ -807,8 +834,8 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for StandardSink<'p, 's, M, W> {
                 self.after_context_remaining.saturating_sub(1);
         }
         if searcher.invert_match() {
-            self.record_matches(ctx.bytes())?;
-            self.replace(ctx.bytes())?;
+            self.record_matches(searcher, ctx.bytes(), 0..ctx.bytes().len())?;
+            self.replace(searcher, ctx.bytes(), 0..ctx.bytes().len())?;
         }
         if searcher.binary_detection().convert_byte().is_some() {
             if self.binary_byte_offset.is_some() {

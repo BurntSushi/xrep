@@ -4,14 +4,14 @@ use std::time::Instant;
 
 use grep_matcher::{Match, Matcher};
 use grep_searcher::{
-    Searcher, Sink, SinkContext, SinkContextKind, SinkError, SinkFinish,
-    SinkMatch,
+    Searcher, Sink, SinkContext, SinkContextKind, SinkFinish, SinkMatch,
 };
 use serde_json as json;
 
 use counter::CounterWriter;
 use jsont;
 use stats::Stats;
+use util::find_iter_at_in_context;
 
 /// The configuration for the JSON printer.
 ///
@@ -603,7 +603,12 @@ impl<'p, 's, M: Matcher, W: io::Write> JSONSink<'p, 's, M, W> {
 
     /// Execute the matcher over the given bytes and record the match
     /// locations if the current configuration demands match granularity.
-    fn record_matches(&mut self, bytes: &[u8]) -> io::Result<()> {
+    fn record_matches(
+        &mut self,
+        searcher: &Searcher,
+        bytes: &[u8],
+        range: std::ops::Range<usize>,
+    ) -> io::Result<()> {
         self.json.matches.clear();
         // If printing requires knowing the location of each individual match,
         // then compute and stored those right now for use later. While this
@@ -612,12 +617,17 @@ impl<'p, 's, M: Matcher, W: io::Write> JSONSink<'p, 's, M, W> {
         // the extent that it's easy to ensure that we never do more than
         // one search to find the matches.
         let matches = &mut self.json.matches;
-        self.matcher
-            .find_iter(bytes, |m| {
-                matches.push(m);
+        find_iter_at_in_context(
+            searcher,
+            &self.matcher,
+            bytes,
+            range.clone(),
+            |m| {
+                let (s, e) = (m.start() - range.start, m.end() - range.start);
+                matches.push(Match::new(s, e));
                 true
-            })
-            .map_err(io::Error::error_message)?;
+            },
+        )?;
         // Don't report empty matches appearing at the end of the bytes.
         if !matches.is_empty()
             && matches.last().unwrap().is_empty()
@@ -691,7 +701,11 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
             self.after_context_remaining = searcher.after_context() as u64;
         }
 
-        self.record_matches(mat.bytes())?;
+        self.record_matches(
+            searcher,
+            mat.buffer(),
+            mat.bytes_range_in_buffer(),
+        )?;
         self.stats.add_matches(self.json.matches.len() as u64);
         self.stats.add_matched_lines(mat.lines().count() as u64);
 
@@ -720,7 +734,7 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
                 self.after_context_remaining.saturating_sub(1);
         }
         let submatches = if searcher.invert_match() {
-            self.record_matches(ctx.bytes())?;
+            self.record_matches(searcher, ctx.bytes(), 0..ctx.bytes().len())?;
             SubMatches::new(ctx.bytes(), &self.json.matches)
         } else {
             SubMatches::empty()

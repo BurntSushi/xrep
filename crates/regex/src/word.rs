@@ -48,7 +48,7 @@ impl WordMatcher {
         let original =
             expr.with_pattern(|pat| format!("^(?:{})$", pat))?.regex()?;
         let word_expr = expr.with_pattern(|pat| {
-            let pat = format!(r"(?:(?-m:^)|\W)({})(?:(?-m:$)|\W)", pat);
+            let pat = format!(r"(?:(?m:^)|\W)({})(?:\W|(?m:$))", pat);
             debug!("word regex: {:?}", pat);
             pat
         })?;
@@ -237,6 +237,8 @@ mod tests {
         assert_eq!(Some((2, 5)), find(r"!?foo!?", "a!foo!a"));
 
         assert_eq!(Some((2, 7)), find(r"!?foo!?", "##!foo!\n"));
+        assert_eq!(Some((3, 8)), find(r"!?foo!?", "##\n!foo!##"));
+        assert_eq!(Some((3, 8)), find(r"!?foo!?", "##\n!foo!\n##"));
         assert_eq!(Some((3, 7)), find(r"f?oo!?", "##\nfoo!##"));
         assert_eq!(Some((2, 5)), find(r"(?-u)foo[^a]*", "#!foo☃aaa"));
     }

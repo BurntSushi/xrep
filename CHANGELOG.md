@@ -26,6 +26,13 @@ discussion on this. Previously, every line in a match was duplicated, even
 when it spanned multiple lines. There are no changes to vimgrep output when
 multi-line mode is disabled.
 
+**In multi-line mode, --count is now equivalent to --count-matches.**
+
+This appears to match how `pcre2grep` implements `--count`. Previously, ripgrep
+would produce outright incorrect counts. Another alternative would be to simply
+count the number of lines---even if it's more than the number of matches---but
+that seems highly unintuitive.
+
 Security fixes:
 
 * [CVE-2021-3013](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3013):
@@ -64,6 +71,8 @@ Bug fixes:
   Document cygwin path translation behavior in the FAQ.
 * [BUG #1311](https://github.com/BurntSushi/ripgrep/issues/1311):
   Fix multi-line bug where a search & replace for `\n` didn't work as expected.
+* [BUG #1412](https://github.com/BurntSushi/ripgrep/issues/1412):
+  Fix multi-line bug with searches using look-around past matching lines.
 * [BUG #1642](https://github.com/BurntSushi/ripgrep/issues/1642):
   Fixes a bug where using `-m` and `-A` printed more matches than the limit.
 * [BUG #1703](https://github.com/BurntSushi/ripgrep/issues/1703):

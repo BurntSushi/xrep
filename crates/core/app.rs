@@ -1057,11 +1057,13 @@ fn flag_count(args: &mut Vec<RGArg>) {
 This flag suppresses normal output and shows the number of lines that match
 the given patterns for each file searched. Each file containing a match has its
 path and count printed on each line. Note that this reports the number of lines
-that match and not the total number of matches.
+that match and not the total number of matches, unless -U/--multiline is
+enabled. In multiline mode, --count is equivalent to --count-matches.
 
 If only one file is given to ripgrep, then only the count is printed if there
 is a match. The --with-filename flag can be used to force printing the file
-path in this case.
+path in this case. If you need a count to be printed regardless of whether
+there is a match, then use --include-zero.
 
 This overrides the --count-matches flag. Note that when --count is combined
 with --only-matching, then ripgrep behaves as if --count-matches was given.
