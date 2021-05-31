@@ -323,24 +323,19 @@ rgtest!(r1095_crlf_empty_match, |dir: Dir, mut cmd: TestCommand| {
 
     // Check without --crlf flag.
     let msgs = json_decode(&cmd.arg("-U").arg("--json").arg("\n").stdout());
-    assert_eq!(msgs.len(), 5);
+    assert_eq!(msgs.len(), 4);
 
     let m = msgs[1].unwrap_match();
-    assert_eq!(m.lines, Data::text("test\r\n"));
+    assert_eq!(m.lines, Data::text("test\r\n\n"));
     assert_eq!(m.submatches[0].m, Data::text("\n"));
-
-    let m = msgs[2].unwrap_match();
-    assert_eq!(m.lines, Data::text("\n"));
-    assert_eq!(m.submatches[0].m, Data::text("\n"));
+    assert_eq!(m.submatches[1].m, Data::text("\n"));
 
     // Now check with --crlf flag.
     let msgs = json_decode(&cmd.arg("--crlf").stdout());
+    assert_eq!(msgs.len(), 4);
 
     let m = msgs[1].unwrap_match();
-    assert_eq!(m.lines, Data::text("test\r\n"));
+    assert_eq!(m.lines, Data::text("test\r\n\n"));
     assert_eq!(m.submatches[0].m, Data::text("\n"));
-
-    let m = msgs[2].unwrap_match();
-    assert_eq!(m.lines, Data::text("\n"));
-    assert_eq!(m.submatches[0].m, Data::text("\n"));
+    assert_eq!(m.submatches[1].m, Data::text("\n"));
 });

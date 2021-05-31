@@ -3224,6 +3224,80 @@ Holmeses, success in the province of detective work must always
         assert_eq_printed!(expected, got);
     }
 
+    // This is a somewhat weird test that checks the behavior of attempting
+    // to replace a line terminator with something else.
+    //
+    // See: https://github.com/BurntSushi/ripgrep/issues/1311
+    #[test]
+    fn replacement_multi_line() {
+        let matcher = RegexMatcher::new(r"\n").unwrap();
+        let mut printer = StandardBuilder::new()
+            .replacement(Some(b"?".to_vec()))
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .line_number(true)
+            .multi_line(true)
+            .build()
+            .search_reader(
+                &matcher,
+                "hello\nworld\n".as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "1:hello?world?\n";
+        assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn replacement_multi_line_diff_line_term() {
+        let matcher = RegexMatcherBuilder::new()
+            .line_terminator(Some(b'\x00'))
+            .build(r"\n")
+            .unwrap();
+        let mut printer = StandardBuilder::new()
+            .replacement(Some(b"?".to_vec()))
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .line_terminator(LineTerminator::byte(b'\x00'))
+            .line_number(true)
+            .multi_line(true)
+            .build()
+            .search_reader(
+                &matcher,
+                "hello\nworld\n".as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "1:hello?world?\x00";
+        assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn replacement_multi_line_combine_lines() {
+        let matcher = RegexMatcher::new(r"\n(.)?").unwrap();
+        let mut printer = StandardBuilder::new()
+            .replacement(Some(b"?$1".to_vec()))
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .line_number(true)
+            .multi_line(true)
+            .build()
+            .search_reader(
+                &matcher,
+                "hello\nworld\n".as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "1:hello?world?\n";
+        assert_eq_printed!(expected, got);
+    }
+
     #[test]
     fn replacement_max_columns() {
         let matcher = RegexMatcher::new(r"Sherlock|Doctor (\w+)").unwrap();

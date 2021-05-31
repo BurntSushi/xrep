@@ -744,6 +744,15 @@ rgtest!(r1259_drop_last_byte_nonl, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("fz\n", cmd.arg("-f").arg("patterns-nl").arg("test").stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1311
+rgtest!(r1311_multi_line_term_replace, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("input", "hello\nworld\n");
+    eqnice!(
+        "1:hello?world?\n",
+        cmd.args(&["-U", "-r?", "-n", "\n", "input"]).stdout()
+    );
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1319
 rgtest!(r1319, |dir: Dir, mut cmd: TestCommand| {
     dir.create("input", "CCAGCTACTCGGGAGGCTGAGGCTGGAGGATCGCTTGAGTCCAGGAGTTC");
