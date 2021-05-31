@@ -69,6 +69,8 @@ Bug fixes:
 
 * [BUG #1277](https://github.com/BurntSushi/ripgrep/issues/1277):
   Document cygwin path translation behavior in the FAQ.
+* [BUG #1739](https://github.com/BurntSushi/ripgrep/issues/1739):
+  Fix bug where replacements were buggy if the regex matched a line terminator.
 * [BUG #1311](https://github.com/BurntSushi/ripgrep/issues/1311):
   Fix multi-line bug where a search & replace for `\n` didn't work as expected.
 * [BUG #1401](https://github.com/BurntSushi/ripgrep/issues/1401):

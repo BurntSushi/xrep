@@ -945,6 +945,13 @@ rgtest!(r1638, |dir: Dir, mut cmd: TestCommand| {
     eqnice!("foo:1:1:x\n", cmd.arg("--column").arg("x").stdout());
 });
 
+// See: https://github.com/BurntSushi/ripgrep/issues/1739
+rgtest!(r1739_replacement_lineterm_match, |dir: Dir, mut cmd: TestCommand| {
+    dir.create("test", "a\n");
+    cmd.args(&[r"-r${0}f", r".*", "test"]);
+    eqnice!("af\n", cmd.stdout());
+});
+
 // See: https://github.com/BurntSushi/ripgrep/issues/1765
 rgtest!(r1765, |dir: Dir, mut cmd: TestCommand| {
     dir.create("test", "\n");

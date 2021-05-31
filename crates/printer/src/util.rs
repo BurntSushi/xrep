@@ -68,7 +68,13 @@ impl<M: Matcher> Replacer<M> {
                 subject = &subject[..range.end + MAX_LOOK_AHEAD];
             }
         } else {
-            subject = &subject[..range.end];
+            // When searching a single line, we should remove the line
+            // terminator. Otherwise, it's possible for the regex (via
+            // look-around) to observe the line terminator and not match
+            // because of it.
+            let mut m = Match::new(0, range.end);
+            trim_line_terminator(searcher, subject, &mut m);
+            subject = &subject[..m.end()];
         }
         {
             let &mut Space { ref mut dst, ref mut caps, ref mut matches } =
