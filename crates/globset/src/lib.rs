@@ -456,6 +456,13 @@ impl GlobSet {
     }
 }
 
+impl Default for GlobSet {
+    /// Create a default empty GlobSet.
+    fn default() -> Self {
+        GlobSet::empty()
+    }
+}
+
 /// GlobSetBuilder builds a group of patterns that can be used to
 /// simultaneously match a file path.
 #[derive(Clone, Debug)]
@@ -833,7 +840,7 @@ impl RequiredExtensionStrategyBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::GlobSetBuilder;
+    use super::{GlobSet, GlobSetBuilder};
     use glob::Glob;
 
     #[test]
@@ -860,6 +867,13 @@ mod tests {
     #[test]
     fn empty_set_works() {
         let set = GlobSetBuilder::new().build().unwrap();
+        assert!(!set.is_match(""));
+        assert!(!set.is_match("a"));
+    }
+
+    #[test]
+    fn default_set_is_empty_works() {
+        let set: GlobSet = Default::default();
         assert!(!set.is_match(""));
         assert!(!set.is_match("a"));
     }

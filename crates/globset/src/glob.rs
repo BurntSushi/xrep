@@ -616,6 +616,8 @@ impl<'a> GlobBuilder<'a> {
     }
 
     /// Toggle whether a literal `/` is required to match a path separator.
+    ///
+    /// By default this is false: `*` and `?` will match `/`.
     pub fn literal_separator(&mut self, yes: bool) -> &mut GlobBuilder<'a> {
         self.opts.literal_separator = yes;
         self
