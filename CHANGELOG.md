@@ -75,6 +75,8 @@ Bug fixes:
   Fix buggy interaction between PCRE2 look-around and `-o/--only-matching`.
 * [BUG #1412](https://github.com/BurntSushi/ripgrep/issues/1412):
   Fix multi-line bug with searches using look-around past matching lines.
+* [BUG #1577](https://github.com/BurntSushi/ripgrep/issues/1577):
+  Fish shell completions will continue to be auto-generated.
 * [BUG #1642](https://github.com/BurntSushi/ripgrep/issues/1642):
   Fixes a bug where using `-m` and `-A` printed more matches than the limit.
 * [BUG #1703](https://github.com/BurntSushi/ripgrep/issues/1703):
