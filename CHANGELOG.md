@@ -4,6 +4,8 @@ Unreleased changes. Release notes have not yet been written.
 
 **BREAKING CHANGES**:
 
+**Binary detection output has changed slightly.**
+
 In this release, a small tweak has been made to the output format when a binary
 file is detected. Previously, it looked like this:
 
@@ -16,6 +18,13 @@ Now it looks like this:
 ```
 FOO: binary file matches (found "\0" byte around offset XXX)
 ```
+
+**vimgrep output in multi-line now only prints the first line for each match.**
+
+See [issue 1866](https://github.com/BurntSushi/ripgrep/issues/1866) for more
+discussion on this. Previously, every line in a match was duplicated, even
+when it spanned multiple lines. There are no changes to vimgrep output when
+multi-line mode is disabled.
 
 Security fixes:
 

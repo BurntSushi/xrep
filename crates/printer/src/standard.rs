@@ -31,6 +31,7 @@ struct Config {
     path: bool,
     only_matching: bool,
     per_match: bool,
+    per_match_one_line: bool,
     replacement: Arc<Option<Vec<u8>>>,
     max_columns: Option<u64>,
     max_columns_preview: bool,
@@ -55,6 +56,7 @@ impl Default for Config {
             path: true,
             only_matching: false,
             per_match: false,
+            per_match_one_line: false,
             replacement: Arc::new(None),
             max_columns: None,
             max_columns_preview: false,
@@ -219,14 +221,33 @@ impl StandardBuilder {
     /// the `column` option, which will show the starting column number for
     /// every match on every line.
     ///
-    /// When multi-line mode is enabled, each match and its accompanying lines
-    /// are printed. As with single line matches, if a line contains multiple
-    /// matches (even if only partially), then that line is printed once for
-    /// each match it participates in. In multi-line mode, column numbers only
-    /// indicate the start of a match. If a line only continues a match, then
-    /// the column number printed is always `1`.
+    /// When multi-line mode is enabled, each match is printed, including every
+    /// line in the match. As with single line matches, if a line contains
+    /// multiple matches (even if only partially), then that line is printed
+    /// once for each match it participates in, assuming it's the first line in
+    /// that match. In multi-line mode, column numbers only indicate the start
+    /// of a match. Subsequent lines in a multi-line match always have a column
+    /// number of `1`.
+    ///
+    /// When a match contains multiple lines, enabling `per_match_one_line`
+    /// will cause only the first line each in match to be printed.
     pub fn per_match(&mut self, yes: bool) -> &mut StandardBuilder {
         self.config.per_match = yes;
+        self
+    }
+
+    /// Print at most one line per match when `per_match` is enabled.
+    ///
+    /// By default, every line in each match found is printed when `per_match`
+    /// is enabled. However, this is sometimes undesirable, e.g., when you
+    /// only ever want one line per match.
+    ///
+    /// This is only applicable when multi-line matching is enabled, since
+    /// otherwise, matches are guaranteed to span one line.
+    ///
+    /// This is disabled by default.
+    pub fn per_match_one_line(&mut self, yes: bool) -> &mut StandardBuilder {
+        self.config.per_match_one_line = yes;
         self
     }
 
@@ -293,9 +314,6 @@ impl StandardBuilder {
     ///
     /// Column numbers are computed in terms of bytes from the start of the
     /// line being printed.
-    ///
-    /// For matches that span multiple lines, the column number for each
-    /// matching line is in terms of the first matching line.
     ///
     /// This is disabled by default.
     pub fn column(&mut self, yes: bool) -> &mut StandardBuilder {
@@ -1139,6 +1157,15 @@ impl<'a, M: Matcher, W: WriteColor> StandardImpl<'a, M, W> {
                     }
                 }
                 self.write_line_term()?;
+                // It turns out that vimgrep really only wants one line per
+                // match, even when a match spans multiple lines. So when
+                // that option is enabled, we just quit after printing the
+                // first line.
+                //
+                // See: https://github.com/BurntSushi/ripgrep/issues/1866
+                if self.config().per_match_one_line {
+                    break;
+                }
             }
         }
         Ok(())
@@ -3054,6 +3081,91 @@ Holmeses, success in the province of detective work must always
 2:1:Holmeses, success in the province of detective work must always
 2:58:Holmeses, success in the province of detective work must always
 3:1:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+        assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn per_match_multi_line1_only_first_line() {
+        let matcher =
+            RegexMatcher::new(r"(?s:.{0})(Doctor Watsons|Sherlock)").unwrap();
+        let mut printer = StandardBuilder::new()
+            .per_match(true)
+            .per_match_one_line(true)
+            .column(true)
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .multi_line(true)
+            .line_number(true)
+            .build()
+            .search_reader(
+                &matcher,
+                SHERLOCK.as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "\
+1:9:For the Doctor Watsons of this world, as opposed to the Sherlock
+1:57:For the Doctor Watsons of this world, as opposed to the Sherlock
+3:49:be, to a very large extent, the result of luck. Sherlock Holmes
+";
+        assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn per_match_multi_line2_only_first_line() {
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?(Holmeses|clearly)").unwrap();
+        let mut printer = StandardBuilder::new()
+            .per_match(true)
+            .per_match_one_line(true)
+            .column(true)
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .multi_line(true)
+            .line_number(true)
+            .build()
+            .search_reader(
+                &matcher,
+                SHERLOCK.as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "\
+1:16:For the Doctor Watsons of this world, as opposed to the Sherlock
+5:12:but Doctor Watson has to have it taken out for him and dusted,
+";
+        assert_eq_printed!(expected, got);
+    }
+
+    #[test]
+    fn per_match_multi_line3_only_first_line() {
+        let matcher =
+            RegexMatcher::new(r"(?s)Watson.+?Holmeses|always.+?be").unwrap();
+        let mut printer = StandardBuilder::new()
+            .per_match(true)
+            .per_match_one_line(true)
+            .column(true)
+            .build(NoColor::new(vec![]));
+        SearcherBuilder::new()
+            .multi_line(true)
+            .line_number(true)
+            .build()
+            .search_reader(
+                &matcher,
+                SHERLOCK.as_bytes(),
+                printer.sink(&matcher),
+            )
+            .unwrap();
+
+        let got = printer_contents(&mut printer);
+        let expected = "\
+1:16:For the Doctor Watsons of this world, as opposed to the Sherlock
+2:58:Holmeses, success in the province of detective work must always
 ";
         assert_eq_printed!(expected, got);
     }

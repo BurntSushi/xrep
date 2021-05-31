@@ -777,6 +777,7 @@ impl ArgMatches {
             .path(self.with_filename(paths))
             .only_matching(self.is_present("only-matching"))
             .per_match(self.is_present("vimgrep"))
+            .per_match_one_line(true)
             .replacement(self.replacement())
             .max_columns(self.max_columns()?)
             .max_columns_preview(self.max_columns_preview())
