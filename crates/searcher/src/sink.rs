@@ -4,8 +4,8 @@ use std::io;
 
 use grep_matcher::LineTerminator;
 
-use lines::LineIter;
-use searcher::{ConfigError, Searcher};
+use crate::lines::LineIter;
+use crate::searcher::{ConfigError, Searcher};
 
 /// A trait that describes errors that can be reported by searchers and
 /// implementations of `Sink`.
@@ -514,7 +514,7 @@ pub mod sinks {
     use std::str;
 
     use super::{Sink, SinkError, SinkMatch};
-    use searcher::Searcher;
+    use crate::searcher::Searcher;
 
     /// A sink that provides line numbers and matches as strings while ignoring
     /// everything else.

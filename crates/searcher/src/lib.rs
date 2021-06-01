@@ -110,13 +110,13 @@ extern crate memmap;
 #[cfg(test)]
 extern crate regex;
 
-pub use lines::{LineIter, LineStep};
-pub use searcher::{
+pub use crate::lines::{LineIter, LineStep};
+pub use crate::searcher::{
     BinaryDetection, ConfigError, Encoding, MmapChoice, Searcher,
     SearcherBuilder,
 };
-pub use sink::sinks;
-pub use sink::{
+pub use crate::sink::sinks;
+pub use crate::sink::{
     Sink, SinkContext, SinkContextKind, SinkError, SinkFinish, SinkMatch,
 };
 

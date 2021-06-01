@@ -84,13 +84,15 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate termcolor;
 
-pub use color::{default_color_specs, ColorError, ColorSpecs, UserColorSpec};
+pub use crate::color::{
+    default_color_specs, ColorError, ColorSpecs, UserColorSpec,
+};
 #[cfg(feature = "serde1")]
-pub use json::{JSONBuilder, JSONSink, JSON};
-pub use standard::{Standard, StandardBuilder, StandardSink};
-pub use stats::Stats;
-pub use summary::{Summary, SummaryBuilder, SummaryKind, SummarySink};
-pub use util::PrinterPath;
+pub use crate::json::{JSONBuilder, JSONSink, JSON};
+pub use crate::standard::{Standard, StandardBuilder, StandardSink};
+pub use crate::stats::Stats;
+pub use crate::summary::{Summary, SummaryBuilder, SummaryKind, SummarySink};
+pub use crate::util::PrinterPath;
 
 // The maximum number of bytes to execute a search to account for look-ahead.
 //

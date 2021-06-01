@@ -1,13 +1,13 @@
 use std::cmp;
 use std::io;
 
+use crate::line_buffer::{LineBufferReader, DEFAULT_BUFFER_CAPACITY};
+use crate::lines::{self, LineStep};
+use crate::sink::{Sink, SinkError};
 use grep_matcher::Matcher;
-use line_buffer::{LineBufferReader, DEFAULT_BUFFER_CAPACITY};
-use lines::{self, LineStep};
-use sink::{Sink, SinkError};
 
-use searcher::core::Core;
-use searcher::{Config, Range, Searcher};
+use crate::searcher::core::Core;
+use crate::searcher::{Config, Range, Searcher};
 
 #[derive(Debug)]
 pub struct ReadByLine<'s, M: 's, R, S> {
@@ -349,8 +349,8 @@ impl<'s, M: Matcher, S: Sink> MultiLine<'s, M, S> {
 
 #[cfg(test)]
 mod tests {
-    use searcher::{BinaryDetection, SearcherBuilder};
-    use testutil::{KitchenSink, RegexMatcher, SearcherTester};
+    use crate::searcher::{BinaryDetection, SearcherBuilder};
+    use crate::testutil::{KitchenSink, RegexMatcher, SearcherTester};
 
     use super::*;
 
@@ -1488,8 +1488,8 @@ byte count:307
 
     #[test]
     fn scratch() {
-        use sinks;
-        use testutil::RegexMatcher;
+        use crate::sinks;
+        use crate::testutil::RegexMatcher;
 
         const SHERLOCK: &'static [u8] = b"\
 For the Doctor Wat\xFFsons of this world, as opposed to the Sherlock

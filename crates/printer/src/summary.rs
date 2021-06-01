@@ -8,10 +8,10 @@ use grep_matcher::Matcher;
 use grep_searcher::{Searcher, Sink, SinkError, SinkFinish, SinkMatch};
 use termcolor::{ColorSpec, NoColor, WriteColor};
 
-use color::ColorSpecs;
-use counter::CounterWriter;
-use stats::Stats;
-use util::{find_iter_at_in_context, PrinterPath};
+use crate::color::ColorSpecs;
+use crate::counter::CounterWriter;
+use crate::stats::Stats;
+use crate::util::{find_iter_at_in_context, PrinterPath};
 
 /// The configuration for the summary printer.
 ///

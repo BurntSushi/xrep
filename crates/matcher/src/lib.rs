@@ -45,7 +45,7 @@ use std::io;
 use std::ops;
 use std::u64;
 
-use interpolate::interpolate;
+use crate::interpolate::interpolate;
 
 mod interpolate;
 

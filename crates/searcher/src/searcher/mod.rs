@@ -5,15 +5,15 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
-use encoding_rs;
-use encoding_rs_io::DecodeReaderBytesBuilder;
-use grep_matcher::{LineTerminator, Match, Matcher};
-use line_buffer::{
+use crate::line_buffer::{
     self, alloc_error, BufferAllocation, LineBuffer, LineBufferBuilder,
     LineBufferReader, DEFAULT_BUFFER_CAPACITY,
 };
-use searcher::glue::{MultiLine, ReadByLine, SliceByLine};
-use sink::{Sink, SinkError};
+use crate::searcher::glue::{MultiLine, ReadByLine, SliceByLine};
+use crate::sink::{Sink, SinkError};
+use encoding_rs;
+use encoding_rs_io::DecodeReaderBytesBuilder;
+use grep_matcher::{LineTerminator, Match, Matcher};
 
 pub use self::mmap::MmapChoice;
 
@@ -990,7 +990,7 @@ fn slice_has_bom(slice: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use testutil::{KitchenSink, RegexMatcher};
+    use crate::testutil::{KitchenSink, RegexMatcher};
 
     #[test]
     fn config_error_heap_limit() {

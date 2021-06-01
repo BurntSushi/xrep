@@ -116,7 +116,7 @@ impl CommandReaderBuilder {
             .stderr(process::Stdio::piped())
             .spawn()?;
         let stderr = if self.async_stderr {
-            StderrReader::async(child.stderr.take().unwrap())
+            StderrReader::r#async(child.stderr.take().unwrap())
         } else {
             StderrReader::sync(child.stderr.take().unwrap())
         };
@@ -285,7 +285,7 @@ enum StderrReader {
 
 impl StderrReader {
     /// Create a reader for stderr that reads contents asynchronously.
-    fn async(mut stderr: process::ChildStderr) -> StderrReader {
+    fn r#async(mut stderr: process::ChildStderr) -> StderrReader {
         let handle =
             thread::spawn(move || stderr_to_command_error(&mut stderr));
         StderrReader::Async(Some(handle))

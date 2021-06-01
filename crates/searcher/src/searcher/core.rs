@@ -2,13 +2,13 @@ use std::cmp;
 
 use bstr::ByteSlice;
 
-use grep_matcher::{LineMatchKind, Matcher};
-use line_buffer::BinaryDetection;
-use lines::{self, LineStep};
-use searcher::{Config, Range, Searcher};
-use sink::{
+use crate::line_buffer::BinaryDetection;
+use crate::lines::{self, LineStep};
+use crate::searcher::{Config, Range, Searcher};
+use crate::sink::{
     Sink, SinkContext, SinkContextKind, SinkError, SinkFinish, SinkMatch,
 };
+use grep_matcher::{LineMatchKind, Matcher};
 
 #[derive(Debug)]
 pub struct Core<'s, M: 's, S> {

@@ -125,9 +125,9 @@ use aho_corasick::AhoCorasick;
 use bstr::{ByteSlice, ByteVec, B};
 use regex::bytes::{Regex, RegexBuilder, RegexSet};
 
-use glob::MatchStrategy;
-pub use glob::{Glob, GlobBuilder, GlobMatcher};
-use pathutil::{file_name, file_name_ext, normalize_path};
+use crate::glob::MatchStrategy;
+pub use crate::glob::{Glob, GlobBuilder, GlobMatcher};
+use crate::pathutil::{file_name, file_name_ext, normalize_path};
 
 mod glob;
 mod pathutil;
@@ -841,7 +841,7 @@ impl RequiredExtensionStrategyBuilder {
 #[cfg(test)]
 mod tests {
     use super::{GlobSet, GlobSetBuilder};
-    use glob::Glob;
+    use crate::glob::Glob;
 
     #[test]
     fn set_works() {

@@ -13,11 +13,11 @@ use std::vec;
 use same_file::Handle;
 use walkdir::{self, WalkDir};
 
-use dir::{Ignore, IgnoreBuilder};
-use gitignore::GitignoreBuilder;
-use overrides::Override;
-use types::Types;
-use {Error, PartialErrorBuilder};
+use crate::dir::{Ignore, IgnoreBuilder};
+use crate::gitignore::GitignoreBuilder;
+use crate::overrides::Override;
+use crate::types::Types;
+use crate::{Error, PartialErrorBuilder};
 
 /// A directory entry with a possible error attached.
 ///
@@ -1852,7 +1852,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use super::{DirEntry, WalkBuilder, WalkState};
-    use tests::TempDir;
+    use crate::tests::TempDir;
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();

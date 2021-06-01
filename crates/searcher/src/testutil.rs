@@ -7,8 +7,8 @@ use grep_matcher::{
 };
 use regex::bytes::{Regex, RegexBuilder};
 
-use searcher::{BinaryDetection, Searcher, SearcherBuilder};
-use sink::{Sink, SinkContext, SinkFinish, SinkMatch};
+use crate::searcher::{BinaryDetection, Searcher, SearcherBuilder};
+use crate::sink::{Sink, SinkContext, SinkFinish, SinkMatch};
 
 /// A simple regex matcher.
 ///

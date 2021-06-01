@@ -13,10 +13,10 @@ use grep_searcher::{
 };
 use termcolor::{ColorSpec, NoColor, WriteColor};
 
-use color::ColorSpecs;
-use counter::CounterWriter;
-use stats::Stats;
-use util::{
+use crate::color::ColorSpecs;
+use crate::counter::CounterWriter;
+use crate::stats::Stats;
+use crate::util::{
     find_iter_at_in_context, trim_ascii_prefix, trim_line_terminator,
     PrinterPath, Replacer, Sunk,
 };

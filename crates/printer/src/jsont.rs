@@ -13,7 +13,7 @@ use std::str;
 use base64;
 use serde::{Serialize, Serializer};
 
-use stats::Stats;
+use crate::stats::Stats;
 
 #[derive(Serialize)]
 #[serde(tag = "type", content = "data")]

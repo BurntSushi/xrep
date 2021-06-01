@@ -20,12 +20,12 @@ use std::io::{self, BufRead};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-use gitignore::{self, Gitignore, GitignoreBuilder};
-use overrides::{self, Override};
-use pathutil::{is_hidden, strip_prefix};
-use types::{self, Types};
-use walk::DirEntry;
-use {Error, Match, PartialErrorBuilder};
+use crate::gitignore::{self, Gitignore, GitignoreBuilder};
+use crate::overrides::{self, Override};
+use crate::pathutil::{is_hidden, strip_prefix};
+use crate::types::{self, Types};
+use crate::walk::DirEntry;
+use crate::{Error, Match, PartialErrorBuilder};
 
 /// IgnoreMatch represents information about where a match came from when using
 /// the `Ignore` matcher.
@@ -840,10 +840,10 @@ mod tests {
     use std::io::Write;
     use std::path::Path;
 
-    use dir::IgnoreBuilder;
-    use gitignore::Gitignore;
-    use tests::TempDir;
-    use Error;
+    use crate::dir::IgnoreBuilder;
+    use crate::gitignore::Gitignore;
+    use crate::tests::TempDir;
+    use crate::Error;
 
     fn wfile<P: AsRef<Path>>(path: P, contents: &str) {
         let mut file = File::create(path).unwrap();

@@ -6,7 +6,7 @@ use std::process::Command;
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
-use process::{CommandError, CommandReader, CommandReaderBuilder};
+use crate::process::{CommandError, CommandReader, CommandReaderBuilder};
 
 /// A builder for a matcher that determines which files get decompressed.
 #[derive(Clone, Debug)]

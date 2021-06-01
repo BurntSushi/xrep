@@ -19,8 +19,8 @@ use globset::{Candidate, GlobBuilder, GlobSet, GlobSetBuilder};
 use regex::bytes::Regex;
 use thread_local::ThreadLocal;
 
-use pathutil::{is_file_name, strip_prefix};
-use {Error, Match, PartialErrorBuilder};
+use crate::pathutil::{is_file_name, strip_prefix};
+use crate::{Error, Match, PartialErrorBuilder};
 
 /// Glob represents a single glob in a gitignore file.
 ///

@@ -8,7 +8,7 @@ use std::str;
 
 use bstr::io::BufReadExt;
 
-use escape::{escape, escape_os};
+use crate::escape::{escape, escape_os};
 
 /// An error that occurs when a pattern could not be converted to valid UTF-8.
 ///

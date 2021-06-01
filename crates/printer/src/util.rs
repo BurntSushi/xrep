@@ -12,7 +12,7 @@ use grep_searcher::{
 #[cfg(feature = "serde1")]
 use serde::{Serialize, Serializer};
 
-use MAX_LOOK_AHEAD;
+use crate::MAX_LOOK_AHEAD;
 
 /// A type for handling replacements while amortizing allocation.
 pub struct Replacer<M: Matcher> {

@@ -1,7 +1,7 @@
 use std::error;
 use std::fmt;
 
-use util;
+use crate::util;
 
 /// An error that can occur in this crate.
 ///

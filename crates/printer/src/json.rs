@@ -8,10 +8,10 @@ use grep_searcher::{
 };
 use serde_json as json;
 
-use counter::CounterWriter;
-use jsont;
-use stats::Stats;
-use util::find_iter_at_in_context;
+use crate::counter::CounterWriter;
+use crate::jsont;
+use crate::stats::Stats;
+use crate::util::find_iter_at_in_context;
 
 /// The configuration for the JSON printer.
 ///

@@ -178,18 +178,18 @@ mod pattern;
 mod process;
 mod wtr;
 
-pub use decompress::{
+pub use crate::decompress::{
     resolve_binary, DecompressionMatcher, DecompressionMatcherBuilder,
     DecompressionReader, DecompressionReaderBuilder,
 };
-pub use escape::{escape, escape_os, unescape, unescape_os};
-pub use human::{parse_human_readable_size, ParseSizeError};
-pub use pattern::{
+pub use crate::escape::{escape, escape_os, unescape, unescape_os};
+pub use crate::human::{parse_human_readable_size, ParseSizeError};
+pub use crate::pattern::{
     pattern_from_bytes, pattern_from_os, patterns_from_path,
     patterns_from_reader, patterns_from_stdin, InvalidPatternError,
 };
-pub use process::{CommandError, CommandReader, CommandReaderBuilder};
-pub use wtr::{
+pub use crate::process::{CommandError, CommandReader, CommandReaderBuilder};
+pub use crate::wtr::{
     stdout, stdout_buffered_block, stdout_buffered_line, StandardStream,
 };
 

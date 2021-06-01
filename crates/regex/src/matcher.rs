@@ -5,11 +5,11 @@ use grep_matcher::{
 };
 use regex::bytes::{CaptureLocations, Regex};
 
-use config::{Config, ConfiguredHIR};
-use crlf::CRLFMatcher;
-use error::Error;
-use multi::MultiLiteralMatcher;
-use word::WordMatcher;
+use crate::config::{Config, ConfiguredHIR};
+use crate::crlf::CRLFMatcher;
+use crate::error::Error;
+use crate::multi::MultiLiteralMatcher;
+use crate::word::WordMatcher;
 
 /// A builder for constructing a `Matcher` using regular expressions.
 ///

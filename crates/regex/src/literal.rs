@@ -9,7 +9,7 @@ use bstr::ByteSlice;
 use regex_syntax::hir::literal::{Literal, Literals};
 use regex_syntax::hir::{self, Hir, HirKind};
 
-use util;
+use crate::util;
 
 /// Represents prefix, suffix and inner "required" literals for a regular
 /// expression.

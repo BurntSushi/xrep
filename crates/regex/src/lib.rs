@@ -13,8 +13,8 @@ extern crate regex;
 extern crate regex_syntax;
 extern crate thread_local;
 
-pub use error::{Error, ErrorKind};
-pub use matcher::{RegexCaptures, RegexMatcher, RegexMatcherBuilder};
+pub use crate::error::{Error, ErrorKind};
+pub use crate::matcher::{RegexCaptures, RegexMatcher, RegexMatcherBuilder};
 
 mod ast;
 mod config;
