@@ -1,6 +1,17 @@
 TBD
 ===
-Unreleased changes. Release notes have not yet been written.
+ripgrep 13 is a new major version release of ripgrep that primarily contains
+bug fixes. There is also a fix for a security vulnerability on Windows
+([CVE-2021-3013](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3013)),
+some performance improvements and some minor breaking changes.
+
+A new short flag, `-.`, has been added. It is an alias for the `--hidden` flag,
+which instructs ripgrep to search hidden files and directories.
+
+ripgrep is also used a new
+[vectorized implementation of `memmem`](https://github.com/BurntSushi/memchr/pull/82),
+which is used to accelerate many common searches. If you notice any performance
+regressions (or major improvements), I'd love to hear about them.
 
 **BREAKING CHANGES**:
 
@@ -47,6 +58,8 @@ Performance improvements:
 
 * [PERF #1657](https://github.com/BurntSushi/ripgrep/discussions/1657):
   Check if a file should be ignored first before issuing stat calls.
+* [PERF memchr#82](https://github.com/BurntSushi/memchr/pull/82):
+  ripgrep now uses a new vectorized implementation of `memmem`.
 
 Feature enhancements:
 
