@@ -12,6 +12,7 @@ readme = "README.md"
 keywords = ["regex", "pattern", "trait"]
 license = "Unlicense/MIT"
 autotests = false
+edition = "2018"
 
 [dependencies]
 memchr = "2.1"

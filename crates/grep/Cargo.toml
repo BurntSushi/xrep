@@ -11,6 +11,7 @@ repository = "https://github.com/BurntSushi/ripgrep/tree/master/crates/grep"
 readme = "README.md"
 keywords = ["regex", "grep", "egrep", "search", "pattern"]
 license = "Unlicense/MIT"
+edition = "2018"
 
 [dependencies]
 grep-cli = { version = "0.1.5", path = "../cli" }

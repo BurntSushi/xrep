@@ -11,6 +11,7 @@ repository = "https://github.com/BurntSushi/ripgrep/tree/master/crates/regex"
 readme = "README.md"
 keywords = ["regex", "grep", "search", "pattern", "line"]
 license = "Unlicense/MIT"
+edition = "2018"
 
 [dependencies]
 aho-corasick = "0.7.3"
