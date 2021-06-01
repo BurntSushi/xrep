@@ -173,7 +173,12 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("red", &["*.r", "*.red", "*.reds"]),
     ("robot", &["*.robot"]),
     ("rst", &["*.rst"]),
-    ("ruby", &["Gemfile", "*.gemspec", ".irbrc", "Rakefile", "*.rb"]),
+    ("ruby", &[
+        // Idiomatic files
+        "config.ru", "Gemfile", ".irbrc", "Rakefile",
+        // Extensions
+        "*.gemspec", "*.rb", "*.rbw"
+    ]),
     ("rust", &["*.rs"]),
     ("sass", &["*.sass", "*.scss"]),
     ("scala", &["*.scala", "*.sbt"]),
