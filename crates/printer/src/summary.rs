@@ -457,7 +457,7 @@ impl<W> Summary<W> {
 /// * `W` refers to the underlying writer that this printer is writing its
 ///   output to.
 #[derive(Debug)]
-pub struct SummarySink<'p, 's, M: Matcher, W: 's> {
+pub struct SummarySink<'p, 's, M: Matcher, W> {
     matcher: M,
     summary: &'s mut Summary<W>,
     path: Option<PrinterPath<'p>>,
@@ -591,7 +591,7 @@ impl<'p, 's, M: Matcher, W: WriteColor> Sink for SummarySink<'p, 's, M, W> {
     fn matched(
         &mut self,
         searcher: &Searcher,
-        mat: &SinkMatch,
+        mat: &SinkMatch<'_>,
     ) -> Result<bool, io::Error> {
         let is_multi_line = self.multi_line(searcher);
         let sink_match_count = if self.stats.is_none() && !is_multi_line {

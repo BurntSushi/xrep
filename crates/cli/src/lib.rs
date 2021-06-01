@@ -158,18 +158,12 @@ error message is crafted that typically tells the user how to fix the problem.
 
 #![deny(missing_docs)]
 
-extern crate atty;
-extern crate bstr;
-extern crate globset;
+use atty;
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate regex;
-extern crate same_file;
-extern crate termcolor;
-#[cfg(windows)]
-extern crate winapi_util;
 
 mod decompress;
 mod escape;

@@ -70,19 +70,17 @@ fn example() -> Result<(), Box<Error>> {
 
 #[cfg(feature = "serde1")]
 extern crate base64;
-extern crate bstr;
-extern crate grep_matcher;
-#[cfg(test)]
-extern crate grep_regex;
-extern crate grep_searcher;
-#[cfg(feature = "serde1")]
-extern crate serde;
+
+
+
+
+
 #[cfg(feature = "serde1")]
 #[macro_use]
 extern crate serde_derive;
 #[cfg(feature = "serde1")]
 extern crate serde_json;
-extern crate termcolor;
+
 
 pub use crate::color::{
     default_color_specs, ColorError, ColorSpecs, UserColorSpec,

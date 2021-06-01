@@ -495,7 +495,7 @@ impl Ignore {
     }
 
     /// Returns an iterator over parent ignore matchers, including this one.
-    pub fn parents(&self) -> Parents {
+    pub fn parents(&self) -> Parents<'_> {
         Parents(Some(self))
     }
 

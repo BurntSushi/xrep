@@ -60,7 +60,7 @@ impl ColorError {
 }
 
 impl fmt::Display for ColorError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ColorError::UnrecognizedOutType(ref name) => write!(
                 f,

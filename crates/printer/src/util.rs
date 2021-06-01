@@ -29,7 +29,7 @@ struct Space<M: Matcher> {
 }
 
 impl<M: Matcher> fmt::Debug for Replacer<M> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (dst, matches) = self.replacement().unwrap_or((&[], &[]));
         f.debug_struct("Replacer")
             .field("dst", &dst)
@@ -330,7 +330,7 @@ impl<'a> PrinterPath<'a> {
 pub struct NiceDuration(pub time::Duration);
 
 impl fmt::Display for NiceDuration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:0.6}s", self.fractional_seconds())
     }
 }

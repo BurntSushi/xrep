@@ -1,6 +1,6 @@
 extern crate crossbeam_channel as channel;
-extern crate ignore;
-extern crate walkdir;
+use ignore;
+use walkdir;
 
 use std::env;
 use std::io::{self, Write};

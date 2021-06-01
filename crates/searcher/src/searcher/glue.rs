@@ -10,7 +10,7 @@ use crate::searcher::core::Core;
 use crate::searcher::{Config, Range, Searcher};
 
 #[derive(Debug)]
-pub struct ReadByLine<'s, M: 's, R, S> {
+pub struct ReadByLine<'s, M, R, S> {
     config: &'s Config,
     core: Core<'s, M, S>,
     rdr: LineBufferReader<'s, R>,
@@ -87,7 +87,7 @@ where
 }
 
 #[derive(Debug)]
-pub struct SliceByLine<'s, M: 's, S> {
+pub struct SliceByLine<'s, M, S> {
     config: &'s Config,
     core: Core<'s, M, S>,
     slice: &'s [u8],
@@ -134,7 +134,7 @@ impl<'s, M: Matcher, S: Sink> SliceByLine<'s, M, S> {
 }
 
 #[derive(Debug)]
-pub struct MultiLine<'s, M: 's, S> {
+pub struct MultiLine<'s, M, S> {
     config: &'s Config,
     core: Core<'s, M, S>,
     slice: &'s [u8],

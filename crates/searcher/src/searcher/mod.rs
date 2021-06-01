@@ -263,7 +263,7 @@ impl ::std::error::Error for ConfigError {
 }
 
 impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             ConfigError::SearchUnavailable => {
                 write!(f, "grep config error: no available searchers")

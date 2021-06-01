@@ -252,7 +252,7 @@ struct DirEntryRaw {
 }
 
 impl fmt::Debug for DirEntryRaw {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Leaving out FileType because it doesn't have a debug impl
         // in Rust 1.9. We could add it if we really wanted to by manually
         // querying each possibly file type. Meh. ---AG
@@ -504,7 +504,7 @@ enum Sorter {
 struct Filter(Arc<dyn Fn(&DirEntry) -> bool + Send + Sync + 'static>);
 
 impl fmt::Debug for WalkBuilder {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("WalkBuilder")
             .field("paths", &self.paths)
             .field("ig_builder", &self.ig_builder)
@@ -1226,7 +1226,7 @@ impl WalkParallel {
     /// visitor runs on only one thread, this build-up can be done without
     /// synchronization. Then, once traversal is complete, all of the results
     /// can be merged together into a single data structure.
-    pub fn visit(mut self, builder: &mut dyn ParallelVisitorBuilder) {
+    pub fn visit(mut self, builder: &mut dyn ParallelVisitorBuilder<'_>) {
         let threads = self.threads();
         let stack = Arc::new(Mutex::new(vec![]));
         {

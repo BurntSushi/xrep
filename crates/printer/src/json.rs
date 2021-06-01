@@ -507,7 +507,10 @@ impl<W: io::Write> JSON<W> {
 
     /// Write the given message followed by a new line. The new line is
     /// determined from the configuration of the given searcher.
-    fn write_message(&mut self, message: &jsont::Message) -> io::Result<()> {
+    fn write_message(
+        &mut self,
+        message: &jsont::Message<'_>,
+    ) -> io::Result<()> {
         if self.config.pretty {
             json::to_writer_pretty(&mut self.wtr, message)?;
         } else {
@@ -552,7 +555,7 @@ impl<W> JSON<W> {
 /// * `W` refers to the underlying writer that this printer is writing its
 ///   output to.
 #[derive(Debug)]
-pub struct JSONSink<'p, 's, M: Matcher, W: 's> {
+pub struct JSONSink<'p, 's, M: Matcher, W> {
     matcher: M,
     json: &'s mut JSON<W>,
     path: Option<&'p Path>,
@@ -682,7 +685,7 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
     fn matched(
         &mut self,
         searcher: &Searcher,
-        mat: &SinkMatch,
+        mat: &SinkMatch<'_>,
     ) -> Result<bool, io::Error> {
         self.write_begin_message()?;
 
@@ -724,7 +727,7 @@ impl<'p, 's, M: Matcher, W: io::Write> Sink for JSONSink<'p, 's, M, W> {
     fn context(
         &mut self,
         searcher: &Searcher,
-        ctx: &SinkContext,
+        ctx: &SinkContext<'_>,
     ) -> Result<bool, io::Error> {
         self.write_begin_message()?;
         self.json.matches.clear();
@@ -836,7 +839,7 @@ impl<'a> SubMatches<'a> {
     }
 
     /// Return this set of match ranges as a slice.
-    fn as_slice(&self) -> &[jsont::SubMatch] {
+    fn as_slice(&self) -> &[jsont::SubMatch<'_>] {
         match *self {
             SubMatches::Empty => &[],
             SubMatches::Small(ref x) => x,

@@ -1720,7 +1720,7 @@ impl ArgMatches {
         self.0.value_of_os(name)
     }
 
-    fn values_of_os(&self, name: &str) -> Option<clap::OsValues> {
+    fn values_of_os(&self, name: &str) -> Option<clap::OsValues<'_>> {
         self.0.values_of_os(name)
     }
 }

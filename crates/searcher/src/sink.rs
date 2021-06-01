@@ -121,7 +121,7 @@ pub trait Sink {
     fn matched(
         &mut self,
         _searcher: &Searcher,
-        _mat: &SinkMatch,
+        _mat: &SinkMatch<'_>,
     ) -> Result<bool, Self::Error>;
 
     /// This method is called whenever a context line is found, and is optional
@@ -140,7 +140,7 @@ pub trait Sink {
     fn context(
         &mut self,
         _searcher: &Searcher,
-        _context: &SinkContext,
+        _context: &SinkContext<'_>,
     ) -> Result<bool, Self::Error> {
         Ok(true)
     }
@@ -226,7 +226,7 @@ impl<'a, S: Sink> Sink for &'a mut S {
     fn matched(
         &mut self,
         searcher: &Searcher,
-        mat: &SinkMatch,
+        mat: &SinkMatch<'_>,
     ) -> Result<bool, S::Error> {
         (**self).matched(searcher, mat)
     }
@@ -235,7 +235,7 @@ impl<'a, S: Sink> Sink for &'a mut S {
     fn context(
         &mut self,
         searcher: &Searcher,
-        context: &SinkContext,
+        context: &SinkContext<'_>,
     ) -> Result<bool, S::Error> {
         (**self).context(searcher, context)
     }
@@ -279,7 +279,7 @@ impl<S: Sink + ?Sized> Sink for Box<S> {
     fn matched(
         &mut self,
         searcher: &Searcher,
-        mat: &SinkMatch,
+        mat: &SinkMatch<'_>,
     ) -> Result<bool, S::Error> {
         (**self).matched(searcher, mat)
     }
@@ -288,7 +288,7 @@ impl<S: Sink + ?Sized> Sink for Box<S> {
     fn context(
         &mut self,
         searcher: &Searcher,
-        context: &SinkContext,
+        context: &SinkContext<'_>,
     ) -> Result<bool, S::Error> {
         (**self).context(searcher, context)
     }
@@ -545,7 +545,7 @@ pub mod sinks {
         fn matched(
             &mut self,
             _searcher: &Searcher,
-            mat: &SinkMatch,
+            mat: &SinkMatch<'_>,
         ) -> Result<bool, io::Error> {
             let matched = match str::from_utf8(mat.bytes()) {
                 Ok(matched) => matched,
@@ -593,7 +593,7 @@ pub mod sinks {
         fn matched(
             &mut self,
             _searcher: &Searcher,
-            mat: &SinkMatch,
+            mat: &SinkMatch<'_>,
         ) -> Result<bool, io::Error> {
             use std::borrow::Cow;
 
@@ -643,7 +643,7 @@ pub mod sinks {
         fn matched(
             &mut self,
             _searcher: &Searcher,
-            mat: &SinkMatch,
+            mat: &SinkMatch<'_>,
         ) -> Result<bool, io::Error> {
             let line_number = match mat.line_number() {
                 Some(line_number) => line_number,

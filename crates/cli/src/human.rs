@@ -52,7 +52,7 @@ impl error::Error for ParseSizeError {
 }
 
 impl fmt::Display for ParseSizeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::ParseSizeErrorKind::*;
 
         match self.kind {

@@ -46,16 +46,16 @@ See the documentation for `WalkBuilder` for many other options.
 
 #![deny(missing_docs)]
 
-extern crate globset;
+
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
-extern crate memchr;
-extern crate regex;
-extern crate same_file;
-extern crate thread_local;
-extern crate walkdir;
+
+
+
+
+use walkdir;
 #[cfg(windows)]
 extern crate winapi_util;
 
@@ -334,7 +334,7 @@ impl error::Error for Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::Partial(ref errs) => {
                 let msgs: Vec<String> =
