@@ -88,7 +88,7 @@ impl From<ParseSizeError> for io::Error {
 ///
 /// Additional suffixes may be added over time.
 pub fn parse_human_readable_size(size: &str) -> Result<u64, ParseSizeError> {
-    lazy_static! {
+    lazy_static::lazy_static! {
         // Normally I'd just parse something this simple by hand to avoid the
         // regex dep, but we bring regex in any way for glob matching, so might
         // as well use it.

@@ -46,19 +46,6 @@ See the documentation for `WalkBuilder` for many other options.
 
 #![deny(missing_docs)]
 
-
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
-
-
-
-use walkdir;
-#[cfg(windows)]
-extern crate winapi_util;
-
 use std::error;
 use std::fmt;
 use std::io;

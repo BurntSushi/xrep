@@ -224,7 +224,6 @@ dependencies = [
  "grep-regex",
  "grep-searcher",
  "serde",
- "serde_derive",
  "serde_json",
  "termcolor",
 ]
@@ -500,6 +499,9 @@ name = "serde"
 version = "1.0.125"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "558dc50e1a5a5fa7112ca2ce4effcb321b0300c0d4ccf0776a9f60cd89031171"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_derive"

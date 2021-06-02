@@ -83,13 +83,13 @@ impl MmapChoice {
             Ok(mmap) => Some(mmap),
             Err(err) => {
                 if let Some(path) = path {
-                    debug!(
+                    log::debug!(
                         "{}: failed to open memory map: {}",
                         path.display(),
                         err
                     );
                 } else {
-                    debug!("failed to open memory map: {}", err);
+                    log::debug!("failed to open memory map: {}", err);
                 }
                 None
             }

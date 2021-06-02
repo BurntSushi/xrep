@@ -254,7 +254,7 @@ impl CommandReader {
 impl Drop for CommandReader {
     fn drop(&mut self) {
         if let Err(error) = self.close() {
-            warn!("{}", error);
+            log::warn!("{}", error);
         }
     }
 }

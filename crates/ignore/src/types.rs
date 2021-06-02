@@ -427,7 +427,7 @@ impl TypesBuilder {
     /// If `name` is `all` or otherwise contains any character that is not a
     /// Unicode letter or number, then an error is returned.
     pub fn add(&mut self, name: &str, glob: &str) -> Result<(), Error> {
-        lazy_static! {
+        lazy_static::lazy_static! {
             static ref RE: Regex = Regex::new(r"^[\pL\pN]+$").unwrap();
         };
         if name == "all" || !RE.is_match(name) {

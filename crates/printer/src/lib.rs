@@ -27,10 +27,6 @@ contain matches.
 This example shows how to create a "standard" printer and execute a search.
 
 ```
-extern crate grep_regex;
-extern crate grep_printer;
-extern crate grep_searcher;
-
 use std::error::Error;
 
 use grep_regex::RegexMatcher;
@@ -67,20 +63,6 @@ fn example() -> Result<(), Box<Error>> {
 */
 
 #![deny(missing_docs)]
-
-#[cfg(feature = "serde1")]
-extern crate base64;
-
-
-
-
-
-#[cfg(feature = "serde1")]
-#[macro_use]
-extern crate serde_derive;
-#[cfg(feature = "serde1")]
-extern crate serde_json;
-
 
 pub use crate::color::{
     default_color_specs, ColorError, ColorSpecs, UserColorSpec,

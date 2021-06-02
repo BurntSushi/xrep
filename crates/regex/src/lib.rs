@@ -1,17 +1,7 @@
 /*!
 An implementation of `grep-matcher`'s `Matcher` trait for Rust's regex engine.
 */
-
 #![deny(missing_docs)]
-
-
-
-
-#[macro_use]
-extern crate log;
-
-
-
 
 pub use crate::error::{Error, ErrorKind};
 pub use crate::matcher::{RegexCaptures, RegexMatcher, RegexMatcherBuilder};

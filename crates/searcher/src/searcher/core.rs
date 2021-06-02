@@ -53,9 +53,9 @@ impl<'s, M: Matcher, S: Sink> Core<'s, M, S> {
         };
         if !core.searcher.multi_line_with_matcher(&core.matcher) {
             if core.is_line_by_line_fast() {
-                trace!("searcher core: will use fast line searcher");
+                log::trace!("searcher core: will use fast line searcher");
             } else {
-                trace!("searcher core: will use slow line searcher");
+                log::trace!("searcher core: will use slow line searcher");
             }
         }
         core

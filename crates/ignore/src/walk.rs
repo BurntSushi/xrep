@@ -1725,7 +1725,7 @@ fn skip_filesize(
 
     if let Some(fs) = filesize {
         if fs > max_filesize {
-            debug!("ignoring {}: {} bytes", path.display(), fs);
+            log::debug!("ignoring {}: {} bytes", path.display(), fs);
             true
         } else {
             false
@@ -1738,10 +1738,10 @@ fn skip_filesize(
 fn should_skip_entry(ig: &Ignore, dent: &DirEntry) -> bool {
     let m = ig.matched_dir_entry(dent);
     if m.is_ignore() {
-        debug!("ignoring {}: {:?}", dent.path().display(), m);
+        log::debug!("ignoring {}: {:?}", dent.path().display(), m);
         true
     } else if m.is_whitelist() {
-        debug!("whitelisting {}: {:?}", dent.path().display(), m);
+        log::debug!("whitelisting {}: {:?}", dent.path().display(), m);
         false
     } else {
         false

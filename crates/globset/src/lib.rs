@@ -103,16 +103,6 @@ or to enable case insensitive matching.
 
 #![deny(missing_docs)]
 
-
-
-use fnv;
-#[macro_use]
-extern crate log;
-use regex;
-
-#[cfg(feature = "serde1")]
-extern crate serde;
-
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::error::Error as StdError;
@@ -423,12 +413,12 @@ impl GlobSet {
                     required_exts.add(i, ext, p.regex().to_owned());
                 }
                 MatchStrategy::Regex => {
-                    debug!("glob converted to regex: {:?}", p);
+                    log::debug!("glob converted to regex: {:?}", p);
                     regexes.add(i, p.regex().to_owned());
                 }
             }
         }
-        debug!(
+        log::debug!(
             "built glob set; {} literals, {} basenames, {} extensions, \
                 {} prefixes, {} suffixes, {} required extensions, {} regexes",
             lits.0.len(),
@@ -556,7 +546,11 @@ impl GlobSetMatchStrategy {
         }
     }
 
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         use self::GlobSetMatchStrategy::*;
         match *self {
             Literal(ref s) => s.matches_into(candidate, matches),
@@ -587,7 +581,11 @@ impl LiteralStrategy {
     }
 
     #[inline(never)]
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         if let Some(hits) = self.0.get(candidate.path.as_bytes()) {
             matches.extend(hits);
         }
@@ -614,7 +612,11 @@ impl BasenameLiteralStrategy {
     }
 
     #[inline(never)]
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         if candidate.basename.is_empty() {
             return;
         }
@@ -644,7 +646,11 @@ impl ExtensionStrategy {
     }
 
     #[inline(never)]
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         if candidate.ext.is_empty() {
             return;
         }
@@ -672,7 +678,11 @@ impl PrefixStrategy {
         false
     }
 
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         let path = candidate.path_prefix(self.longest);
         for m in self.matcher.find_overlapping_iter(path) {
             if m.start() == 0 {
@@ -700,7 +710,11 @@ impl SuffixStrategy {
         false
     }
 
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         let path = candidate.path_suffix(self.longest);
         for m in self.matcher.find_overlapping_iter(path) {
             if m.end() == path.len() {
@@ -732,7 +746,11 @@ impl RequiredExtensionStrategy {
     }
 
     #[inline(never)]
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         if candidate.ext.is_empty() {
             return;
         }
@@ -757,7 +775,11 @@ impl RegexSetStrategy {
         self.matcher.is_match(candidate.path.as_bytes())
     }
 
-    fn matches_into(&self, candidate: &Candidate<'_>, matches: &mut Vec<usize>) {
+    fn matches_into(
+        &self,
+        candidate: &Candidate<'_>,
+        matches: &mut Vec<usize>,
+    ) {
         for i in self.matcher.matches(candidate.path.as_bytes()) {
             matches.push(self.map[i]);
         }

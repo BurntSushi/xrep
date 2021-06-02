@@ -49,7 +49,7 @@ impl WordMatcher {
             expr.with_pattern(|pat| format!("^(?:{})$", pat))?.regex()?;
         let word_expr = expr.with_pattern(|pat| {
             let pat = format!(r"(?:(?m:^)|\W)({})(?:\W|(?m:$))", pat);
-            debug!("word regex: {:?}", pat);
+            log::debug!("word regex: {:?}", pat);
             pat
         })?;
         let regex = word_expr.regex()?;

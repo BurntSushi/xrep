@@ -581,7 +581,7 @@ impl IgnoreBuilder {
                 .unwrap();
             let (gi, err) = builder.build_global();
             if let Some(err) = err {
-                debug!("{}", err);
+                log::debug!("{}", err);
             }
             gi
         };

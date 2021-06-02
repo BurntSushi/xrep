@@ -230,7 +230,7 @@ impl DecompressionReaderBuilder {
         match self.command_builder.build(&mut cmd) {
             Ok(cmd_reader) => Ok(DecompressionReader { rdr: Ok(cmd_reader) }),
             Err(err) => {
-                debug!(
+                log::debug!(
                     "{}: error spawning command '{:?}': {} \
                      (falling back to uncompressed reader)",
                     path.display(),
@@ -479,7 +479,7 @@ fn default_decompression_commands() -> Vec<DecompressionCommand> {
         let bin = match resolve_binary(Path::new(args[0])) {
             Ok(bin) => bin,
             Err(err) => {
-                debug!("{}", err);
+                log::debug!("{}", err);
                 return;
             }
         };

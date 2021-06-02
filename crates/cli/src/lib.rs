@@ -158,13 +158,6 @@ error message is crafted that typically tells the user how to fix the problem.
 
 #![deny(missing_docs)]
 
-use atty;
-
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
 mod decompress;
 mod escape;
 mod human;

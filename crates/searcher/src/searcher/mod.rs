@@ -659,16 +659,19 @@ impl Searcher {
         S: Sink,
     {
         if let Some(mmap) = self.config.mmap.open(file, path) {
-            trace!("{:?}: searching via memory map", path);
+            log::trace!("{:?}: searching via memory map", path);
             return self.search_slice(matcher, &mmap, write_to);
         }
         // Fast path for multi-line searches of files when memory maps are
         // not enabled. This pre-allocates a buffer roughly the size of the
         // file, which isn't possible when searching an arbitrary io::Read.
         if self.multi_line_with_matcher(&matcher) {
-            trace!("{:?}: reading entire file on to heap for mulitline", path);
+            log::trace!(
+                "{:?}: reading entire file on to heap for mulitline",
+                path
+            );
             self.fill_multi_line_buffer_from_file::<S>(file)?;
-            trace!("{:?}: searching via multiline strategy", path);
+            log::trace!("{:?}: searching via multiline strategy", path);
             MultiLine::new(
                 self,
                 matcher,
@@ -677,7 +680,7 @@ impl Searcher {
             )
             .run()
         } else {
-            trace!("{:?}: searching using generic reader", path);
+            log::trace!("{:?}: searching using generic reader", path);
             self.search_reader(matcher, file, write_to)
         }
     }
@@ -713,9 +716,11 @@ impl Searcher {
             .map_err(S::Error::error_io)?;
 
         if self.multi_line_with_matcher(&matcher) {
-            trace!("generic reader: reading everything to heap for multiline");
+            log::trace!(
+                "generic reader: reading everything to heap for multiline"
+            );
             self.fill_multi_line_buffer_from_reader::<_, S>(decoder)?;
-            trace!("generic reader: searching via multiline strategy");
+            log::trace!("generic reader: searching via multiline strategy");
             MultiLine::new(
                 self,
                 matcher,
@@ -726,7 +731,7 @@ impl Searcher {
         } else {
             let mut line_buffer = self.line_buffer.borrow_mut();
             let rdr = LineBufferReader::new(decoder, &mut *line_buffer);
-            trace!("generic reader: searching via roll buffer strategy");
+            log::trace!("generic reader: searching via roll buffer strategy");
             ReadByLine::new(self, matcher, rdr, write_to).run()
         }
     }
@@ -747,14 +752,16 @@ impl Searcher {
 
         // We can search the slice directly, unless we need to do transcoding.
         if self.slice_needs_transcoding(slice) {
-            trace!("slice reader: needs transcoding, using generic reader");
+            log::trace!(
+                "slice reader: needs transcoding, using generic reader"
+            );
             return self.search_reader(matcher, slice, write_to);
         }
         if self.multi_line_with_matcher(&matcher) {
-            trace!("slice reader: searching via multiline strategy");
+            log::trace!("slice reader: searching via multiline strategy");
             MultiLine::new(self, matcher, slice, write_to).run()
         } else {
-            trace!("slice reader: searching via slice-by-line strategy");
+            log::trace!("slice reader: searching via slice-by-line strategy");
             SliceByLine::new(self, matcher, slice, write_to).run()
         }
     }

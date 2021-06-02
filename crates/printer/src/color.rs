@@ -147,9 +147,6 @@ pub struct ColorSpecs {
 /// A `UserColorSpec` can also be converted to a `termcolor::ColorSpec`:
 ///
 /// ```rust
-/// extern crate grep_printer;
-/// extern crate termcolor;
-///
 /// # fn main() {
 /// use termcolor::{Color, ColorSpec};
 /// use grep_printer::UserColorSpec;
