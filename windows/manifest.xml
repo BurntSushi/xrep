@@ -1,17 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- 
+This file is an application manifest for Windows binaries.
+The format is documented at: https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests
+-->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
     <!-- Uniquely identifiy the application (name + version) -->
     <assemblyIdentity
         type="win32"
         name="BurntSushi.github.ripgrep"
-        version="13.0.0.0"
+        version="0.0.0.0"
     />
     
     <!-- Supported OS versions -->
     <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+        <!--
+            When a new version of Windows comes out, the new identifier will be listed here:
+            https://docs.microsoft.com/en-us/windows/win32/sbscs/application-manifests#supportedos
+        -->
         <application>
             <!-- Windows 7 --><supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
-            <!-- Windows 8 --><supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
+            <!-- Windows 8 --><supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
+            <!-- Windows 8.1 --><supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
             <!-- Windows 10 --><supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
         </application>
     </compatibility>
@@ -22,19 +31,12 @@
             xmlns:ws16="http://schemas.microsoft.com/SMI/2016/WindowsSettings"
             xmlns:ws19="http://schemas.microsoft.com/SMI/2019/WindowsSettings"
         >
-            <!-- Allows using longer paths without special handling  -->
-            <!-- See: https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=cmd#enable-long-paths-in-windows-10-version-1607-and-later -->
+            <!--
+                Allows using longer paths without special handling
+                See: https://docs.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=cmd#enable-long-paths-in-windows-10-version-1607-and-later
+            -->
             <ws16:longPathAware>true</ws16:longPathAware>
             <ws19:activeCodePage>UTF-8</ws19:activeCodePage>
         </asmv3:windowsSettings>
     </asmv3:application>
-
-    <!-- Run the application at the same permission level as the process that started it -->
-    <asmv3:trustInfo>
-        <security>
-            <requestedPrivileges>
-                <requestedExecutionLevel level="asInvoker" uiAccess="false" />
-            </requestedPrivileges>
-        </security>
-    </asmv3:trustInfo>
 </assembly>

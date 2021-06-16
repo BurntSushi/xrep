@@ -134,7 +134,13 @@ jobs:
         echo "target dir is: ${{ env.TARGET_DIR }}"
 
     - name: Build release binary
+      if: matrix.build != 'win-msvc' && matrix.build != 'win32-msvc'
       run: ${{ env.CARGO }} build --verbose --release --features pcre2 ${{ env.TARGET_FLAGS }}
+      
+    # On Windows MSVC, embed the application manifest.
+    - name: Build release binary
+      if: matrix.build == 'win-msvc' || matrix.build == 'win32-msvc'
+      run: ${{ env.CARGO }} rustc --verbose --release --features pcre2 ${{ env.TARGET_FLAGS }} -- -C link-arg="/MANIFEST:EMBED" -C link-arg="/MANIFESTINPUT:windows/manifest.xml"
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'

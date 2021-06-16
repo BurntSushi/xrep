@@ -342,6 +342,13 @@ If you're a **Rust programmer**, ripgrep can be installed with `cargo`.
 $ cargo install ripgrep
 ```
 
+### Windows long path support
+
+By default, Windows paths are limited to 260 characters.
+Long paths are supported in Windows 10 version 1607 or later but requires you to opt-in.
+To do this download and then open the [LongPathsEnabled.reg](LongPathsEnabled.reg) file.
+
+The version of ripgrep you use must also be built with long path support enabled.
 
 ### Building
 
@@ -359,6 +366,17 @@ $ cargo build --release
 $ ./target/release/rg --version
 0.1.3
 ```
+
+To build ripgrep with Windows long path support, use `windows/build` instead of `cargo build`.
+This requires using an MSVC compatible toolchain.
+
+```
+$ cd ripgrep
+$ windows/build --release
+$ ./target/release/rg --version
+0.1.3
+```
+
 
 If you have a Rust nightly compiler and a recent Intel CPU, then you can enable
 additional optional SIMD acceleration like so:
