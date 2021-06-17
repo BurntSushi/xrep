@@ -1395,7 +1395,7 @@ it. If multiple globs match a file or directory, the glob given later in the
 command line takes precedence.
 
 As an extension, globs support specifying alternatives: *-g ab{c,d}* is
-equivalet to *-g abc -g abd*. Empty alternatives like *-g ab{,c}* are not
+equivalent to *-g abc -g abd*. Empty alternatives like *-g ab{,c}* are not
 currently supported. Note that this syntax extension is also currently enabled
 in gitignore files, even though this syntax isn't supported by git itself.
 ripgrep may disable this syntax extension in gitignore files, but it will
