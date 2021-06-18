@@ -496,9 +496,11 @@ impl TypesBuilder {
     /// Add a set of default file type definitions.
     pub fn add_defaults(&mut self) -> &mut TypesBuilder {
         static MSG: &'static str = "adding a default type should never fail";
-        for &(name, exts) in DEFAULT_TYPES {
-            for ext in exts {
-                self.add(name, ext).expect(MSG);
+        for &(names, exts) in DEFAULT_TYPES {
+            for name in names {
+                for ext in exts {
+                    self.add(name, ext).expect(MSG);
+                }
             }
         }
         self
@@ -545,6 +547,8 @@ mod tests {
             "html:*.htm",
             "rust:*.rs",
             "js:*.js",
+            "py:*.py",
+            "python:*.py",
             "foo:*.{rs,foo}",
             "combo:include:html,rust",
         ]
@@ -559,6 +563,8 @@ mod tests {
     matched!(match7, types(), vec!["foo"], vec!["rust"], "main.foo");
     matched!(match8, types(), vec!["combo"], vec![], "index.html");
     matched!(match9, types(), vec!["combo"], vec![], "lib.rs");
+    matched!(match10, types(), vec!["py"], vec![], "main.py");
+    matched!(match11, types(), vec!["python"], vec![], "main.py");
 
     matched!(not, matchnot1, types(), vec!["rust"], vec![], "index.html");
     matched!(not, matchnot2, types(), vec![], vec!["rust"], "main.rs");
@@ -566,6 +572,8 @@ mod tests {
     matched!(not, matchnot4, types(), vec!["rust"], vec!["foo"], "main.rs");
     matched!(not, matchnot5, types(), vec!["rust"], vec!["foo"], "main.foo");
     matched!(not, matchnot6, types(), vec!["combo"], vec![], "leftpad.js");
+    matched!(not, matchnot7, types(), vec!["py"], vec![], "index.html");
+    matched!(not, matchnot8, types(), vec!["python"], vec![], "doc.md");
 
     #[test]
     fn test_invalid_defs() {
@@ -577,7 +585,7 @@ mod tests {
         let original_defs = btypes.definitions();
         let bad_defs = vec![
             // Reference to type that does not exist
-            "combo:include:html,python",
+            "combo:include:html,qwerty",
             // Bad format
             "combo:foobar:html,rust",
             "",
