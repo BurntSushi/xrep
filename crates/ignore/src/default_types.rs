@@ -40,7 +40,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
         "*.[ChH].in", "*.cc.in", "*.[ch]pp.in", "*.[ch]xx.in", "*.hh.in",
     ]),
     ("creole", &["*.creole"]),
-    ("crystal", &["*.cr", "*.ecr", "shard.yml"]),
+    ("crystal", &["Projectfile", "*.cr", "*.ecr", "shard.yml"]),
     ("cs", &["*.cs"]),
     ("csharp", &["*.cs"]),
     ("cshtml", &["*.cshtml"]),
