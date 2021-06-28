@@ -465,7 +465,14 @@ impl GlobSetBuilder {
     /// patterns. Once all patterns have been added, `build` should be called
     /// to produce a `GlobSet`, which can then be used for matching.
     pub fn new() -> GlobSetBuilder {
-        GlobSetBuilder { pats: vec![] }
+        GlobSetBuilder::with_capacity(0)
+    }
+
+    /// Create a new GlobSetBuilder that reserves enough memory to hold the
+    /// specified number of patterns without reallocations. This is more
+    /// efficient than `new` when the number of patterns is known in advance.
+    pub fn with_capacity(capacity: usize) -> GlobSetBuilder {
+        GlobSetBuilder { pats: Vec::with_capacity(capacity) }
     }
 
     /// Builds a new matcher from all of the glob patterns added so far.
