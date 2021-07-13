@@ -217,6 +217,7 @@ pub const DEFAULT_TYPES: &[(&str, &[&str])] = &[
     ("taskpaper", &["*.taskpaper"]),
     ("tcl", &["*.tcl"]),
     ("tex", &["*.tex", "*.ltx", "*.cls", "*.sty", "*.bib", "*.dtx", "*.ins"]),
+    ("texinfo", &["*.texi"]),
     ("textile", &["*.textile"]),
     ("tf", &["*.tf"]),
     ("thrift", &["*.thrift"]),
