@@ -1548,7 +1548,7 @@ When specifying multiple ignore files, earlier files have lower precedence
 than later files.
 
 If you are looking for a way to include or exclude files and directories
-directly on the command line, then used -g instead.
+directly on the command line, then use -g instead.
 "
     );
     let arg = RGArg::flag("ignore-file", "PATH")
