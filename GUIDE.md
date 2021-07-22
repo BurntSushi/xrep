@@ -992,6 +992,8 @@ used options that will likely impact how you use ripgrep on a regular basis.
 * `-S/--smart-case`: This is similar to `--ignore-case`, but disables itself
   if the pattern contains any uppercase letters. Usually this flag is put into
   alias or a config file.
+* `-F/--fixed-strings`: Disable regular expression matching and treat the pattern
+   as a literal string. 
 * `-w/--word-regexp`: Require that all matches of the pattern be surrounded
   by word boundaries. That is, given `pattern`, the `--word-regexp` flag will
   cause ripgrep to behave as if `pattern` were actually `\b(?:pattern)\b`.
